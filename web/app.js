@@ -43,11 +43,18 @@ const state = {
   dynasties: [],
   selectedDynasty: "dayin",
   busy: false,
+  music: {
+    ctx: null,
+    master: null,
+    timers: [],
+    enabled: false,
+  },
 };
 
 const els = {
   startSelected: document.querySelector("#start-selected"),
   continueGame: document.querySelector("#continue-game"),
+  musicToggle: document.querySelector("#music-toggle"),
   dynastyGrid: document.querySelector("#dynasty-grid"),
   board: document.querySelector("#game-board"),
   phase: document.querySelector("#phase-label"),
@@ -55,6 +62,7 @@ const els = {
   stats: document.querySelector("#stats-list"),
   portrait: document.querySelector("#current-portrait"),
   sceneArt: document.querySelector("#scene-art"),
+  comicStrip: document.querySelector("#comic-strip"),
   kicker: document.querySelector("#scene-kicker"),
   title: document.querySelector("#scene-title"),
   body: document.querySelector("#scene-body"),
@@ -62,6 +70,7 @@ const els = {
   resolution: document.querySelector("#resolution"),
   currentDynasty: document.querySelector("#current-dynasty"),
   crisis: document.querySelector("#crisis-card"),
+  objectives: document.querySelector("#objective-list"),
   provinces: document.querySelector("#province-list"),
   factions: document.querySelector("#faction-list"),
   history: document.querySelector("#history-list"),
@@ -70,6 +79,7 @@ const els = {
 
 els.startSelected.addEventListener("click", () => createGame());
 els.continueGame.addEventListener("click", () => continueGame());
+els.musicToggle.addEventListener("click", () => toggleMusic());
 
 boot();
 
@@ -168,6 +178,7 @@ async function choose(choiceId) {
     state.game = payload.state;
     renderResolution(payload.resolution);
     renderGame();
+    pulseCourt();
   } catch (error) {
     showToast(error.message);
   } finally {
@@ -181,8 +192,10 @@ function renderGame() {
   renderIdentity();
   renderStats();
   renderScene();
+  renderComicStrip();
   renderDynastyStatus();
   renderCrisis();
+  renderObjectives();
   renderProvinces();
   renderFactions();
   renderHistory();
@@ -255,6 +268,38 @@ function renderScene() {
   });
 }
 
+function renderComicStrip() {
+  const game = state.game;
+  const dynastyIndex = Math.max(0, state.dynasties.findIndex((d) => d.id === game.dynasty.id));
+  const panels = [
+    {
+      className: `dynasty-panel panel-${dynastyIndex}`,
+      title: game.dynasty.name,
+      caption: game.dynasty.challenge,
+    },
+    {
+      className: game.phase === "emperor" ? "character-panel emperor" : "character-panel prince",
+      title: game.phase === "emperor" ? "御座" : "东宫",
+      caption: game.phase === "emperor" ? "你的一笔朱批，会让天下震动。" : "少年皇子的一次选择，会在多年后回响。",
+    },
+    {
+      className: "crisis-panel",
+      title: game.crisis?.title || "朝局",
+      caption: game.crisis ? `烈度 ${game.crisis.severity} · 危机钟 ${game.crisis.clock}/8` : "风暴尚未命名。",
+    },
+  ];
+
+  els.comicStrip.innerHTML = panels
+    .map((panel) => `
+      <article class="comic-panel ${panel.className}">
+        <span></span>
+        <strong>${panel.title}</strong>
+        <small>${panel.caption}</small>
+      </article>
+    `)
+    .join("");
+}
+
 function choiceButton(choice) {
   return `
     <button class="choice-card domain-${choice.domain}" type="button" data-choice="${choice.id}">
@@ -293,6 +338,24 @@ function renderCrisis() {
     </div>
     <small>烈度 ${crisis.severity} · 危机钟 ${crisis.clock}/8</small>
   `;
+}
+
+function renderObjectives() {
+  els.objectives.innerHTML = (state.game.objectives || [])
+    .map((objective) => {
+      const percent = Math.min(100, Math.round((objective.progress / objective.target) * 100));
+      return `
+        <article class="objective-row ${objective.completed ? "completed" : ""}">
+          <div>
+            <strong>${objective.title}</strong>
+            <small>${objective.description}</small>
+          </div>
+          <div class="objective-track"><span style="width:${percent}%"></span></div>
+          <em>${objective.progress}/${objective.target} · ${objective.reward}</em>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function renderProvinces() {
@@ -362,6 +425,101 @@ function setBusy(busy) {
   document.querySelectorAll("button").forEach((button) => {
     button.disabled = busy;
   });
+}
+
+function pulseCourt() {
+  document.body.classList.remove("court-pulse");
+  window.requestAnimationFrame(() => {
+    document.body.classList.add("court-pulse");
+    window.setTimeout(() => document.body.classList.remove("court-pulse"), 760);
+  });
+}
+
+async function toggleMusic() {
+  if (state.music.enabled) {
+    stopMusic();
+    return;
+  }
+  await startMusic();
+}
+
+async function startMusic() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) {
+    showToast("当前浏览器不支持 Web Audio。");
+    return;
+  }
+
+  const ctx = new AudioContext();
+  const master = ctx.createGain();
+  master.gain.value = 0.055;
+  master.connect(ctx.destination);
+  state.music.ctx = ctx;
+  state.music.master = master;
+  state.music.enabled = true;
+  els.musicToggle.textContent = "关闭宫廷乐";
+  els.musicToggle.setAttribute("aria-pressed", "true");
+
+  const scale = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25];
+  let step = 0;
+  const playNote = () => {
+    if (!state.music.enabled || !state.music.ctx) return;
+    const now = ctx.currentTime;
+    const freq = scale[step % scale.length] * (step % 5 === 0 ? 0.5 : 1);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    osc.type = step % 3 === 0 ? "triangle" : "sine";
+    osc.frequency.setValueAtTime(freq, now);
+    filter.type = "lowpass";
+    filter.frequency.value = 900;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.18, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(master);
+    osc.start(now);
+    osc.stop(now + 2);
+    step += 1;
+  };
+
+  playNote();
+  state.music.timers.push(window.setInterval(playNote, 950));
+  state.music.timers.push(window.setInterval(() => playDrum(ctx, master), 3800));
+  showToast("宫廷乐已开启，可随时关闭。");
+}
+
+function playDrum(ctx, master) {
+  if (!state.music.enabled) return;
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(96, now);
+  osc.frequency.exponentialRampToValueAtTime(42, now + 0.32);
+  gain.gain.setValueAtTime(0.22, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+  osc.connect(gain);
+  gain.connect(master);
+  osc.start(now);
+  osc.stop(now + 0.45);
+}
+
+function stopMusic() {
+  for (const timer of state.music.timers) {
+    window.clearInterval(timer);
+  }
+  state.music.timers = [];
+  state.music.enabled = false;
+  els.musicToggle.textContent = "开启宫廷乐";
+  els.musicToggle.setAttribute("aria-pressed", "false");
+  if (state.music.ctx) {
+    state.music.ctx.close();
+  }
+  state.music.ctx = null;
+  state.music.master = null;
+  showToast("宫廷乐已关闭。");
 }
 
 let toastTimer;

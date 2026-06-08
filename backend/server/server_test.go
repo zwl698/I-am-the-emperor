@@ -34,6 +34,18 @@ func TestCreateGameAPI(t *testing.T) {
 	}
 }
 
+func TestCreateGameRejectsUnknownDynasty(t *testing.T) {
+	app := New()
+	req := httptest.NewRequest(http.MethodPost, "/api/games", bytes.NewBufferString(`{"seed":42,"dynastyId":"missing"}`))
+	rec := httptest.NewRecorder()
+
+	app.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestDynastiesAPI(t *testing.T) {
 	app := New()
 	req := httptest.NewRequest(http.MethodGet, "/api/dynasties", nil)

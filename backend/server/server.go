@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 
 	"i-am-the-emperor/backend/game"
@@ -45,26 +44,18 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) routes() {
-	a.mux.HandleFunc("/api/dynasties", a.handleDynasties)
-	a.mux.HandleFunc("/api/games", a.handleGames)
-	a.mux.HandleFunc("/api/games/", a.handleGameAction)
+	a.mux.HandleFunc("GET /api/dynasties", a.handleDynasties)
+	a.mux.HandleFunc("POST /api/games", a.handleGames)
+	a.mux.HandleFunc("GET /api/games/{id}", a.handleGetGame)
+	a.mux.HandleFunc("POST /api/games/{id}/choices", a.handleApplyChoice)
 	a.mux.Handle("/", http.FileServer(http.Dir(filepath.Clean("web"))))
 }
 
 func (a *App) handleDynasties(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		writeError(w, http.StatusMethodNotAllowed, "只支持 GET 获取朝代")
-		return
-	}
 	writeJSON(w, http.StatusOK, game.AvailableDynasties())
 }
 
 func (a *App) handleGames(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		writeError(w, http.StatusMethodNotAllowed, "只支持 POST 创建新游戏")
-		return
-	}
-
 	var req createGameRequest
 	if r.Body != nil {
 		_ = json.NewDecoder(r.Body).Decode(&req)
@@ -85,35 +76,20 @@ func (a *App) handleGames(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, state)
 }
 
-func (a *App) handleGameAction(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/games/"), "/")
-	if len(parts) == 0 || parts[0] == "" {
-		writeError(w, http.StatusNotFound, "未找到游戏")
+func (a *App) handleGetGame(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	a.mu.RLock()
+	state := a.games[id]
+	a.mu.RUnlock()
+	if state == nil {
+		writeError(w, http.StatusNotFound, "存档不存在")
 		return
 	}
-	id := parts[0]
-
-	if len(parts) == 1 && r.Method == http.MethodGet {
-		a.mu.RLock()
-		state := a.games[id]
-		a.mu.RUnlock()
-		if state == nil {
-			writeError(w, http.StatusNotFound, "存档不存在")
-			return
-		}
-		writeJSON(w, http.StatusOK, state)
-		return
-	}
-
-	if len(parts) == 2 && parts[1] == "choices" && r.Method == http.MethodPost {
-		a.applyChoice(w, r, id)
-		return
-	}
-
-	writeError(w, http.StatusNotFound, "未知的游戏接口")
+	writeJSON(w, http.StatusOK, state)
 }
 
-func (a *App) applyChoice(w http.ResponseWriter, r *http.Request, id string) {
+func (a *App) handleApplyChoice(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
 	var req choiceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "选择请求格式错误")

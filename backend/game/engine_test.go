@@ -73,6 +73,36 @@ func TestNewGameWithDynastyChangesHistoricalPressure(t *testing.T) {
 	}
 	if len(state.Provinces) < 4 {
 		t.Fatalf("expected provinces, got %+v", state.Provinces)
+	}
+	if state.Scene == nil || state.Scene.Art == "" {
+		t.Fatalf("expected opening scene with generated art: %+v", state.Scene)
+	}
+}
+
+func TestNewGameIncludesLongTermObjectives(t *testing.T) {
+	state, err := NewGameWithDynasty("chengping", 17)
+	if err != nil {
+		t.Fatalf("new dynasty game: %v", err)
+	}
+
+	if len(state.Objectives) < 4 {
+		t.Fatalf("expected long-term objectives for a 30-minute play loop, got %+v", state.Objectives)
+	}
+
+	seen := map[string]bool{}
+	for _, objective := range state.Objectives {
+		if objective.ID == "" || objective.Title == "" || objective.Target <= 0 {
+			t.Fatalf("objective should have id/title/target: %+v", objective)
+		}
+		seen[objective.ID] = true
+	}
+	for _, id := range []string{"secure_throne", "stabilize_realm", "reform_state", "pacify_borders"} {
+		if !seen[id] {
+			t.Fatalf("expected objective %q in %+v", id, state.Objectives)
+		}
+	}
+}
+
 func TestApplyChoiceChangesStatsAndAdvancesStory(t *testing.T) {
 	state := NewGame(2)
 	openingScene := state.Scene.ID
@@ -149,6 +179,92 @@ func TestEmperorChoicesAffectStrategicDomains(t *testing.T) {
 	}
 }
 
+func TestEmperorSceneOffersDeepStrategicChoices(t *testing.T) {
+	state, err := NewGameWithDynasty("chengping", 31)
+	if err != nil {
+		t.Fatalf("new dynasty game: %v", err)
+	}
+	state.ForceCoronationForTest()
+
+	if len(state.Scene.Choices) < 6 {
+		t.Fatalf("expected a richer emperor choice set, got %+v", state.Scene.Choices)
+	}
+
+	domains := map[Domain]bool{}
+	for _, choice := range state.Scene.Choices {
+		domains[choice.Domain] = true
+	}
+	for _, domain := range []Domain{DomainDomestic, DomainEconomy, DomainMilitary, DomainDiplomacy, DomainReform, DomainIntrigue} {
+		if !domains[domain] {
+			t.Fatalf("expected domain %q in emperor choices: %+v", domain, state.Scene.Choices)
+		}
+	}
+}
+
+func TestStrategicChoiceMovesFactionAndProvinceState(t *testing.T) {
+	state, err := NewGameWithDynasty("chengping", 41)
+	if err != nil {
+		t.Fatalf("new dynasty game: %v", err)
+	}
+	state.ForceCoronationForTest()
+	beforeProvince := state.Provinces[0]
+	beforeFaction := state.Factions[0]
+
+	var reformChoice string
+	for _, choice := range state.Scene.Choices {
+		if choice.Domain == DomainReform {
+			reformChoice = choice.ID
+			break
+		}
+	}
+	if reformChoice == "" {
+		t.Fatal("expected reform choice")
+	}
+
+	if _, err := state.ApplyChoice(reformChoice); err != nil {
+		t.Fatalf("apply choice: %v", err)
+	}
+
+	if state.Provinces[0] == beforeProvince {
+		t.Fatalf("expected province state to change, before %+v after %+v", beforeProvince, state.Provinces[0])
+	}
+	if state.Factions[0] == beforeFaction {
+		t.Fatalf("expected faction state to change, before %+v after %+v", beforeFaction, state.Factions[0])
+	}
+	if state.Season == "" || state.ReignYear < 1 {
+		t.Fatalf("expected calendar to advance, got season %q year %d", state.Season, state.ReignYear)
+	}
+}
+
+func TestStrategicChoiceAdvancesObjectiveProgress(t *testing.T) {
+	state, err := NewGameWithDynasty("chengping", 51)
+	if err != nil {
+		t.Fatalf("new dynasty game: %v", err)
+	}
+	state.ForceCoronationForTest()
+	before := objectiveProgress(t, state, "reform_state")
+
+	var reformChoice string
+	for _, choice := range state.Scene.Choices {
+		if choice.Domain == DomainReform {
+			reformChoice = choice.ID
+			break
+		}
+	}
+	if reformChoice == "" {
+		t.Fatal("expected reform choice")
+	}
+
+	if _, err := state.ApplyChoice(reformChoice); err != nil {
+		t.Fatalf("apply choice: %v", err)
+	}
+
+	after := objectiveProgress(t, state, "reform_state")
+	if after <= before {
+		t.Fatalf("expected reform objective progress to advance, before %d after %d", before, after)
+	}
+}
+
 func TestBadRuleCanEndTheDynasty(t *testing.T) {
 	state := NewGame(99)
 	state.ForceCoronationForTest()
@@ -168,4 +284,15 @@ func TestBadRuleCanEndTheDynasty(t *testing.T) {
 	if state.Ending.Kind != EndingCollapse {
 		t.Fatalf("expected collapse ending, got %+v", state.Ending)
 	}
+}
+
+func objectiveProgress(t *testing.T, state *GameState, id string) int {
+	t.Helper()
+	for _, objective := range state.Objectives {
+		if objective.ID == id {
+			return objective.Progress
+		}
+	}
+	t.Fatalf("objective %q not found in %+v", id, state.Objectives)
+	return 0
 }
