@@ -10,7 +10,7 @@ import (
 
 func TestCreateGameAPI(t *testing.T) {
 	app := New()
-	req := httptest.NewRequest(http.MethodPost, "/api/games", bytes.NewBufferString(`{"seed":42}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/games", bytes.NewBufferString(`{"seed":42,"dynastyId":"jingyao"}`))
 	rec := httptest.NewRecorder()
 
 	app.ServeHTTP(rec, req)
@@ -27,6 +27,29 @@ func TestCreateGameAPI(t *testing.T) {
 	}
 	if payload["scene"] == nil {
 		t.Fatalf("expected scene in response: %+v", payload)
+	}
+	dynasty := payload["dynasty"].(map[string]any)
+	if dynasty["id"] != "jingyao" {
+		t.Fatalf("expected selected dynasty, got %+v", dynasty)
+	}
+}
+
+func TestDynastiesAPI(t *testing.T) {
+	app := New()
+	req := httptest.NewRequest(http.MethodGet, "/api/dynasties", nil)
+	rec := httptest.NewRecorder()
+
+	app.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var payload []map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(payload) < 4 {
+		t.Fatalf("expected dynasties, got %+v", payload)
 	}
 }
 

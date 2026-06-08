@@ -25,6 +25,54 @@ func TestNewGameStartsAsInfantPrinceWithOpeningScene(t *testing.T) {
 	}
 }
 
+func TestAvailableDynastiesExposeDistinctStartsAndAssets(t *testing.T) {
+	dynasties := AvailableDynasties()
+
+	if len(dynasties) < 4 {
+		t.Fatalf("expected at least four playable dynasties, got %d", len(dynasties))
+	}
+
+	seen := map[string]bool{}
+	for _, dynasty := range dynasties {
+		if dynasty.ID == "" || dynasty.Name == "" || dynasty.Background == "" {
+			t.Fatalf("dynasty should have identity and background: %+v", dynasty)
+		}
+		if dynasty.Asset == "" {
+			t.Fatalf("dynasty should expose a generated asset: %+v", dynasty)
+		}
+		if len(dynasty.Features) < 2 {
+			t.Fatalf("dynasty should have multiple features: %+v", dynasty)
+		}
+		seen[dynasty.ID] = true
+	}
+
+	for _, id := range []string{"dayin", "jingyao", "chengping", "xuanshuo"} {
+		if !seen[id] {
+			t.Fatalf("expected dynasty %q in list", id)
+		}
+	}
+}
+
+func TestNewGameWithDynastyChangesHistoricalPressure(t *testing.T) {
+	state, err := NewGameWithDynasty("xuanshuo", 11)
+	if err != nil {
+		t.Fatalf("new dynasty game: %v", err)
+	}
+
+	if state.Dynasty.ID != "xuanshuo" {
+		t.Fatalf("expected xuanshuo dynasty, got %+v", state.Dynasty)
+	}
+	if state.Assets.Hero == "" || state.Assets.Characters == "" {
+		t.Fatalf("expected generated art assets in state, got %+v", state.Assets)
+	}
+	if state.Stats.BorderThreat < 55 {
+		t.Fatalf("frontier dynasty should start under heavy border pressure, got %+v", state.Stats)
+	}
+	if len(state.Factions) < 4 {
+		t.Fatalf("expected court factions, got %+v", state.Factions)
+	}
+	if len(state.Provinces) < 4 {
+		t.Fatalf("expected provinces, got %+v", state.Provinces)
 func TestApplyChoiceChangesStatsAndAdvancesStory(t *testing.T) {
 	state := NewGame(2)
 	openingScene := state.Scene.ID

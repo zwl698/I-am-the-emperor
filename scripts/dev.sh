@@ -15,4 +15,4 @@ echo "前端页面: http://localhost:${PORT}"
 echo "按 Ctrl+C 停止服务。"
 echo
 
-exec go run ./cmd/emperor
+exec go run ./backend/cmd/emperor

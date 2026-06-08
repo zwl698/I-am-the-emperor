@@ -18,7 +18,8 @@ type App struct {
 }
 
 type createGameRequest struct {
-	Seed int64 `json:"seed"`
+	Seed      int64  `json:"seed"`
+	DynastyID string `json:"dynastyId"`
 }
 
 type choiceRequest struct {
@@ -44,9 +45,18 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) routes() {
+	a.mux.HandleFunc("/api/dynasties", a.handleDynasties)
 	a.mux.HandleFunc("/api/games", a.handleGames)
 	a.mux.HandleFunc("/api/games/", a.handleGameAction)
 	a.mux.Handle("/", http.FileServer(http.Dir(filepath.Clean("web"))))
+}
+
+func (a *App) handleDynasties(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "只支持 GET 获取朝代")
+		return
+	}
+	writeJSON(w, http.StatusOK, game.AvailableDynasties())
 }
 
 func (a *App) handleGames(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +69,14 @@ func (a *App) handleGames(w http.ResponseWriter, r *http.Request) {
 	if r.Body != nil {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
-	state := game.NewGame(req.Seed)
+	if req.DynastyID == "" {
+		req.DynastyID = "dayin"
+	}
+	state, err := game.NewGameWithDynasty(req.DynastyID, req.Seed)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	a.mu.Lock()
 	a.games[state.ID] = state
