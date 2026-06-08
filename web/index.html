@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>我是皇帝</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="palace-shell">
+      <section class="hero-panel" aria-labelledby="game-title">
+        <div class="brand-block">
+          <div class="seal">御</div>
+          <div>
+            <h1 id="game-title">我是皇帝</h1>
+            <p>从襁褓皇子到万乘之主，一念定朝局，一策动山河。</p>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <button id="new-game" class="primary-button" type="button">新开一局</button>
+          <button id="continue-game" class="ghost-button" type="button">继续本局</button>
+        </div>
+      </section>
+
+      <section id="game-board" class="game-board is-empty">
+        <aside class="side-panel stats-panel" aria-label="国势属性">
+          <div class="portrait-card">
+            <div class="emperor-avatar" aria-hidden="true">
+              <span class="crown"></span>
+              <span class="face"></span>
+            </div>
+            <div>
+              <p class="mini-label">当前身份</p>
+              <h2 id="phase-label">未开局</h2>
+              <p id="age-label">点击“新开一局”进入宫廷。</p>
+            </div>
+          </div>
+          <div id="stats-list" class="stats-list"></div>
+        </aside>
+
+        <section class="story-panel" aria-live="polite">
+          <div id="scene-kicker" class="scene-kicker">待诏</div>
+          <h2 id="scene-title">皇城尚未启门</h2>
+          <p id="scene-body">你将从皇子的第一声啼哭开始，经历读书、冬狩、赈灾、夺嫡与登基后的国政考验。</p>
+          <div id="choice-grid" class="choice-grid"></div>
+          <div id="resolution" class="resolution" hidden></div>
+        </section>
+
+        <aside class="side-panel chronicle-panel" aria-label="史官记录">
+          <div class="panel-heading">
+            <p class="mini-label">起居注</p>
+            <h2>史官记录</h2>
+          </div>
+          <ol id="history-list" class="history-list"></ol>
+        </aside>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>
