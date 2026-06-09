@@ -134,7 +134,8 @@ h1 {
   background: rgba(255, 244, 210, 0.12);
 }
 
-.music-button[aria-pressed="true"] {
+.music-button[aria-pressed="true"],
+.voice-button[aria-pressed="true"] {
   color: #2f1609;
   background: linear-gradient(180deg, #ffe495, #e2a63c);
 }
@@ -273,21 +274,14 @@ h1 {
 
 .portrait-crop,
 .portrait-dot {
-  background-image: url("/assets/characters.png");
-  background-size: 300% 200%;
+  background-position: center top;
+  background-size: cover;
 }
 
 .portrait-crop {
   width: 100%;
   height: 100%;
-}
-
-.portrait-crop.prince {
-  background-position: 0 0;
-}
-
-.portrait-crop.emperor {
-  background-position: 50% 0;
+  transform: scale(1.08);
 }
 
 .portrait-dot {
@@ -297,22 +291,6 @@ h1 {
   border: 2px solid rgba(104, 42, 18, 0.3);
   border-radius: 999px;
   background-color: #efd49d;
-}
-
-.portrait-dot.tutor {
-  background-position: 100% 0;
-}
-
-.portrait-dot.general {
-  background-position: 0 100%;
-}
-
-.portrait-dot.consort {
-  background-position: 50% 100%;
-}
-
-.portrait-dot.minister {
-  background-position: 100% 100%;
 }
 
 #phase-label {
@@ -397,7 +375,7 @@ h1 {
   right: 16px;
   left: 16px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   pointer-events: none;
 }
@@ -485,20 +463,7 @@ h1 {
 }
 
 .character-panel span {
-  background-image: url("/assets/characters.png");
-  background-size: 300% 200%;
-}
-
-.character-panel.prince span {
-  background-position: 0 0;
-}
-
-.character-panel.emperor span {
-  background-position: 50% 0;
-}
-
-.crisis-panel span {
-  background-image: url("/assets/palace-hero.png");
+  background-position: center top;
 }
 
 .scene-content {
@@ -574,7 +539,8 @@ h1 {
 }
 
 .choice-card small,
-.choice-card em {
+.choice-card em,
+.choice-card b {
   display: block;
   margin-top: 6px;
   color: rgba(255, 239, 198, 0.82);
@@ -585,6 +551,12 @@ h1 {
 .choice-card em {
   color: #8ff0bf;
   font-size: 12px;
+  font-weight: 900;
+}
+
+.choice-card b {
+  color: #ffe39b;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -621,10 +593,21 @@ h1 {
 }
 
 .dynasty-card p,
-.crisis-card p {
+.crisis-card p,
+.command-card p {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.55;
+}
+
+.command-card p {
+  display: grid;
+  gap: 5px;
+}
+
+.command-card strong {
+  color: var(--red-deep);
+  font-size: 20px;
 }
 
 .dynasty-card ul {
@@ -700,8 +683,22 @@ h1 {
 
 .mini-world-row {
   display: grid;
-  gap: 3px;
+  gap: 5px;
   padding: 10px;
+}
+
+.row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.row-head small {
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: #fff7df;
+  background: rgba(166, 32, 33, 0.78);
 }
 
 .mini-world-row span,
@@ -728,6 +725,40 @@ h1 {
 .faction-row em {
   font-style: normal;
   font-weight: 800;
+}
+
+.order-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.order-buttons button {
+  display: grid;
+  min-width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid rgba(96, 39, 18, 0.24);
+  border-radius: 8px;
+  color: #fff7df;
+  background: linear-gradient(180deg, #ba332b, #70171a);
+  box-shadow: 0 4px 0 rgba(70, 18, 12, 0.55);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.order-buttons button:hover {
+  transform: translateY(-1px);
+  filter: saturate(1.08);
+}
+
+.order-buttons button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+  opacity: 0.45;
+  transform: none;
 }
 
 .history-list {
@@ -785,6 +816,10 @@ h1 {
 
 .court-pulse .choice-card {
   animation: cardTremble 420ms ease;
+}
+
+.court-pulse .action-panel {
+  animation: cardTremble 420ms ease, panelDrift 9s ease-in-out infinite;
 }
 
 @keyframes mangaPan {
@@ -846,6 +881,10 @@ h1 {
 
   .right-rail {
     max-height: none;
+  }
+
+  .comic-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

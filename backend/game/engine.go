@@ -30,6 +30,19 @@ const (
 	DomainIntrigue  Domain = "intrigue"
 )
 
+type OrderKind string
+
+const (
+	OrderRelief   OrderKind = "relief"
+	OrderGarrison OrderKind = "garrison"
+	OrderTax      OrderKind = "tax"
+	OrderInspect  OrderKind = "inspect"
+	OrderAppease  OrderKind = "appease"
+	OrderPurge    OrderKind = "purge"
+	OrderCanal    OrderKind = "canal"
+	OrderTrade    OrderKind = "trade"
+)
+
 type EndingKind string
 
 const (
@@ -85,9 +98,11 @@ type Dynasty struct {
 }
 
 type Assets struct {
-	Hero       string `json:"hero"`
-	Dynasties  string `json:"dynasties"`
-	Characters string `json:"characters"`
+	Hero            string   `json:"hero"`
+	Dynasties       string   `json:"dynasties"`
+	Characters      string   `json:"characters"`
+	SceneGallery    []string `json:"sceneGallery"`
+	PortraitGallery []string `json:"portraitGallery"`
 }
 
 type Faction struct {
@@ -134,6 +149,11 @@ type Objective struct {
 	Target      int    `json:"target"`
 	Completed   bool   `json:"completed"`
 	Reward      string `json:"reward"`
+}
+
+type OrderRequest struct {
+	Kind   OrderKind `json:"kind"`
+	Target string    `json:"target"`
 }
 
 type Choice struct {
@@ -187,6 +207,7 @@ type GameState struct {
 	Assets     Assets         `json:"assets"`
 	ReignYear  int            `json:"reignYear"`
 	Season     string         `json:"season"`
+	Command    int            `json:"command"`
 	Stats      Stats          `json:"stats"`
 	Factions   []Faction      `json:"factions"`
 	Court      []Minister     `json:"court"`
@@ -226,9 +247,11 @@ func NewGameWithDynasty(dynastyID string, seed int64) (*GameState, error) {
 		Phase:   PhasePrince,
 		Dynasty: dynasty,
 		Assets: Assets{
-			Hero:       "/assets/palace-hero.png",
-			Dynasties:  "/assets/dynasty-scroll.png",
-			Characters: "/assets/characters.png",
+			Hero:            "/assets/palace-hero.png",
+			Dynasties:       "/assets/dynasty-scroll.png",
+			Characters:      "/assets/characters.png",
+			SceneGallery:    sceneGalleryPaths(),
+			PortraitGallery: portraitGalleryPaths(),
 		},
 		Season:     "春",
 		Stats:      dynasty.Initial,
@@ -291,12 +314,64 @@ func (s *GameState) ApplyChoice(choiceID string) (*Resolution, error) {
 	}, nil
 }
 
+func (s *GameState) ApplyOrder(req OrderRequest) (*Resolution, error) {
+	if s == nil {
+		return nil, errors.New("game state is nil")
+	}
+	s.ensureRNG()
+	if s.Ending != nil {
+		return nil, errors.New("game has already ended")
+	}
+	if s.Phase != PhaseEmperor {
+		return nil, errors.New("only an emperor can issue orders")
+	}
+	if s.Command <= 0 {
+		return nil, errors.New("no command points remain this season")
+	}
+	req.Target = strings.TrimSpace(req.Target)
+	if req.Kind == "" {
+		return nil, errors.New("missing order kind")
+	}
+	if req.Target == "" {
+		return nil, errors.New("missing order target")
+	}
+
+	effects, summary, err := s.applyOrderToWorld(req)
+	if err != nil {
+		return nil, err
+	}
+
+	s.Command--
+	s.applyEffects(effects)
+	s.updateObjectives()
+	s.Ending = s.checkEnding()
+	if s.Ending != nil {
+		s.Scene = nil
+	}
+	s.History = append(s.History, HistoryEntry{
+		Turn:    s.Turn,
+		Age:     s.Age,
+		Phase:   s.Phase,
+		Choice:  orderLabel(req.Kind),
+		Summary: summary,
+		Effects: effects,
+	})
+
+	return &Resolution{
+		Summary: summary,
+		Effects: effects,
+		Scene:   s.Scene,
+		Ending:  s.Ending,
+	}, nil
+}
+
 func (s *GameState) ForceCoronationForTest() {
 	s.Phase = PhaseEmperor
 	s.Age = 18
 	s.Turn = 5
 	s.ReignYear = 1
 	s.Season = "春"
+	s.Command = s.commandBudget()
 	s.Stats.Treasury = max(s.Stats.Treasury, 72)
 	s.Stats.Grain = max(s.Stats.Grain, 66)
 	s.Stats.Populace = max(s.Stats.Populace, 64)
@@ -380,6 +455,101 @@ func (s *GameState) applyChoiceToWorld(choice Choice) {
 	}
 }
 
+func (s *GameState) applyOrderToWorld(req OrderRequest) (Effects, string, error) {
+	switch req.Kind {
+	case OrderRelief:
+		i, ok := s.findProvinceIndex(req.Target)
+		if !ok {
+			return Effects{}, "", fmt.Errorf("unknown province target %q", req.Target)
+		}
+		province := s.Provinces[i]
+		beforeDisaster := province.Disaster
+		s.adjustProvince(i, -1, 12, 0, -16)
+		s.adjustCrisis(-4, -1)
+		effects := Effects{Treasury: -6, Grain: -8, Populace: 6, Stability: 3, Legitimacy: 1}
+		return effects, fmt.Sprintf("你命%s开仓设粥棚、修堤坝。灾情从%d压到%d，百姓开始把年号写进门联。", province.Name, beforeDisaster, s.Provinces[i].Disaster), nil
+	case OrderGarrison:
+		i, ok := s.findProvinceIndex(req.Target)
+		if !ok {
+			return Effects{}, "", fmt.Errorf("unknown province target %q", req.Target)
+		}
+		province := s.Provinces[i]
+		s.adjustProvince(i, -2, 4, 15, -3)
+		s.adjustFactionByID("border", 4, 4)
+		s.adjustCrisis(-2, 0)
+		effects := Effects{Treasury: -7, Army: -2, BorderThreat: -6, Martial: 1}
+		return effects, fmt.Sprintf("禁军换防%s，烽燧重新点亮。守备升至%d，边报上的红印少了一角。", province.Name, s.Provinces[i].Defense), nil
+	case OrderTax:
+		i, ok := s.findProvinceIndex(req.Target)
+		if !ok {
+			return Effects{}, "", fmt.Errorf("unknown province target %q", req.Target)
+		}
+		province := s.Provinces[i]
+		s.adjustProvince(i, -8, -7, 0, 4)
+		s.adjustFactionByID("merchant", 4, -6)
+		s.adjustCrisis(2, 0)
+		effects := Effects{Treasury: 14, Populace: -5, Stability: -3, Reform: 1}
+		return effects, fmt.Sprintf("户部清丈%s田亩，银库一夜充盈；地方豪强却开始把账本藏进暗格。", province.Name), nil
+	case OrderInspect:
+		if i, ok := s.findFactionIndex(req.Target); ok {
+			faction := s.Factions[i]
+			s.adjustFaction(i, -10, -5)
+			s.adjustCrisis(1, 0)
+			effects := Effects{Influence: 5, Legitimacy: -1, Stability: -2}
+			return effects, fmt.Sprintf("密档送入御前，%s被迫交出几条旧线。权势降至%d，但怨气也在殿外结霜。", faction.Name, s.Factions[i].Power), nil
+		}
+		i, ok := s.findProvinceIndex(req.Target)
+		if !ok {
+			return Effects{}, "", fmt.Errorf("unknown order target %q", req.Target)
+		}
+		province := s.Provinces[i]
+		s.adjustProvince(i, 0, 7, 0, -5)
+		effects := Effects{Influence: 3, Stability: 1}
+		return effects, fmt.Sprintf("巡按暗访%s，胥吏名单换了一批。地方秩序升至%d。", province.Name, s.Provinces[i].Order), nil
+	case OrderAppease:
+		i, ok := s.findFactionIndex(req.Target)
+		if !ok {
+			return Effects{}, "", fmt.Errorf("unknown faction target %q", req.Target)
+		}
+		faction := s.Factions[i]
+		s.adjustFaction(i, 4, 15)
+		s.adjustCrisis(-1, 0)
+		effects := Effects{Treasury: -5, Stability: 4, Influence: -1}
+		return effects, fmt.Sprintf("你召见%s，赐宴、授差、留台阶。%s忠诚升至%d，朝会气氛松了一寸。", faction.Leader, faction.Name, s.Factions[i].Loyalty), nil
+	case OrderPurge:
+		i, ok := s.findFactionIndex(req.Target)
+		if !ok {
+			return Effects{}, "", fmt.Errorf("unknown faction target %q", req.Target)
+		}
+		faction := s.Factions[i]
+		s.adjustFaction(i, -17, -14)
+		s.adjustCrisis(4, 1)
+		effects := Effects{Influence: 7, Stability: -6, Legitimacy: -3, Health: -1}
+		return effects, fmt.Sprintf("廷杖声落在%s门前，%s权势骤降到%d。短期无人敢言，长期无人敢忘。", faction.Leader, faction.Name, s.Factions[i].Power), nil
+	case OrderCanal:
+		i, ok := s.findProvinceIndex(req.Target)
+		if !ok {
+			return Effects{}, "", fmt.Errorf("unknown province target %q", req.Target)
+		}
+		province := s.Provinces[i]
+		s.adjustProvince(i, 12, 2, 0, -6)
+		effects := Effects{Treasury: -10, Grain: 5, Reform: 4, Populace: 2}
+		return effects, fmt.Sprintf("%s新渠开挖，粮船有了第二条路。地方财富升至%d，新政图纸也多了一道墨线。", province.Name, s.Provinces[i].Wealth), nil
+	case OrderTrade:
+		i, ok := s.findProvinceIndex(req.Target)
+		if !ok {
+			return Effects{}, "", fmt.Errorf("unknown province target %q", req.Target)
+		}
+		province := s.Provinces[i]
+		s.adjustProvince(i, 14, -2, 0, 1)
+		s.adjustFactionByID("merchant", 5, 7)
+		effects := Effects{Treasury: 9, Diplomacy: 4, BorderThreat: 2}
+		return effects, fmt.Sprintf("你准%s开互市，驼队与货船挤满关津。商帮称颂圣明，边境也多了几双试探的眼睛。", province.Name), nil
+	default:
+		return Effects{}, "", fmt.Errorf("unknown order kind %q", req.Kind)
+	}
+}
+
 func (s *GameState) adjustProvince(i, wealth, order, defense, disaster int) {
 	if len(s.Provinces) == 0 {
 		return
@@ -391,6 +561,29 @@ func (s *GameState) adjustProvince(i, wealth, order, defense, disaster int) {
 	p.Defense = clamp(p.Defense+defense, 0, 100)
 	p.Disaster = clamp(p.Disaster+disaster, 0, 100)
 	s.Provinces[i] = p
+}
+
+func (s *GameState) adjustCrisis(severity, clock int) {
+	s.Crisis.Severity = clamp(s.Crisis.Severity+severity, 0, 100)
+	s.Crisis.Clock = clamp(s.Crisis.Clock+clock, 0, 8)
+}
+
+func (s *GameState) findProvinceIndex(id string) (int, bool) {
+	for i, province := range s.Provinces {
+		if province.ID == id {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
+func (s *GameState) findFactionIndex(id string) (int, bool) {
+	for i, faction := range s.Factions {
+		if faction.ID == id {
+			return i, true
+		}
+	}
+	return 0, false
 }
 
 func (s *GameState) adjustFaction(i, power, loyalty int) {
@@ -463,6 +656,7 @@ func (s *GameState) advanceCalendar() {
 	if s.ReignYear < 1 {
 		s.ReignYear = 1
 	}
+	s.Command = s.commandBudget()
 }
 
 func (s *GameState) coronate() {
@@ -477,6 +671,21 @@ func (s *GameState) coronate() {
 	s.Stats.Diplomacy = clamp(s.Dynasty.Initial.Diplomacy+s.Stats.Charisma/5+s.Stats.Learning/8, 20, 100)
 	s.Stats.Stability = clamp(s.Dynasty.Initial.Stability+s.Stats.Influence/5+s.Stats.Legitimacy/8, 15, 100)
 	s.Stats.BorderThreat = clamp(s.Dynasty.Initial.BorderThreat-s.Stats.Martial/8, 5, 100)
+	s.Command = s.commandBudget()
+}
+
+func (s *GameState) commandBudget() int {
+	budget := 3
+	if s.Stats.Influence >= 55 {
+		budget++
+	}
+	if s.Stats.Reform >= 60 {
+		budget++
+	}
+	if s.Stats.Health < 25 {
+		budget--
+	}
+	return clamp(budget, 2, 5)
 }
 
 func (s *GameState) applyWorldPressure(domain Domain) {
@@ -515,7 +724,7 @@ func (s *GameState) checkEnding() *Ending {
 	if s.Phase == PhaseEmperor && (s.Stats.Stability <= 0 || s.Stats.Populace <= 0 || s.Crisis.Clock >= 8 || (s.Stats.BorderThreat >= 95 && s.Stats.Army < 90)) {
 		return &Ending{Kind: EndingCollapse, Title: "山河失守", Summary: "边患、民怨、党争与危机链同时爆发，王朝在你的御座前倾塌。"}
 	}
-	if s.Phase == PhaseEmperor && s.Turn >= 45 && s.Stats.Stability >= 80 && s.Stats.Populace >= 80 && s.Stats.BorderThreat <= 25 && s.Stats.Reform >= 55 {
+	if s.Phase == PhaseEmperor && s.Turn >= 72 && s.Stats.Stability >= 80 && s.Stats.Populace >= 80 && s.Stats.BorderThreat <= 25 && s.Stats.Reform >= 55 {
 		return &Ending{Kind: EndingGolden, Title: "万邦来朝", Summary: "新法成制，仓廪充盈，边境安定，诸国遣使入贡，你开创了被后世反复吟诵的盛世。"}
 	}
 	return nil
@@ -535,7 +744,7 @@ func princeScene(turn int, state *GameState) *Scene {
 			Title: "紫宸宫中的啼哭",
 			Year:  state.Dynasty.Era,
 			Mood:  "启蒙",
-			Art:   state.Assets.Characters,
+			Art:   sceneArt(state, 0),
 			Body:  fmt.Sprintf("你出生在%s的风雪清晨。%s 宫中每一句吉言都可能变成刀锋。", state.Dynasty.Name, state.Dynasty.Background),
 			Choices: []Choice{
 				{ID: "grab-scroll", Text: "抓起案上的竹简", Detail: "让太傅记住你早慧的一面。", Domain: DomainStory, Effects: Effects{Learning: 8, Legitimacy: 2, Health: -1}, Outcome: "你咿呀抓住竹简，满殿笑声里，多了一个“好学皇子”的传闻。"},
@@ -544,7 +753,7 @@ func princeScene(turn int, state *GameState) *Scene {
 			},
 		},
 		{
-			ID: "study-yard", Title: "东宫书院", Year: "六岁", Mood: "养成", Art: state.Assets.Characters,
+			ID: "study-yard", Title: "东宫书院", Year: "六岁", Mood: "养成", Art: sceneArt(state, 1),
 			Body: "皇子们第一次同席读书。太傅问你：治国先治什么？兄弟们都在等你出错。",
 			Choices: []Choice{
 				{ID: "answer-people", Text: "答：先安百姓", Detail: "赢得清流赞许。", Domain: DomainStory, Effects: Effects{Learning: 7, Charisma: 4, Legitimacy: 3}, Outcome: "太傅捻须点头，清流大臣开始把你的名字写进密札。"},
@@ -553,7 +762,7 @@ func princeScene(turn int, state *GameState) *Scene {
 			},
 		},
 		{
-			ID: "winter-hunt", Title: "皇家冬狩", Year: "十岁", Mood: "锋芒", Art: state.Assets.Dynasties,
+			ID: "winter-hunt", Title: "皇家冬狩", Year: "十岁", Mood: "锋芒", Art: sceneArt(state, 2),
 			Body: "猎场上，三皇子故意惊马。你摔在雪里，侍卫们一瞬间不敢动。",
 			Choices: []Choice{
 				{ID: "mount-again", Text: "忍痛重新上马", Detail: "以勇气换取威望。", Domain: DomainStory, Effects: Effects{Martial: 9, Legitimacy: 4, Health: -4}, Outcome: "你带伤上马，雪原上响起军士的喝彩。三皇子的笑容僵住了。"},
@@ -562,7 +771,7 @@ func princeScene(turn int, state *GameState) *Scene {
 			},
 		},
 		{
-			ID: "flood-memorial", Title: "南河急报", Year: "十四岁", Mood: "试政", Art: state.Assets.Dynasties,
+			ID: "flood-memorial", Title: "南河急报", Year: "十四岁", Mood: "试政", Art: sceneArt(state, 3),
 			Body: "南河决堤，朝堂争论赈灾银从何处来。父皇将奏章推到你面前，要你试拟朱批。",
 			Choices: []Choice{
 				{ID: "open-granary", Text: "开仓赈济，严查贪墨", Detail: "仁政与吏治并行。", Domain: DomainStory, Effects: Effects{Learning: 7, Charisma: 5, Reform: 4}, Outcome: "你的朱批被贴到灾区驿站，流民第一次知道京中还有人惦记他们。"},
@@ -571,7 +780,7 @@ func princeScene(turn int, state *GameState) *Scene {
 			},
 		},
 		{
-			ID: "succession-night", Title: "烛影摇红", Year: "十六岁", Mood: "夺嫡", Art: state.Assets.Hero,
+			ID: "succession-night", Title: "烛影摇红", Year: "十六岁", Mood: "夺嫡", Art: sceneArt(state, 4),
 			Body: fmt.Sprintf("父皇病重，诸王入宫。你手中有学识 %d、武略 %d、声望 %d。最后一夜，谁先动，谁就可能坐上明日的朝堂。", state.Stats.Learning, state.Stats.Martial, state.Stats.Legitimacy),
 			Choices: []Choice{
 				{ID: "secure-edict", Text: "请太傅与中书共同护诏", Detail: "以制度和名分夺位。", Domain: DomainCourt, Effects: Effects{Legitimacy: 10, Stability: 5, Influence: 4}, Outcome: "玉玺落印，群臣跪伏。你没有拔剑，却让刀兵失去了名义。"},
@@ -590,7 +799,7 @@ func emperorScene(s *GameState) *Scene {
 		Title: "太和朝议",
 		Year:  year,
 		Mood:  emperorMood(s.Stats),
-		Art:   s.Assets.Hero,
+		Art:   emperorSceneArt(s),
 		Body:  crisisLine(s) + " 六部、边军、宗室、清流与商帮都在等你落子。选择不是单纯加减数值，派系与省份会记住你的每一道旨意。",
 		Choices: []Choice{
 			{ID: fmt.Sprintf("relief-%d", s.Turn), Text: "户部开仓，巡抚赈济", Detail: "民政线：压灾情、保民心，但消耗粮银。", Domain: DomainDomestic, Effects: Effects{Treasury: -10, Grain: -8, Populace: 12, Stability: 5, Legitimacy: 2}, Outcome: "粥棚沿官道铺开，流民队伍短了，户部账册却重得像铁。"},
@@ -604,6 +813,34 @@ func emperorScene(s *GameState) *Scene {
 	}
 }
 
+func sceneArt(s *GameState, index int) string {
+	if s == nil || len(s.Assets.SceneGallery) == 0 {
+		return "/assets/palace-hero.png"
+	}
+	index %= len(s.Assets.SceneGallery)
+	if index < 0 {
+		index += len(s.Assets.SceneGallery)
+	}
+	return s.Assets.SceneGallery[index]
+}
+
+func emperorSceneArt(s *GameState) string {
+	switch {
+	case s.Stats.BorderThreat >= 70:
+		return sceneArt(s, 14)
+	case s.Crisis.Severity >= 75:
+		return sceneArt(s, 22)
+	case s.Stats.Reform >= 65:
+		return sceneArt(s, 10)
+	case s.Stats.Diplomacy >= 72:
+		return sceneArt(s, 28)
+	case s.Stats.Stability >= 82 && s.Stats.Populace >= 82:
+		return sceneArt(s, 29)
+	default:
+		return sceneArt(s, 5+s.Turn+s.ReignYear)
+	}
+}
+
 func dynasties() []Dynasty {
 	return []Dynasty{
 		{ID: "dayin", Name: "大胤", Era: "开国元年", Background: "旧都新定，功臣拥兵，百废待兴。", Features: []string{"开国功臣强势", "国库充实但朝制未稳", "军功路线收益更高"}, Challenge: "用刀剑打下天下后，如何让刀剑回鞘。", Asset: "/assets/dynasty-scroll.png", Palette: "ember", Initial: Stats{Legitimacy: 58, Health: 74, Learning: 20, Martial: 28, Charisma: 24, Influence: 20, Treasury: 78, Grain: 62, Populace: 48, Army: 82, Diplomacy: 36, Stability: 42, BorderThreat: 46, Reform: 12}},
@@ -611,6 +848,86 @@ func dynasties() []Dynasty {
 		{ID: "chengping", Name: "承平", Era: "暮年危局", Background: "库银亏空，兼并成风，灾民与朋党一起挤进奏章。", Features: []string{"财政压力极高", "新法收益更大", "民变风险更快累积"}, Challenge: "在旧制度的裂缝里硬生生开出新路。", Asset: "/assets/dynasty-scroll.png", Palette: "storm", Initial: Stats{Legitimacy: 46, Health: 68, Learning: 28, Martial: 16, Charisma: 22, Influence: 18, Treasury: 36, Grain: 38, Populace: 34, Army: 48, Diplomacy: 42, Stability: 30, BorderThreat: 52, Reform: 8}},
 		{ID: "xuanshuo", Name: "玄朔", Era: "北境烽烟", Background: "雪岭烽火连年，边镇半独立，朝廷每一次迟疑都会变成战报。", Features: []string{"边患开局最高", "军务外交回报更高", "粮草消耗更凶"}, Challenge: "一手握兵符，一手还要稳住中原民心。", Asset: "/assets/dynasty-scroll.png", Palette: "frost", Initial: Stats{Legitimacy: 52, Health: 72, Learning: 20, Martial: 30, Charisma: 20, Influence: 22, Treasury: 58, Grain: 46, Populace: 46, Army: 76, Diplomacy: 34, Stability: 44, BorderThreat: 72, Reform: 10}},
 	}
+}
+
+func sceneGalleryPaths() []string {
+	names := []string{
+		"birth-chamber",
+		"east-palace-study",
+		"winter-hunt",
+		"flood-levee",
+		"succession-hall",
+		"throne-court",
+		"granary-relief",
+		"tax-office",
+		"frontier-fortress",
+		"envoy-pass",
+		"reform-archive",
+		"secret-tribunal",
+		"banquet-hall",
+		"jiangnan-canal",
+		"northern-battlefield",
+		"desert-market",
+		"imperial-garden",
+		"rain-corridor",
+		"ancestral-temple",
+		"ministry-office",
+		"dockyard-fleet",
+		"drill-ground",
+		"rebel-village",
+		"silk-market",
+		"mountain-monastery",
+		"exam-hall",
+		"map-room",
+		"palace-dawn",
+		"diplomatic-tent",
+		"festival-night",
+	}
+	return assetPaths("/assets/scenes/scene", names)
+}
+
+func portraitGalleryPaths() []string {
+	names := []string{
+		"infant-prince",
+		"teen-prince",
+		"young-emperor",
+		"elder-emperor",
+		"stern-tutor",
+		"frontier-general",
+		"finance-minister",
+		"grand-princess",
+		"noble-consort",
+		"young-empress",
+		"queen-dowager",
+		"palace-maid",
+		"eunuch-spymaster",
+		"scholar-official",
+		"reformist-official",
+		"corrupt-magistrate",
+		"merchant-leader",
+		"foreign-envoy",
+		"nomad-khan",
+		"monk-strategist",
+		"female-diplomat",
+		"guard-captain",
+		"rebel-leader",
+		"river-engineer",
+		"imperial-physician",
+		"astrologer",
+		"poet",
+		"court-painter",
+		"farmer-representative",
+		"masked-assassin",
+	}
+	return assetPaths("/assets/portraits/portrait", names)
+}
+
+func assetPaths(prefix string, names []string) []string {
+	paths := make([]string, len(names))
+	for i, name := range names {
+		paths[i] = fmt.Sprintf("%s-%02d-%s.png", prefix, i+1, name)
+	}
+	return paths
 }
 
 func findDynasty(id string) (Dynasty, bool) {
@@ -698,6 +1015,7 @@ func startingObjectives(dynastyID string) []Objective {
 		{ID: "stabilize_realm", Title: "安民定国", Description: "让朝稳、民心、粮草都回到可持续水平。", Target: 80, Reward: "降低危机钟推进速度。"},
 		{ID: "reform_state", Title: "鼎新旧制", Description: "推行新法，建立足以撑起盛世的新制度。", Target: 80, Reward: "提升长期财政与民生收益。"},
 		{ID: "pacify_borders", Title: "靖平边患", Description: "用军务与外交压低边患，稳住北境与西陲。", Target: 80, Reward: "解锁盛世结局条件之一。"},
+		{ID: "long_reign", Title: "十八年长治", Description: "熬过夺嫡后的漫长统治，把一时胜利变成制度惯性。", Target: 72, Reward: "进入盛世终局评定。"},
 	}
 	if dynastyID == "chengping" {
 		objectives = append(objectives, Objective{ID: "restore_treasury", Title: "补回亏空", Description: "让国库脱离危险线，阻止财政崩盘。", Target: 70, Reward: "财政线消耗降低。"})
@@ -724,6 +1042,8 @@ func (s *GameState) updateObjectives() {
 			objective.Progress = clamp(s.Stats.Reform, 0, objective.Target)
 		case "pacify_borders":
 			objective.Progress = clamp(80-s.Stats.BorderThreat+s.Stats.Army/4+s.Stats.Diplomacy/6, 0, objective.Target)
+		case "long_reign":
+			objective.Progress = clamp(s.Turn, 0, objective.Target)
 		case "restore_treasury":
 			objective.Progress = clamp(s.Stats.Treasury, 0, objective.Target)
 		case "hold_north":
@@ -795,6 +1115,29 @@ func (e Effects) Describe() string {
 	add("边患", e.BorderThreat)
 	add("新政", e.Reform)
 	return strings.Join(parts, "、")
+}
+
+func orderLabel(kind OrderKind) string {
+	switch kind {
+	case OrderRelief:
+		return "御令：赈济"
+	case OrderGarrison:
+		return "御令：驻防"
+	case OrderTax:
+		return "御令：督税"
+	case OrderInspect:
+		return "御令：密查"
+	case OrderAppease:
+		return "御令：安抚"
+	case OrderPurge:
+		return "御令：削权"
+	case OrderCanal:
+		return "御令：修渠"
+	case OrderTrade:
+		return "御令：互市"
+	default:
+		return "御令"
+	}
 }
 
 func averageProvinceWealth(provinces []Province) int {

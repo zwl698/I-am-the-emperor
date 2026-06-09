@@ -8,6 +8,22 @@ import (
 	"testing"
 )
 
+type apiGameState struct {
+	ID      string `json:"id"`
+	Phase   string `json:"phase"`
+	Command int    `json:"command"`
+	Scene   struct {
+		Choices []struct {
+			ID string `json:"id"`
+		} `json:"choices"`
+	} `json:"scene"`
+}
+
+type apiActionResponse struct {
+	Resolution map[string]any `json:"resolution"`
+	State      apiGameState   `json:"state"`
+}
+
 func TestCreateGameAPI(t *testing.T) {
 	app := New()
 	req := httptest.NewRequest(http.MethodPost, "/api/games", bytes.NewBufferString(`{"seed":42,"dynastyId":"jingyao"}`))
@@ -70,14 +86,7 @@ func TestApplyChoiceAPI(t *testing.T) {
 	create := httptest.NewRecorder()
 	app.ServeHTTP(create, httptest.NewRequest(http.MethodPost, "/api/games", bytes.NewBufferString(`{"seed":3}`)))
 
-	var state struct {
-		ID    string `json:"id"`
-		Scene struct {
-			Choices []struct {
-				ID string `json:"id"`
-			} `json:"choices"`
-		} `json:"scene"`
-	}
+	var state apiGameState
 	if err := json.Unmarshal(create.Body.Bytes(), &state); err != nil {
 		t.Fatalf("decode create response: %v", err)
 	}
@@ -95,5 +104,54 @@ func TestApplyChoiceAPI(t *testing.T) {
 	}
 	if payload["resolution"] == nil || payload["state"] == nil {
 		t.Fatalf("expected resolution and state: %+v", payload)
+	}
+}
+
+func TestApplyOrderAPI(t *testing.T) {
+	app := New()
+	create := httptest.NewRecorder()
+	app.ServeHTTP(create, httptest.NewRequest(http.MethodPost, "/api/games", bytes.NewBufferString(`{"seed":9,"dynastyId":"chengping"}`)))
+
+	var state apiGameState
+	if err := json.Unmarshal(create.Body.Bytes(), &state); err != nil {
+		t.Fatalf("decode create response: %v", err)
+	}
+
+	for i := 0; i < 5; i++ {
+		body := []byte(`{"choiceId":"` + state.Scene.Choices[0].ID + `"}`)
+		rec := httptest.NewRecorder()
+		app.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/games/"+state.ID+"/choices", bytes.NewBuffer(body)))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("advance to emperor status %d: %s", rec.Code, rec.Body.String())
+		}
+		var payload apiActionResponse
+		if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+			t.Fatalf("decode advance response: %v", err)
+		}
+		state = payload.State
+	}
+	if state.Phase != "emperor" {
+		t.Fatalf("expected emperor phase before issuing order, got %+v", state)
+	}
+	beforeCommand := state.Command
+	if beforeCommand <= 0 {
+		t.Fatalf("expected command points before order, got %+v", state)
+	}
+
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/games/"+state.ID+"/orders", bytes.NewBufferString(`{"kind":"relief","target":"capital"}`)))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var payload apiActionResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.Resolution == nil || payload.State.ID == "" {
+		t.Fatalf("expected resolution and state: %+v", payload)
+	}
+	if payload.State.Command != beforeCommand-1 {
+		t.Fatalf("expected order to spend one command point, before %d after %d", beforeCommand, payload.State.Command)
 	}
 }

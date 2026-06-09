@@ -18,6 +18,7 @@
             <button id="start-selected" class="primary-button" type="button">以此朝开局</button>
             <button id="continue-game" class="ghost-button" type="button">继续本局</button>
             <button id="music-toggle" class="ghost-button music-button" type="button" aria-pressed="false">开启宫廷乐</button>
+            <button id="voice-toggle" class="ghost-button voice-button" type="button" aria-pressed="false">开启配音</button>
           </div>
         </div>
       </section>
@@ -60,6 +61,10 @@
         <aside class="right-rail">
           <section class="dynasty-card" id="current-dynasty"></section>
           <section class="crisis-card" id="crisis-card"></section>
+          <section class="world-card command-card">
+            <div class="panel-title">御令行动</div>
+            <p id="command-status">登基后每季度可下多道御令，处理省份与派系，不推进大剧情。</p>
+          </section>
           <section class="world-card">
             <div class="panel-title">天命目标</div>
             <div id="objective-list" class="objective-list"></div>

@@ -1,6 +1,9 @@
 package game
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestNewGameStartsAsInfantPrinceWithOpeningScene(t *testing.T) {
 	state := NewGame(7)
@@ -76,6 +79,20 @@ func TestNewGameWithDynastyChangesHistoricalPressure(t *testing.T) {
 	}
 	if state.Scene == nil || state.Scene.Art == "" {
 		t.Fatalf("expected opening scene with generated art: %+v", state.Scene)
+	}
+}
+
+func TestNewGameExposesLargeGeneratedAssetGalleries(t *testing.T) {
+	state := NewGame(15)
+
+	if len(state.Assets.SceneGallery) < 30 {
+		t.Fatalf("expected at least 30 scene assets, got %+v", state.Assets.SceneGallery)
+	}
+	if len(state.Assets.PortraitGallery) < 30 {
+		t.Fatalf("expected at least 30 portrait assets, got %+v", state.Assets.PortraitGallery)
+	}
+	if state.Scene == nil || !strings.Contains(state.Scene.Art, "/assets/scenes/") {
+		t.Fatalf("expected opening scene to use generated scene gallery, got %+v", state.Scene)
 	}
 }
 
@@ -262,6 +279,48 @@ func TestStrategicChoiceAdvancesObjectiveProgress(t *testing.T) {
 	after := objectiveProgress(t, state, "reform_state")
 	if after <= before {
 		t.Fatalf("expected reform objective progress to advance, before %d after %d", before, after)
+	}
+}
+
+func TestEmperorCanIssueOrdersWithoutAdvancingSceneTurn(t *testing.T) {
+	state, err := NewGameWithDynasty("chengping", 61)
+	if err != nil {
+		t.Fatalf("new dynasty game: %v", err)
+	}
+	state.ForceCoronationForTest()
+	beforeTurn := state.Turn
+	beforeCommand := state.Command
+	beforeProvince := state.Provinces[0]
+
+	resolution, err := state.ApplyOrder(OrderRequest{
+		Kind:   OrderRelief,
+		Target: "capital",
+	})
+	if err != nil {
+		t.Fatalf("apply order: %v", err)
+	}
+
+	if resolution == nil || resolution.Summary == "" {
+		t.Fatalf("expected order resolution, got %+v", resolution)
+	}
+	if state.Turn != beforeTurn {
+		t.Fatalf("order should not advance scene turn, before %d after %d", beforeTurn, state.Turn)
+	}
+	if state.Command != beforeCommand-1 {
+		t.Fatalf("expected command to decrease by 1, before %d after %d", beforeCommand, state.Command)
+	}
+	if state.Provinces[0] == beforeProvince {
+		t.Fatalf("expected province to change, before %+v after %+v", beforeProvince, state.Provinces[0])
+	}
+}
+
+func TestOrdersRequireCommandPoints(t *testing.T) {
+	state := NewGame(71)
+	state.ForceCoronationForTest()
+	state.Command = 0
+
+	if _, err := state.ApplyOrder(OrderRequest{Kind: OrderRelief, Target: "capital"}); err == nil {
+		t.Fatal("expected order to fail with no command points")
 	}
 }
 

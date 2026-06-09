@@ -48,6 +48,7 @@ func (a *App) routes() {
 	a.mux.HandleFunc("POST /api/games", a.handleGames)
 	a.mux.HandleFunc("GET /api/games/{id}", a.handleGetGame)
 	a.mux.HandleFunc("POST /api/games/{id}/choices", a.handleApplyChoice)
+	a.mux.HandleFunc("POST /api/games/{id}/orders", a.handleApplyOrder)
 	a.mux.Handle("/", http.FileServer(http.Dir(filepath.Clean("web"))))
 }
 
@@ -108,6 +109,32 @@ func (a *App) handleApplyChoice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resolution, err := state.ApplyChoice(req.ChoiceID)
+	a.mu.Unlock()
+
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, choiceResponse{Resolution: resolution, State: state})
+}
+
+func (a *App) handleApplyOrder(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	var req game.OrderRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "御令请求格式错误")
+		return
+	}
+
+	a.mu.Lock()
+	state := a.games[id]
+	if state == nil {
+		a.mu.Unlock()
+		writeError(w, http.StatusNotFound, "存档不存在")
+		return
+	}
+	resolution, err := state.ApplyOrder(req)
 	a.mu.Unlock()
 
 	if err != nil {
