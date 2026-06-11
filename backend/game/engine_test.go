@@ -279,6 +279,106 @@ func TestDynamicCourtAgendaChangesBetweenSeasons(t *testing.T) {
 	}
 }
 
+func TestSeasonalRandomEventsAreGeneratedFromMultiplePressures(t *testing.T) {
+	state, err := NewGameWithDynasty("xuanshuo", 85)
+	if err != nil {
+		t.Fatalf("new dynasty game: %v", err)
+	}
+	state.ForceCoronationForTest()
+	state.Stats.Treasury = 22
+	state.Stats.BorderThreat = 82
+	state.Succession.Dispute = 72
+	state.Offices[0].VacancyRisk = 68
+
+	var militaryChoice string
+	for _, choice := range state.Scene.Choices {
+		if choice.Domain == DomainMilitary {
+			militaryChoice = choice.ID
+			break
+		}
+	}
+	if militaryChoice == "" {
+		t.Fatalf("expected military choice: %+v", state.Scene.Choices)
+	}
+
+	if _, err := state.ApplyChoice(militaryChoice); err != nil {
+		t.Fatalf("apply choice: %v", err)
+	}
+
+	if len(state.RecentEvents) < 2 {
+		t.Fatalf("expected multiple seasonal random events, got %+v", state.RecentEvents)
+	}
+	seenCategories := map[EventCategory]bool{}
+	seenDomains := map[Domain]bool{}
+	for _, event := range state.RecentEvents {
+		if event.ID == "" || event.Title == "" || event.Summary == "" || event.Detail == "" {
+			t.Fatalf("event should expose narrative identity and detail: %+v", event)
+		}
+		if event.Severity <= 0 {
+			t.Fatalf("event should expose severity: %+v", event)
+		}
+		seenCategories[event.Category] = true
+		seenDomains[event.Domain] = true
+	}
+	if !seenCategories[EventStory] || !seenCategories[EventSystem] {
+		t.Fatalf("expected story and system events, got %+v", state.RecentEvents)
+	}
+	if !seenDomains[DomainMilitary] && !seenDomains[DomainCourt] && !seenDomains[DomainEconomy] {
+		t.Fatalf("expected pressure-linked event domains, got %+v", state.RecentEvents)
+	}
+}
+
+func TestMicroGameRandomEventResolvesCheckAndAppliesEffects(t *testing.T) {
+	state, err := NewGameWithDynasty("chengping", 86)
+	if err != nil {
+		t.Fatalf("new dynasty game: %v", err)
+	}
+	state.ForceCoronationForTest()
+	state.Stats.Reform = 70
+	state.Court[0].Ability = 92
+	beforeReform := state.Stats.Reform
+	beforeHistory := len(state.History)
+
+	event := state.resolveRandomEventForTest("audit-sprint")
+
+	if event.Category != EventMicroGame {
+		t.Fatalf("expected micro-game event, got %+v", event)
+	}
+	if event.Check == "" || event.Target <= 0 || event.Roll <= 0 {
+		t.Fatalf("expected check, target, and roll: %+v", event)
+	}
+	if !event.Success {
+		t.Fatalf("high reform and able minister should pass audit sprint: %+v", event)
+	}
+	if state.Stats.Reform <= beforeReform {
+		t.Fatalf("expected successful micro event to improve reform, before %d after %+v", beforeReform, state.Stats)
+	}
+	if len(state.History) != beforeHistory+1 {
+		t.Fatalf("expected random event to write history, before %d after %d", beforeHistory, len(state.History))
+	}
+}
+
+func TestSeasonalRandomEventsVaryAcrossTurns(t *testing.T) {
+	state, err := NewGameWithDynasty("jingyao", 87)
+	if err != nil {
+		t.Fatalf("new dynasty game: %v", err)
+	}
+	state.ForceCoronationForTest()
+	signatures := map[string]bool{}
+
+	for i := 0; i < 3; i++ {
+		choice := state.Scene.Choices[i%len(state.Scene.Choices)].ID
+		if _, err := state.ApplyChoice(choice); err != nil {
+			t.Fatalf("apply choice %d: %v", i, err)
+		}
+		signatures[eventSignature(state.RecentEvents)] = true
+	}
+
+	if len(signatures) < 2 {
+		t.Fatalf("expected seasonal events to vary across turns, got %+v", signatures)
+	}
+}
+
 func TestFrontierDynastyStartsWithExternalWarCampaign(t *testing.T) {
 	state, err := NewGameWithDynasty("xuanshuo", 18)
 	if err != nil {
@@ -624,6 +724,14 @@ func choiceSignature(choices []Choice) string {
 	parts := make([]string, 0, len(choices))
 	for _, choice := range choices {
 		parts = append(parts, choice.ID+":"+choice.Text)
+	}
+	return strings.Join(parts, "|")
+}
+
+func eventSignature(events []SeasonEvent) string {
+	parts := make([]string, 0, len(events))
+	for _, event := range events {
+		parts = append(parts, event.ID)
 	}
 	return strings.Join(parts, "|")
 }

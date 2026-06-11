@@ -37,6 +37,7 @@ const els = {
   resolution: document.querySelector("#resolution"),
   currentDynasty: document.querySelector("#current-dynasty"),
   crisis: document.querySelector("#crisis-card"),
+  events: document.querySelector("#event-list"),
   commandStatus: document.querySelector("#command-status"),
   objectives: document.querySelector("#objective-list"),
   provinces: document.querySelector("#province-list"),
@@ -206,6 +207,7 @@ function renderGame() {
   renderComicStrip();
   renderDynastyStatus();
   renderCrisis();
+  renderSeasonEventsIfReady();
   renderCommands();
   renderObjectives();
   renderProvinces();
@@ -487,6 +489,10 @@ function formatEffects(effects = {}) {
   return text || "无直接变化";
 }
 
+if (typeof window !== "undefined") {
+  window.formatEffects = formatEffects;
+}
+
 function sceneGallery() {
   const gallery = state.game?.assets?.sceneGallery;
   return Array.isArray(gallery) && gallery.length >= 30 ? gallery : sceneGalleryFallback;
@@ -602,6 +608,14 @@ function renderSystemPanelsIfReady() {
   );
 }
 
+function renderSeasonEventsIfReady() {
+  if (typeof window.renderSeasonEvents !== "function") return;
+  window.renderSeasonEvents(state.game, els.events, {
+    portraitAt,
+    portraitIndexByRole,
+  });
+}
+
 function provinceTemperature(p) {
   if (p.disaster >= 60) return "灾情急";
   if (p.order <= 35) return "民变险";
@@ -674,6 +688,8 @@ function normalizeGame(game) {
     },
     offices: game.offices || [],
     wars: game.wars || [],
+    recentEvents: game.recentEvents || [],
+    eventLog: game.eventLog || [],
     history: game.history || [],
   };
 }

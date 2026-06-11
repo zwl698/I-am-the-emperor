@@ -216,30 +216,32 @@ type Resolution struct {
 }
 
 type GameState struct {
-	ID         string         `json:"id"`
-	Seed       int64          `json:"seed"`
-	Turn       int            `json:"turn"`
-	Age        int            `json:"age"`
-	Phase      Phase          `json:"phase"`
-	Dynasty    Dynasty        `json:"dynasty"`
-	Assets     Assets         `json:"assets"`
-	ReignYear  int            `json:"reignYear"`
-	Season     string         `json:"season"`
-	Command    int            `json:"command"`
-	Stats      Stats          `json:"stats"`
-	Factions   []Faction      `json:"factions"`
-	Court      []Minister     `json:"court"`
-	Harem      []Consort      `json:"harem"`
-	Heirs      []Heir         `json:"heirs"`
-	Succession Succession     `json:"succession"`
-	Offices    []Office       `json:"offices"`
-	Provinces  []Province     `json:"provinces"`
-	Wars       []WarCampaign  `json:"wars"`
-	Crisis     Crisis         `json:"crisis"`
-	Objectives []Objective    `json:"objectives"`
-	Scene      *Scene         `json:"scene,omitempty"`
-	Ending     *Ending        `json:"ending,omitempty"`
-	History    []HistoryEntry `json:"history"`
+	ID           string         `json:"id"`
+	Seed         int64          `json:"seed"`
+	Turn         int            `json:"turn"`
+	Age          int            `json:"age"`
+	Phase        Phase          `json:"phase"`
+	Dynasty      Dynasty        `json:"dynasty"`
+	Assets       Assets         `json:"assets"`
+	ReignYear    int            `json:"reignYear"`
+	Season       string         `json:"season"`
+	Command      int            `json:"command"`
+	Stats        Stats          `json:"stats"`
+	Factions     []Faction      `json:"factions"`
+	Court        []Minister     `json:"court"`
+	Harem        []Consort      `json:"harem"`
+	Heirs        []Heir         `json:"heirs"`
+	Succession   Succession     `json:"succession"`
+	Offices      []Office       `json:"offices"`
+	Provinces    []Province     `json:"provinces"`
+	Wars         []WarCampaign  `json:"wars"`
+	Crisis       Crisis         `json:"crisis"`
+	RecentEvents []SeasonEvent  `json:"recentEvents"`
+	EventLog     []SeasonEvent  `json:"eventLog"`
+	Objectives   []Objective    `json:"objectives"`
+	Scene        *Scene         `json:"scene,omitempty"`
+	Ending       *Ending        `json:"ending,omitempty"`
+	History      []HistoryEntry `json:"history"`
 
 	rng *rand.Rand
 }

@@ -83,6 +83,7 @@ func (s *GameState) ApplyChoice(choiceID string) (*Resolution, error) {
 	s.Turn++
 	s.advanceAfter()
 	s.applyWorldPressure(choice.Domain)
+	events := s.triggerSeasonalEvents(choice.Domain)
 	s.updateObjectives()
 	s.Ending = s.checkEnding()
 	if s.Ending == nil {
@@ -101,7 +102,7 @@ func (s *GameState) ApplyChoice(choiceID string) (*Resolution, error) {
 	})
 
 	return &Resolution{
-		Summary: choice.Outcome,
+		Summary: strings.TrimSpace(choice.Outcome + " " + describeEvents(events)),
 		Effects: choice.Effects,
 		Scene:   s.Scene,
 		Ending:  s.Ending,

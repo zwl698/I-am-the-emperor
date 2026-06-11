@@ -33,6 +33,12 @@ var comicBeats = [
   { id: "harem-lantern", when: "order", kind: "favor_consort", title: "宫灯偏照", caption: "今夜哪座宫灯更亮，明日哪家外戚就更近。", sceneIndex: 16, portrait: "consort" },
   { id: "marriage-jade", when: "order", kind: "marriage_alliance", title: "玉册联姻", caption: "红绸连起两族，也把筹码系上龙案。", sceneIndex: 12, portrait: "empress" },
   { id: "court-office-draft", when: "domain", domain: "court", title: "差遣重排", caption: "吏部纸面上几行小字，能让朝局换一个重心。", sceneIndex: 19, portrait: "tutor" },
+  { id: "event-edict-stack", when: "eventCategory", category: "system_pressure", title: "突发奏报", caption: "平静不是默认状态，只是奏章还没递到殿前。", sceneIndex: 5, portrait: "minister" },
+  { id: "event-micro-check", when: "eventCategory", category: "micro_game", title: "御前检定", caption: "这一刻，不是选项在判定你，是此前所有经营在判定你。", sceneIndex: 10, portrait: "reformer" },
+  { id: "event-heir-rumor", when: "eventTag", tag: "继承", title: "东宫传闻", caption: "储位的风声，常常比正式册文更快。", sceneIndex: 18, portrait: "prince" },
+  { id: "event-office-risk", when: "eventTag", tag: "官职", title: "官署空转", caption: "椅子空着的时候，权力不会空着。", sceneIndex: 19, portrait: "minister" },
+  { id: "event-market-freeze", when: "eventTag", tag: "财政", title: "银荒入市", caption: "钱铺关门的声音，能传得比钟声更远。", sceneIndex: 23, portrait: "merchant" },
+  { id: "event-war-fog", when: "eventTag", tag: "战争", title: "战雾入京", caption: "远方的马蹄，最后会踩在朝堂的沉默里。", sceneIndex: 14, portrait: "general" },
   { id: "war-pressure", when: "war", title: "敌骑压境", caption: "战线离京畿还远，恐惧已经进城。", sceneIndex: 14, portrait: "khan" },
   { id: "war-supply", when: "warSupply", title: "粮道断续", caption: "军队最怕的不是刀，是空锅。", sceneIndex: 20, portrait: "minister" },
   { id: "court-stress", when: "courtStress", title: "朝臣倦色", caption: "能臣也会疲惫，疲惫会长出野心。", sceneIndex: 19, portrait: "tutor" },
@@ -95,6 +101,8 @@ function comicBeatMatches(beat, game, action) {
   if (beat.when === "phase") return game.phase === beat.phase;
   if (beat.when === "domain") return action?.domain === beat.domain || game.scene?.choices?.some((choice) => choice.domain === beat.domain);
   if (beat.when === "order") return action?.kind === beat.kind;
+  if (beat.when === "eventCategory") return (game.recentEvents || []).some((event) => event.category === beat.category);
+  if (beat.when === "eventTag") return (game.recentEvents || []).some((event) => (event.tags || []).includes(beat.tag));
   if (beat.when === "war") return (game.wars || []).some((war) => war.threat >= 70);
   if (beat.when === "warSupply") return (game.wars || []).some((war) => war.supply <= 30);
   if (beat.when === "courtStress") return (game.court || []).some((minister) => minister.stress >= 70);
