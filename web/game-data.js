@@ -154,6 +154,20 @@ var warOrders = [
   { kind: "truce", label: "和", title: "议和：外交缓战，武臣不满" },
 ];
 
+var consortOrders = [
+  { kind: "favor_consort", label: "宠", title: "临幸：提升宠爱与外戚影响，可能增加储位争议" },
+  { kind: "marriage_alliance", label: "姻", title: "联姻：稳外戚与邦交，耗国库并抬高母族" },
+];
+
+var heirOrders = [
+  { kind: "name_heir", label: "储", title: "册储：指定继承人，提升拥护但可能激化争议" },
+];
+
+var officeOrders = [
+  { kind: "appoint", label: "任", title: "任官：指派臣子掌官署，消耗御令" },
+  { kind: "dismiss", label: "罢", title: "罢官：清空官位，震慑群臣但制造空转" },
+];
+
 var musicTracks = [
   { id: "birth", name: "雪宫摇篮", root: 196, scale: [0, 3, 5, 7, 10, 12], tempo: 72, wave: "sine", drum: false },
   { id: "study", name: "东宫书声", root: 220, scale: [0, 2, 5, 7, 9, 12], tempo: 84, wave: "triangle", drum: false },

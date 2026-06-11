@@ -41,6 +41,9 @@ const els = {
   objectives: document.querySelector("#objective-list"),
   provinces: document.querySelector("#province-list"),
   wars: document.querySelector("#war-list"),
+  harem: document.querySelector("#harem-list"),
+  heirs: document.querySelector("#heir-list"),
+  offices: document.querySelector("#office-list"),
   factions: document.querySelector("#faction-list"),
   court: document.querySelector("#court-list"),
   history: document.querySelector("#history-list"),
@@ -207,6 +210,7 @@ function renderGame() {
   renderObjectives();
   renderProvinces();
   renderWars();
+  renderSystemPanelsIfReady();
   renderFactions();
   renderCourt();
   renderHistory();
@@ -561,7 +565,7 @@ function crisisSceneArt() {
 }
 
 function orderButtons(orders, target, targetName) {
-  const disabled = (state.game.command ?? 0) <= 0 ? "disabled" : "";
+  const disabled = (state.game.command ?? 0) <= 0 ? `disabled data-state-disabled="true"` : "";
   return `
     <div class="order-buttons" aria-label="${targetName}御令">
       ${orders
@@ -582,6 +586,22 @@ function attachOrderButtons() {
   });
 }
 
+function renderSystemPanelsIfReady() {
+  if (typeof window.renderSystemPanels !== "function") return;
+  window.renderSystemPanels(
+    state.game,
+    {
+      harem: els.harem,
+      heirs: els.heirs,
+      offices: els.offices,
+    },
+    {
+      portraitAt,
+      portraitIndexByRole,
+    },
+  );
+}
+
 function provinceTemperature(p) {
   if (p.disaster >= 60) return "灾情急";
   if (p.order <= 35) return "民变险";
@@ -591,7 +611,7 @@ function provinceTemperature(p) {
 }
 
 function orderTitle(kind) {
-  return [...provinceOrders, ...factionOrders, ...warOrders].find((order) => order.kind === kind)?.title || "御令";
+  return [...provinceOrders, ...factionOrders, ...warOrders, ...consortOrders, ...heirOrders, ...officeOrders].find((order) => order.kind === kind)?.title || "御令";
 }
 
 function orderDomain(kind) {
@@ -608,6 +628,11 @@ function orderDomain(kind) {
     campaign: "military",
     fortify: "military",
     truce: "diplomacy",
+    appoint: "court",
+    dismiss: "intrigue",
+    name_heir: "court",
+    favor_consort: "court",
+    marriage_alliance: "diplomacy",
   };
   return map[kind] || "court";
 }
@@ -638,6 +663,16 @@ function normalizeGame(game) {
     factions: game.factions || [],
     provinces: game.provinces || [],
     court: game.court || [],
+    harem: game.harem || [],
+    heirs: game.heirs || [],
+    succession: game.succession || {
+      namedHeirId: "",
+      stability: 0,
+      dispute: 0,
+      maternalClanPower: 0,
+      lastSuccessionMove: "旧存档缺少储位数据。",
+    },
+    offices: game.offices || [],
     wars: game.wars || [],
     history: game.history || [],
   };
@@ -673,7 +708,7 @@ async function readJSON(res) {
 function setBusy(busy) {
   state.busy = busy;
   document.querySelectorAll("button").forEach((button) => {
-    button.disabled = busy;
+    button.disabled = busy || button.dataset.stateDisabled === "true";
   });
 }
 

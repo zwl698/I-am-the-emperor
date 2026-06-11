@@ -46,6 +46,10 @@ func NewGameWithDynasty(dynastyID string, seed int64) (*GameState, error) {
 		Stats:      dynasty.Initial,
 		Factions:   startingFactions(dynasty.ID),
 		Court:      startingCourt(),
+		Harem:      startingHarem(dynasty.ID),
+		Heirs:      startingHeirs(dynasty.ID),
+		Succession: startingSuccession(dynasty.ID),
+		Offices:    startingOffices(dynasty.ID),
 		Provinces:  startingProvinces(dynasty.ID),
 		Wars:       startingWars(dynasty.ID),
 		Crisis:     startingCrisis(dynasty.ID),
@@ -171,6 +175,7 @@ func (s *GameState) ForceCoronationForTest() {
 	if s.Stats.BorderThreat == 0 {
 		s.Stats.BorderThreat = 38
 	}
+	s.ensureCourtSystems()
 	s.updateObjectives()
 	s.Scene = emperorScene(s)
 }
@@ -244,6 +249,7 @@ func (s *GameState) applyChoiceToWorld(choice Choice) {
 	case DomainCourt:
 		s.adjustFaction(targetFaction, 3, 5)
 		s.adjustMinister(targetFaction, 5, -2)
+		s.applyCourtAgendaOutcome(choice)
 	}
 
 	s.Crisis.Severity = clamp(s.Crisis.Severity+crisisDelta(choice.Domain), 0, 100)
@@ -255,6 +261,9 @@ func (s *GameState) applyChoiceToWorld(choice Choice) {
 }
 
 func (s *GameState) applyOrderToWorld(req OrderRequest) (Effects, string, error) {
+	if effects, summary, ok, err := s.applyCourtOrder(req); ok || err != nil {
+		return effects, summary, err
+	}
 	switch req.Kind {
 	case OrderRelief:
 		i, ok := s.findProvinceIndex(req.Target)
@@ -591,6 +600,22 @@ func (s *GameState) coronate() {
 	s.Stats.Stability = clamp(s.Dynasty.Initial.Stability+s.Stats.Influence/5+s.Stats.Legitimacy/8, 15, 100)
 	s.Stats.BorderThreat = clamp(s.Dynasty.Initial.BorderThreat-s.Stats.Martial/8, 5, 100)
 	s.Command = s.commandBudget()
+	s.ensureCourtSystems()
+}
+
+func (s *GameState) ensureCourtSystems() {
+	if len(s.Harem) == 0 {
+		s.Harem = startingHarem(s.Dynasty.ID)
+	}
+	if len(s.Heirs) == 0 {
+		s.Heirs = startingHeirs(s.Dynasty.ID)
+	}
+	if s.Succession.Stability <= 0 {
+		s.Succession = startingSuccession(s.Dynasty.ID)
+	}
+	if len(s.Offices) == 0 {
+		s.Offices = startingOffices(s.Dynasty.ID)
+	}
 }
 
 func (s *GameState) commandBudget() int {
@@ -682,6 +707,8 @@ func (s *GameState) applyCourtPressure(domain Domain) {
 		}
 		s.Court[i].Stress = clamp(s.Court[i].Stress+stress, 0, 100)
 	}
+	s.applyOfficePressure(domain)
+	s.applyPalacePressure(domain)
 }
 
 func (s *GameState) checkEnding() *Ending {
@@ -841,6 +868,16 @@ func orderLabel(kind OrderKind) string {
 		return "御令：固边"
 	case OrderTruce:
 		return "御令：议和"
+	case OrderAppoint:
+		return "御令：任官"
+	case OrderDismiss:
+		return "御令：罢官"
+	case OrderNameHeir:
+		return "御令：册储"
+	case OrderFavor:
+		return "御令：临幸"
+	case OrderMarriage:
+		return "御令：联姻"
 	default:
 		return "御令"
 	}

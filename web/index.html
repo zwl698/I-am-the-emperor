@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>我是皇帝</title>
     <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/systems.css" />
   </head>
   <body>
     <main class="app-shell">
@@ -77,6 +78,18 @@
             <div class="panel-title">军机外战</div>
             <div id="war-list" class="war-list"></div>
           </section>
+          <section class="world-card system-card">
+            <div class="panel-title">后宫势力</div>
+            <div id="harem-list" class="harem-list"></div>
+          </section>
+          <section class="world-card system-card">
+            <div class="panel-title">储位继承</div>
+            <div id="heir-list" class="heir-list"></div>
+          </section>
+          <section class="world-card system-card">
+            <div class="panel-title">官职任免</div>
+            <div id="office-list" class="office-list"></div>
+          </section>
           <section class="world-card">
             <div class="panel-title">朝堂派系</div>
             <div id="faction-list" class="faction-list"></div>
@@ -96,6 +109,7 @@
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <script src="/game-data.js"></script>
     <script src="/comics.js"></script>
+    <script src="/systems-ui.js"></script>
     <script src="/app.js"></script>
   </body>
 </html>

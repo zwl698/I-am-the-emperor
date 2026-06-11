@@ -60,21 +60,13 @@ func princeScene(turn int, state *GameState) *Scene {
 func emperorScene(s *GameState) *Scene {
 	year := fmt.Sprintf("登基%d年 · %s", max(1, s.ReignYear), s.Season)
 	return &Scene{
-		ID:    fmt.Sprintf("court-%d", s.Turn),
-		Title: "太和朝议",
-		Year:  year,
-		Mood:  emperorMood(s.Stats),
-		Art:   emperorSceneArt(s),
-		Body:  crisisLine(s) + " 六部、边军、宗室、清流与商帮都在等你落子。选择不是单纯加减数值，派系与省份会记住你的每一道旨意。",
-		Choices: []Choice{
-			{ID: fmt.Sprintf("relief-%d", s.Turn), Text: "户部开仓，巡抚赈济", Detail: "民政线：压灾情、保民心，但消耗粮银。", Domain: DomainDomestic, Effects: Effects{Treasury: -10, Grain: -8, Populace: 12, Stability: 5, Legitimacy: 2}, Outcome: "粥棚沿官道铺开，流民队伍短了，户部账册却重得像铁。"},
-			{ID: fmt.Sprintf("tax-%d", s.Turn), Text: "重估田亩，整顿盐铁", Detail: "财政线：增加国库，激怒豪强商帮。", Domain: DomainEconomy, Effects: Effects{Treasury: 18, Populace: -4, Stability: -4, Reform: 3}, Outcome: "银车入库，盐引重发。商帮笑着谢恩，袖中却攥紧了旧账。"},
-			{ID: fmt.Sprintf("train-%d", s.Turn), Text: "拨银练兵，轮戍边镇", Detail: "军务线：提升军力、压边患，耗费国库。", Domain: DomainMilitary, Effects: Effects{Treasury: -12, Army: 15, BorderThreat: -13, Martial: 1}, Outcome: "军营号角重新响亮，边将呈上的地图终于少了几个红圈。"},
-			{ID: fmt.Sprintf("envoy-%d", s.Turn), Text: "遣使联姻，分化诸邦", Detail: "外交线：缓冲战争，稳住宗室和外邦。", Domain: DomainDiplomacy, Effects: Effects{Diplomacy: 13, BorderThreat: -8, Treasury: -4, Stability: 1}, Outcome: "使团携金册出关，远方可汗收下礼物，也收起了一半刀锋。"},
-			{ID: fmt.Sprintf("reform-%d", s.Turn), Text: "设考成法，裁撤冗官", Detail: "新法线：长期强国，短期引爆党争。", Domain: DomainReform, Effects: Effects{Reform: 12, Treasury: 5, Stability: -7, Populace: 3, Legitimacy: 2}, Outcome: "新法像春雷落进官场。有人称颂清明，也有人开始深夜串门。"},
-			{ID: fmt.Sprintf("spy-%d", s.Turn), Text: "开缇骑密档，夜审朋党", Detail: "暗线：削派系权势，但损声望与稳定。", Domain: DomainIntrigue, Effects: Effects{Influence: 7, Stability: -6, Legitimacy: -4, Health: -2}, Outcome: "宫门后的灯亮到三更，第二天朝会上少了几张熟悉的脸。"},
-			{ID: fmt.Sprintf("banquet-%d", s.Turn), Text: "大宴群臣，粉饰太平", Detail: "宫廷线：短期安抚派系，长期损害国本。", Domain: DomainCourt, Effects: Effects{Treasury: -9, Grain: -5, Populace: -7, Stability: -5, BorderThreat: 5, Health: -2}, Outcome: "钟鼓响彻宫城，杯盏遮住了奏章。散席后，问题仍在殿外等你。"},
-		},
+		ID:      fmt.Sprintf("court-%d", s.Turn),
+		Title:   "太和朝议",
+		Year:    year,
+		Mood:    emperorMood(s.Stats),
+		Art:     emperorSceneArt(s),
+		Body:    crisisLine(s) + " 六部、边军、宗室、后宫、东宫、清流与商帮都在等你落子。每季议题会随战争、储位、官署空转与民间灾情重组。",
+		Choices: emperorChoices(s),
 	}
 }
 

@@ -37,6 +37,11 @@ const (
 	OrderCampaign OrderKind = "campaign"
 	OrderFortify  OrderKind = "fortify"
 	OrderTruce    OrderKind = "truce"
+	OrderAppoint  OrderKind = "appoint"
+	OrderDismiss  OrderKind = "dismiss"
+	OrderNameHeir OrderKind = "name_heir"
+	OrderFavor    OrderKind = "favor_consort"
+	OrderMarriage OrderKind = "marriage_alliance"
 )
 
 type EndingKind string
@@ -224,6 +229,10 @@ type GameState struct {
 	Stats      Stats          `json:"stats"`
 	Factions   []Faction      `json:"factions"`
 	Court      []Minister     `json:"court"`
+	Harem      []Consort      `json:"harem"`
+	Heirs      []Heir         `json:"heirs"`
+	Succession Succession     `json:"succession"`
+	Offices    []Office       `json:"offices"`
 	Provinces  []Province     `json:"provinces"`
 	Wars       []WarCampaign  `json:"wars"`
 	Crisis     Crisis         `json:"crisis"`

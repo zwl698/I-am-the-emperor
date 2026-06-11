@@ -112,6 +112,173 @@ func TestNewGameGivesMinistersPlayableAttributes(t *testing.T) {
 	}
 }
 
+func TestNewGameIncludesHaremSuccessionAndOffices(t *testing.T) {
+	state, err := NewGameWithDynasty("jingyao", 81)
+	if err != nil {
+		t.Fatalf("new dynasty game: %v", err)
+	}
+	state.ForceCoronationForTest()
+
+	if len(state.Harem) < 4 {
+		t.Fatalf("expected playable harem roster, got %+v", state.Harem)
+	}
+	if len(state.Heirs) < 2 {
+		t.Fatalf("expected multiple heirs for succession play, got %+v", state.Heirs)
+	}
+	if len(state.Offices) < 6 {
+		t.Fatalf("expected six major offices for appointments, got %+v", state.Offices)
+	}
+	if state.Succession.Stability <= 0 {
+		t.Fatalf("expected succession stability to be initialized, got %+v", state.Succession)
+	}
+
+	for _, consort := range state.Harem {
+		if consort.ID == "" || consort.Name == "" || consort.Rank == "" || consort.Clan == "" {
+			t.Fatalf("consort should expose identity, rank, and clan: %+v", consort)
+		}
+		if consort.Favor <= 0 || consort.FamilyPower <= 0 || consort.Influence <= 0 {
+			t.Fatalf("consort should expose favor, clan power, and influence: %+v", consort)
+		}
+	}
+	for _, heir := range state.Heirs {
+		if heir.ID == "" || heir.Name == "" || heir.MotherID == "" {
+			t.Fatalf("heir should expose identity and maternal link: %+v", heir)
+		}
+		if heir.Age <= 0 || heir.Talent <= 0 || heir.Support <= 0 {
+			t.Fatalf("heir should expose age, talent, and support: %+v", heir)
+		}
+	}
+	for _, office := range state.Offices {
+		if office.ID == "" || office.Title == "" || office.Domain == "" {
+			t.Fatalf("office should expose identity, title, and domain: %+v", office)
+		}
+		if office.Authority <= 0 {
+			t.Fatalf("office should expose authority: %+v", office)
+		}
+	}
+}
+
+func TestAppointmentOrderAssignsOfficeAndPressuresMinister(t *testing.T) {
+	state := NewGame(82)
+	state.ForceCoronationForTest()
+	beforeTurn := state.Turn
+	beforeCommand := state.Command
+	office := state.Offices[0]
+	minister := state.Court[2]
+
+	resolution, err := state.ApplyOrder(OrderRequest{
+		Kind:   OrderAppoint,
+		Target: office.ID + ":" + minister.ID,
+	})
+	if err != nil {
+		t.Fatalf("apply appointment order: %v", err)
+	}
+
+	if resolution == nil || resolution.Summary == "" {
+		t.Fatalf("expected appointment resolution, got %+v", resolution)
+	}
+	if state.Turn != beforeTurn {
+		t.Fatalf("appointment should not advance scene turn, before %d after %d", beforeTurn, state.Turn)
+	}
+	if state.Command != beforeCommand-1 {
+		t.Fatalf("expected command to decrease by 1, before %d after %d", beforeCommand, state.Command)
+	}
+	afterOffice, ok := officeByID(state, office.ID)
+	if !ok {
+		t.Fatalf("office %q missing after appointment", office.ID)
+	}
+	if afterOffice.HolderID != minister.ID {
+		t.Fatalf("expected office holder %q, got %+v", minister.ID, afterOffice)
+	}
+	afterMinister, ok := ministerByID(state, minister.ID)
+	if !ok {
+		t.Fatalf("minister %q missing after appointment", minister.ID)
+	}
+	if afterMinister.Stress <= minister.Stress {
+		t.Fatalf("expected appointed minister stress to rise, before %+v after %+v", minister, afterMinister)
+	}
+}
+
+func TestSuccessionOrderNamesHeirAndMovesSupport(t *testing.T) {
+	state := NewGame(83)
+	state.ForceCoronationForTest()
+	beforeCommand := state.Command
+	heir := state.Heirs[1]
+	beforeStability := state.Succession.Stability
+
+	resolution, err := state.ApplyOrder(OrderRequest{
+		Kind:   OrderNameHeir,
+		Target: heir.ID,
+	})
+	if err != nil {
+		t.Fatalf("apply succession order: %v", err)
+	}
+
+	if resolution == nil || resolution.Summary == "" {
+		t.Fatalf("expected succession resolution, got %+v", resolution)
+	}
+	if state.Command != beforeCommand-1 {
+		t.Fatalf("expected command to decrease by 1, before %d after %d", beforeCommand, state.Command)
+	}
+	if state.Succession.NamedHeirID != heir.ID {
+		t.Fatalf("expected named heir %q, got %+v", heir.ID, state.Succession)
+	}
+	afterHeir, ok := heirByID(state, heir.ID)
+	if !ok {
+		t.Fatalf("heir %q missing after naming", heir.ID)
+	}
+	if !afterHeir.Named {
+		t.Fatalf("expected heir to be marked as named: %+v", afterHeir)
+	}
+	if afterHeir.Support <= heir.Support {
+		t.Fatalf("expected named heir support to rise, before %+v after %+v", heir, afterHeir)
+	}
+	if state.Succession.Stability == beforeStability {
+		t.Fatalf("expected succession stability to move, before %d after %+v", beforeStability, state.Succession)
+	}
+}
+
+func TestDynamicCourtAgendaChangesBetweenSeasons(t *testing.T) {
+	state, err := NewGameWithDynasty("chengping", 84)
+	if err != nil {
+		t.Fatalf("new dynasty game: %v", err)
+	}
+	state.ForceCoronationForTest()
+	firstSignature := choiceSignature(state.Scene.Choices)
+
+	var domesticChoice string
+	for _, choice := range state.Scene.Choices {
+		if choice.Domain == DomainDomestic {
+			domesticChoice = choice.ID
+			break
+		}
+	}
+	if domesticChoice == "" {
+		t.Fatalf("expected domestic agenda in first court scene: %+v", state.Scene.Choices)
+	}
+
+	if _, err := state.ApplyChoice(domesticChoice); err != nil {
+		t.Fatalf("apply choice: %v", err)
+	}
+	secondSignature := choiceSignature(state.Scene.Choices)
+
+	if firstSignature == secondSignature {
+		t.Fatalf("expected seasonal court agenda to change, got %q", firstSignature)
+	}
+
+	systemAgenda := false
+	for _, choice := range state.Scene.Choices {
+		text := choice.Text + choice.Detail
+		if strings.Contains(text, "后宫") || strings.Contains(text, "储") || strings.Contains(text, "官职") || strings.Contains(text, "任免") {
+			systemAgenda = true
+			break
+		}
+	}
+	if !systemAgenda {
+		t.Fatalf("expected harem, succession, or appointment agenda in court choices: %+v", state.Scene.Choices)
+	}
+}
+
 func TestFrontierDynastyStartsWithExternalWarCampaign(t *testing.T) {
 	state, err := NewGameWithDynasty("xuanshuo", 18)
 	if err != nil {
@@ -424,4 +591,39 @@ func objectiveProgress(t *testing.T, state *GameState, id string) int {
 	}
 	t.Fatalf("objective %q not found in %+v", id, state.Objectives)
 	return 0
+}
+
+func officeByID(state *GameState, id string) (Office, bool) {
+	for _, office := range state.Offices {
+		if office.ID == id {
+			return office, true
+		}
+	}
+	return Office{}, false
+}
+
+func ministerByID(state *GameState, id string) (Minister, bool) {
+	for _, minister := range state.Court {
+		if minister.ID == id {
+			return minister, true
+		}
+	}
+	return Minister{}, false
+}
+
+func heirByID(state *GameState, id string) (Heir, bool) {
+	for _, heir := range state.Heirs {
+		if heir.ID == id {
+			return heir, true
+		}
+	}
+	return Heir{}, false
+}
+
+func choiceSignature(choices []Choice) string {
+	parts := make([]string, 0, len(choices))
+	for _, choice := range choices {
+		parts = append(parts, choice.ID+":"+choice.Text)
+	}
+	return strings.Join(parts, "|")
 }
