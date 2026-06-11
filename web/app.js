@@ -1,174 +1,3 @@
-const statMeta = [
-  ["legitimacy", "名望"],
-  ["health", "健康"],
-  ["learning", "学识"],
-  ["martial", "武略"],
-  ["charisma", "魅力"],
-  ["influence", "势力"],
-  ["treasury", "国库"],
-  ["grain", "粮草"],
-  ["populace", "民心"],
-  ["army", "军力"],
-  ["diplomacy", "邦交"],
-  ["stability", "朝稳"],
-  ["borderThreat", "边患"],
-  ["reform", "新政"],
-];
-
-const domainIcon = {
-  story: "卷",
-  domestic: "民",
-  economy: "财",
-  military: "兵",
-  diplomacy: "使",
-  court: "宫",
-  reform: "法",
-  intrigue: "密",
-};
-
-const phaseName = {
-  prince: "皇子",
-  emperor: "皇帝",
-};
-
-const sceneAssetNames = [
-  "birth-chamber",
-  "east-palace-study",
-  "winter-hunt",
-  "flood-levee",
-  "succession-hall",
-  "throne-court",
-  "granary-relief",
-  "tax-office",
-  "frontier-fortress",
-  "envoy-pass",
-  "reform-archive",
-  "secret-tribunal",
-  "banquet-hall",
-  "jiangnan-canal",
-  "northern-battlefield",
-  "desert-market",
-  "imperial-garden",
-  "rain-corridor",
-  "ancestral-temple",
-  "ministry-office",
-  "dockyard-fleet",
-  "drill-ground",
-  "rebel-village",
-  "silk-market",
-  "mountain-monastery",
-  "exam-hall",
-  "map-room",
-  "palace-dawn",
-  "diplomatic-tent",
-  "festival-night",
-];
-
-const portraitAssetNames = [
-  "infant-prince",
-  "teen-prince",
-  "young-emperor",
-  "elder-emperor",
-  "stern-tutor",
-  "frontier-general",
-  "finance-minister",
-  "grand-princess",
-  "noble-consort",
-  "young-empress",
-  "queen-dowager",
-  "palace-maid",
-  "eunuch-spymaster",
-  "scholar-official",
-  "reformist-official",
-  "corrupt-magistrate",
-  "merchant-leader",
-  "foreign-envoy",
-  "nomad-khan",
-  "monk-strategist",
-  "female-diplomat",
-  "guard-captain",
-  "rebel-leader",
-  "river-engineer",
-  "imperial-physician",
-  "astrologer",
-  "poet",
-  "court-painter",
-  "farmer-representative",
-  "masked-assassin",
-];
-
-const sceneGalleryFallback = assetPaths("/assets/scenes/scene", sceneAssetNames);
-const portraitGalleryFallback = assetPaths("/assets/portraits/portrait", portraitAssetNames);
-
-const portraitIndexByRole = {
-  infant: 0,
-  prince: 1,
-  emperor: 2,
-  elder: 3,
-  tutor: 4,
-  general: 5,
-  minister: 6,
-  consort: 7,
-  empress: 9,
-  dowager: 10,
-  maid: 11,
-  spy: 12,
-  scholar: 13,
-  reformer: 14,
-  corrupt: 15,
-  merchant: 16,
-  envoy: 17,
-  khan: 18,
-  monk: 19,
-  diplomat: 20,
-  guard: 21,
-  rebel: 22,
-  engineer: 23,
-  physician: 24,
-  astrologer: 25,
-  poet: 26,
-  painter: 27,
-  farmer: 28,
-  assassin: 29,
-};
-
-const provinceOrders = [
-  { kind: "relief", label: "赈", title: "赈济：降灾情、涨民心，耗粮银" },
-  { kind: "garrison", label: "驻", title: "驻防：升防务、压边患，耗军费" },
-  { kind: "tax", label: "税", title: "督税：涨国库，伤地方秩序" },
-  { kind: "canal", label: "渠", title: "修渠：长期富庶与新政，耗国库" },
-  { kind: "trade", label: "市", title: "互市：涨财政外交，略增边患" },
-  { kind: "inspect", label: "查", title: "密查：升秩序，抓胥吏" },
-];
-
-const factionOrders = [
-  { kind: "appease", label: "安", title: "安抚：涨忠诚，耗银与威权" },
-  { kind: "purge", label: "削", title: "削权：降权势，激化党争" },
-  { kind: "inspect", label: "查", title: "密查：压权势，损稳定" },
-];
-
-const musicTracks = [
-  { id: "birth", name: "雪宫摇篮", root: 196, scale: [0, 3, 5, 7, 10, 12], tempo: 72, wave: "sine", drum: false },
-  { id: "study", name: "东宫书声", root: 220, scale: [0, 2, 5, 7, 9, 12], tempo: 84, wave: "triangle", drum: false },
-  { id: "hunt", name: "雪猎急弦", root: 174, scale: [0, 3, 5, 7, 10, 12], tempo: 120, wave: "sawtooth", drum: true },
-  { id: "flood", name: "南河雨鼓", root: 164, scale: [0, 2, 3, 7, 8, 12], tempo: 92, wave: "triangle", drum: true },
-  { id: "succession", name: "烛影夺嫡", root: 146, scale: [0, 1, 5, 7, 8, 12], tempo: 96, wave: "sine", drum: true },
-  { id: "court", name: "太和晨钟", root: 196, scale: [0, 2, 4, 7, 9, 12], tempo: 82, wave: "triangle", drum: true },
-  { id: "people", name: "粥棚烟火", root: 185, scale: [0, 2, 5, 7, 9, 12], tempo: 76, wave: "sine", drum: false },
-  { id: "treasury", name: "银库算盘", root: 207, scale: [0, 2, 4, 6, 9, 12], tempo: 102, wave: "square", drum: false },
-  { id: "war", name: "边塞战鼓", root: 130, scale: [0, 3, 5, 7, 10, 12], tempo: 128, wave: "sawtooth", drum: true },
-  { id: "envoy", name: "驼铃万里", root: 174, scale: [0, 2, 5, 7, 11, 12], tempo: 88, wave: "triangle", drum: false },
-  { id: "intrigue", name: "密档夜灯", root: 155, scale: [0, 1, 5, 6, 8, 12], tempo: 90, wave: "sine", drum: true },
-  { id: "festival", name: "万邦烟火", root: 247, scale: [0, 2, 4, 7, 9, 14], tempo: 112, wave: "triangle", drum: true },
-];
-
-const dynastyPanelClass = {
-  dayin: "panel-dayin",
-  jingyao: "panel-jingyao",
-  chengping: "panel-chengping",
-  xuanshuo: "panel-xuanshuo",
-};
-
 const state = {
   game: null,
   dynasties: [],
@@ -211,7 +40,9 @@ const els = {
   commandStatus: document.querySelector("#command-status"),
   objectives: document.querySelector("#objective-list"),
   provinces: document.querySelector("#province-list"),
+  wars: document.querySelector("#war-list"),
   factions: document.querySelector("#faction-list"),
+  court: document.querySelector("#court-list"),
   history: document.querySelector("#history-list"),
   toast: document.querySelector("#toast"),
 };
@@ -347,6 +178,7 @@ async function issueOrder(kind, target, label) {
     state.game = normalizeGame(payload.state);
     state.lastAction = {
       type: "order",
+      kind,
       title: label || orderTitle(kind),
       domain: orderDomain(kind),
       summary: payload.resolution?.summary || "",
@@ -374,7 +206,9 @@ function renderGame() {
   renderCommands();
   renderObjectives();
   renderProvinces();
+  renderWars();
   renderFactions();
+  renderCourt();
   renderHistory();
   attachOrderButtons();
   syncMusicToScene();
@@ -459,34 +293,8 @@ function renderScene() {
 
 function renderComicStrip() {
   const game = state.game;
-  const dynasty = currentDynasty();
   const action = state.lastAction;
-  const panels = [
-    {
-      className: "scene-panel",
-      image: game.scene?.art || sceneGallery()[0],
-      title: dynasty.name,
-      caption: game.scene?.mood ? `${game.scene.year} · ${game.scene.mood}` : dynasty.challenge,
-    },
-    {
-      className: "character-panel",
-      image: identityPortrait(),
-      title: game.phase === "emperor" ? "御座落笔" : "东宫心性",
-      caption: game.phase === "emperor" ? "你的一笔朱批，会让天下震动。" : "少年皇子的一次选择，会在多年后回响。",
-    },
-    {
-      className: `action-panel domain-${action?.domain || "court"}`,
-      image: domainSceneArt(action?.domain || game.scene?.choices?.[0]?.domain),
-      title: action?.title || "命运未落子",
-      caption: action?.summary || "点击剧情选择，或登基后下御令，漫画会随之推进。",
-    },
-    {
-      className: "crisis-panel",
-      image: crisisSceneArt(),
-      title: game.crisis?.title || "朝局",
-      caption: game.crisis ? `烈度 ${game.crisis.severity} · 危机钟 ${game.crisis.clock}/8` : "风暴尚未命名。",
-    },
-  ];
+  const panels = typeof dynamicComicPanels === "function" ? dynamicComicPanels(game, action) : [];
 
   els.comicStrip.innerHTML = panels
     .map((panel) => `
@@ -588,6 +396,32 @@ function renderProvinces() {
     .join("");
 }
 
+function renderWars() {
+  const wars = state.game.wars || [];
+  if (wars.length === 0) {
+    els.wars.innerHTML = `<article class="mini-world-row"><strong>边境暂宁</strong><span>暂无外战，但边患仍会随局势变化。</span></article>`;
+    return;
+  }
+  const canOrder = state.game.phase === "emperor";
+  els.wars.innerHTML = wars
+    .map((war) => {
+      const progress = Math.min(100, war.progress ?? 0);
+      return `
+        <article class="war-row">
+          <div class="row-head">
+            <strong>${war.name}</strong>
+            <small>${war.stage}</small>
+          </div>
+          <span>${war.enemy} · ${war.front} · 历时 ${war.duration} 季</span>
+          <div class="war-meter"><b>战果</b><i style="width:${progress}%"></i><em>${progress}/100</em></div>
+          <small>敌势 ${war.threat} · 粮道 ${war.supply} · 士气 ${war.morale}</small>
+          ${canOrder ? orderButtons(warOrders, war.id, war.name) : ""}
+        </article>
+      `;
+    })
+    .join("");
+}
+
 function renderFactions() {
   const canOrder = state.game.phase === "emperor";
   els.factions.innerHTML = (state.game.factions || [])
@@ -599,6 +433,21 @@ function renderFactions() {
           <small>${faction.leader} · ${faction.agenda}</small>
           <em>权势 ${faction.power} · 忠诚 ${faction.loyalty}</em>
           ${canOrder ? orderButtons(factionOrders, faction.id, faction.name) : ""}
+        </span>
+      </article>
+    `)
+    .join("");
+}
+
+function renderCourt() {
+  els.court.innerHTML = (state.game.court || [])
+    .map((minister) => `
+      <article class="court-row">
+        <span class="portrait-dot" style="background-image:url('${portraitForMinister(minister)}')"></span>
+        <span>
+          <strong>${minister.name}</strong>
+          <small>${minister.role} · ${minister.trait}</small>
+          <em>忠 ${minister.loyalty} · 才 ${minister.ability} · 野 ${minister.ambition} · 廉 ${minister.integrity} · 压 ${minister.stress}</em>
         </span>
       </article>
     `)
@@ -632,10 +481,6 @@ function formatEffects(effects = {}) {
     .map(([key, value]) => `${names[key] || key}${value > 0 ? "+" : ""}${value}`)
     .join("、");
   return text || "无直接变化";
-}
-
-function assetPaths(prefix, names) {
-  return names.map((name, index) => `${prefix}-${String(index + 1).padStart(2, "0")}-${name}.png`);
 }
 
 function sceneGallery() {
@@ -678,6 +523,17 @@ function portraitForFaction(faction) {
     clan: "consort",
   };
   const role = map[faction.portrait] || map[faction.id] || "scholar";
+  return portraitAt(portraitIndexByRole[role] ?? portraitIndexByRole.scholar);
+}
+
+function portraitForMinister(minister) {
+  const map = {
+    太傅: "tutor",
+    大将军: "general",
+    户部尚书: "minister",
+    长公主: "consort",
+  };
+  const role = map[minister.role] || minister.portrait || "scholar";
   return portraitAt(portraitIndexByRole[role] ?? portraitIndexByRole.scholar);
 }
 
@@ -735,7 +591,7 @@ function provinceTemperature(p) {
 }
 
 function orderTitle(kind) {
-  return [...provinceOrders, ...factionOrders].find((order) => order.kind === kind)?.title || "御令";
+  return [...provinceOrders, ...factionOrders, ...warOrders].find((order) => order.kind === kind)?.title || "御令";
 }
 
 function orderDomain(kind) {
@@ -748,6 +604,10 @@ function orderDomain(kind) {
     purge: "intrigue",
     canal: "reform",
     trade: "diplomacy",
+    mobilize: "military",
+    campaign: "military",
+    fortify: "military",
+    truce: "diplomacy",
   };
   return map[kind] || "court";
 }
@@ -778,6 +638,7 @@ function normalizeGame(game) {
     factions: game.factions || [],
     provinces: game.provinces || [],
     court: game.court || [],
+    wars: game.wars || [],
     history: game.history || [],
   };
 }

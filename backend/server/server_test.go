@@ -12,7 +12,12 @@ type apiGameState struct {
 	ID      string `json:"id"`
 	Phase   string `json:"phase"`
 	Command int    `json:"command"`
-	Scene   struct {
+	Wars    []struct {
+		ID       string `json:"id"`
+		Threat   int    `json:"threat"`
+		Progress int    `json:"progress"`
+	} `json:"wars"`
+	Scene struct {
 		Choices []struct {
 			ID string `json:"id"`
 		} `json:"choices"`
@@ -153,5 +158,52 @@ func TestApplyOrderAPI(t *testing.T) {
 	}
 	if payload.State.Command != beforeCommand-1 {
 		t.Fatalf("expected order to spend one command point, before %d after %d", beforeCommand, payload.State.Command)
+	}
+}
+
+func TestApplyWarOrderAPI(t *testing.T) {
+	app := New()
+	create := httptest.NewRecorder()
+	app.ServeHTTP(create, httptest.NewRequest(http.MethodPost, "/api/games", bytes.NewBufferString(`{"seed":19,"dynastyId":"xuanshuo"}`)))
+
+	var state apiGameState
+	if err := json.Unmarshal(create.Body.Bytes(), &state); err != nil {
+		t.Fatalf("decode create response: %v", err)
+	}
+	for i := 0; i < 5; i++ {
+		body := []byte(`{"choiceId":"` + state.Scene.Choices[0].ID + `"}`)
+		rec := httptest.NewRecorder()
+		app.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/games/"+state.ID+"/choices", bytes.NewBuffer(body)))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("advance to emperor status %d: %s", rec.Code, rec.Body.String())
+		}
+		var payload apiActionResponse
+		if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+			t.Fatalf("decode advance response: %v", err)
+		}
+		state = payload.State
+	}
+	if len(state.Wars) == 0 {
+		t.Fatalf("expected war campaigns after coronation, got %+v", state)
+	}
+
+	beforeCommand := state.Command
+	beforeWar := state.Wars[0]
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/games/"+state.ID+"/orders", bytes.NewBufferString(`{"kind":"campaign","target":"`+beforeWar.ID+`"}`)))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var payload apiActionResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	afterWar := payload.State.Wars[0]
+	if payload.State.Command != beforeCommand-1 {
+		t.Fatalf("expected campaign order to spend one command point, before %d after %d", beforeCommand, payload.State.Command)
+	}
+	if afterWar.Progress <= beforeWar.Progress || afterWar.Threat >= beforeWar.Threat {
+		t.Fatalf("expected campaign to advance and reduce threat, before %+v after %+v", beforeWar, afterWar)
 	}
 }

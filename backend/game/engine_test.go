@@ -96,6 +96,40 @@ func TestNewGameExposesLargeGeneratedAssetGalleries(t *testing.T) {
 	}
 }
 
+func TestNewGameGivesMinistersPlayableAttributes(t *testing.T) {
+	state := NewGame(16)
+
+	if len(state.Court) < 4 {
+		t.Fatalf("expected court ministers, got %+v", state.Court)
+	}
+	for _, minister := range state.Court {
+		if minister.Ability <= 0 || minister.Ambition <= 0 || minister.Integrity <= 0 {
+			t.Fatalf("minister should expose ability, ambition, and integrity: %+v", minister)
+		}
+		if minister.Stress < 0 {
+			t.Fatalf("minister stress should never be negative: %+v", minister)
+		}
+	}
+}
+
+func TestFrontierDynastyStartsWithExternalWarCampaign(t *testing.T) {
+	state, err := NewGameWithDynasty("xuanshuo", 18)
+	if err != nil {
+		t.Fatalf("new dynasty game: %v", err)
+	}
+
+	if len(state.Wars) == 0 {
+		t.Fatalf("expected frontier dynasty to start with an external war, got %+v", state.Wars)
+	}
+	war := state.Wars[0]
+	if war.ID == "" || war.Enemy == "" || war.Front == "" || war.Stage == "" {
+		t.Fatalf("war campaign should expose identity, enemy, front, and stage: %+v", war)
+	}
+	if war.Threat <= 0 || war.Supply <= 0 || war.Morale <= 0 {
+		t.Fatalf("war campaign should expose threat, supply, and morale: %+v", war)
+	}
+}
+
 func TestNewGameIncludesLongTermObjectives(t *testing.T) {
 	state, err := NewGameWithDynasty("chengping", 17)
 	if err != nil {
@@ -311,6 +345,42 @@ func TestEmperorCanIssueOrdersWithoutAdvancingSceneTurn(t *testing.T) {
 	}
 	if state.Provinces[0] == beforeProvince {
 		t.Fatalf("expected province to change, before %+v after %+v", beforeProvince, state.Provinces[0])
+	}
+}
+
+func TestWarOrderAdvancesCampaignWithoutAdvancingSceneTurn(t *testing.T) {
+	state, err := NewGameWithDynasty("xuanshuo", 63)
+	if err != nil {
+		t.Fatalf("new dynasty game: %v", err)
+	}
+	state.ForceCoronationForTest()
+	beforeTurn := state.Turn
+	beforeCommand := state.Command
+	beforeWar := state.Wars[0]
+
+	resolution, err := state.ApplyOrder(OrderRequest{
+		Kind:   OrderCampaign,
+		Target: beforeWar.ID,
+	})
+	if err != nil {
+		t.Fatalf("apply campaign order: %v", err)
+	}
+
+	if resolution == nil || resolution.Summary == "" {
+		t.Fatalf("expected war resolution, got %+v", resolution)
+	}
+	if state.Turn != beforeTurn {
+		t.Fatalf("war order should not advance scene turn, before %d after %d", beforeTurn, state.Turn)
+	}
+	if state.Command != beforeCommand-1 {
+		t.Fatalf("expected command to decrease by 1, before %d after %d", beforeCommand, state.Command)
+	}
+	afterWar := state.Wars[0]
+	if afterWar.Progress <= beforeWar.Progress {
+		t.Fatalf("expected campaign progress to advance, before %+v after %+v", beforeWar, afterWar)
+	}
+	if afterWar.Threat >= beforeWar.Threat {
+		t.Fatalf("expected campaign threat to fall, before %+v after %+v", beforeWar, afterWar)
 	}
 }
 
