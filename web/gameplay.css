@@ -1,0 +1,182 @@
+.event-hand-panel {
+  position: relative;
+  z-index: 2;
+}
+
+.event-hand {
+  margin: 0 22px 16px;
+  color: #fff7d7;
+}
+
+.event-hand.locked {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 226, 151, 0.28);
+  border-radius: 8px;
+  background: rgba(60, 22, 16, 0.66);
+}
+
+.event-hand-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  text-shadow: 0 2px 8px rgba(31, 7, 5, 0.55);
+}
+
+.event-hand-head strong {
+  font-size: 1.04rem;
+}
+
+.event-hand-head small {
+  color: rgba(255, 245, 211, 0.78);
+}
+
+.event-hand-track {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.event-hand-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 236px;
+  padding: 13px;
+  border: 1px solid rgba(255, 226, 151, 0.32);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 28% 8%, rgba(255, 223, 138, 0.25), transparent 32%),
+    linear-gradient(150deg, rgba(92, 28, 19, 0.88), rgba(32, 13, 10, 0.82));
+  box-shadow: 0 15px 34px rgba(27, 9, 6, 0.32);
+  animation: cardDeal 560ms ease both;
+  animation-delay: calc(var(--card-index) * 70ms);
+}
+
+.event-hand-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 20%, rgba(255, 255, 255, 0.11), transparent 44%);
+  transform: translateX(-120%);
+  animation: cardSheen 4.5s ease-in-out infinite;
+  animation-delay: calc(var(--card-index) * 260ms);
+  pointer-events: none;
+}
+
+.event-hand-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #ffdf9a;
+  font-size: 0.78rem;
+}
+
+.event-hand-topline em {
+  font-style: normal;
+  color: #a8f0bf;
+}
+
+.event-hand-card h3 {
+  margin: 9px 0 8px;
+  font-size: 1.08rem;
+}
+
+.event-hand-card p,
+.event-hand-card blockquote,
+.event-hand-card small {
+  display: block;
+  margin: 0 0 9px;
+  color: rgba(255, 245, 219, 0.88);
+  line-height: 1.48;
+}
+
+.event-hand-card blockquote {
+  padding-left: 9px;
+  border-left: 3px solid rgba(255, 210, 115, 0.5);
+  color: #fff4c7;
+}
+
+.event-action {
+  width: 100%;
+  margin-top: 4px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 230, 155, 0.42);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #c43b2f, #7d241f);
+  color: #fff7da;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 9px 18px rgba(43, 10, 8, 0.28);
+}
+
+.event-action:hover:not(:disabled),
+[data-action-kind]:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.event-action:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+@keyframes cardDeal {
+  from {
+    opacity: 0;
+    transform: translateY(12px) rotate(-1.5deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(0);
+  }
+}
+
+@keyframes cardSheen {
+  0%,
+  55% {
+    transform: translateX(-120%);
+  }
+  78%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@media (max-width: 1180px) {
+  .event-hand-track {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .event-hand {
+    margin: 0 12px 12px;
+  }
+
+  .event-hand-head {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .event-hand-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 6px;
+  }
+
+  .event-hand-card {
+    min-width: 235px;
+    scroll-snap-align: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-hand-card,
+  .event-hand-card::before {
+    animation: none;
+  }
+}

@@ -256,6 +256,7 @@ type GameState struct {
 	Crisis        Crisis            `json:"crisis"`
 	RecentEvents  []SeasonEvent     `json:"recentEvents"`
 	EventLog      []SeasonEvent     `json:"eventLog"`
+	EventHand     []EventCard       `json:"eventHand"`
 	Objectives    []Objective       `json:"objectives"`
 	Scene         *Scene            `json:"scene,omitempty"`
 	Ending        *Ending           `json:"ending,omitempty"`

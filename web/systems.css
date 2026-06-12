@@ -445,6 +445,148 @@
   text-align: right;
 }
 
+.playdesk-panel {
+  position: relative;
+  z-index: 1;
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto 12px;
+}
+
+.playdesk {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 2px solid rgba(246, 214, 148, 0.34);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(50, 19, 13, 0.86), rgba(117, 36, 22, 0.72)),
+    radial-gradient(circle at 12% 0%, rgba(255, 228, 157, 0.24), transparent 42%);
+  box-shadow: 0 12px 28px rgba(29, 8, 5, 0.28);
+}
+
+.playdesk.locked {
+  color: #fff0c2;
+  font-size: 13px;
+}
+
+.playdesk-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  color: #fff0c2;
+}
+
+.playdesk-head strong {
+  font-size: 16px;
+}
+
+.playdesk-head small,
+.mini-game-card p,
+.mini-game-card small {
+  color: rgba(255, 239, 204, 0.82);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.playdesk-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.mini-game-card {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(250, 220, 160, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 246, 215, 0.1);
+}
+
+.mini-game-card h3 {
+  margin: 0;
+  color: #fff4ce;
+  font-size: 14px;
+}
+
+.mini-game-card p {
+  min-height: 34px;
+  margin: 0;
+}
+
+.tactical-board,
+.verdict-cards,
+.minister-chips {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.verdict-cards {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.tactic-cell,
+.mini-order {
+  position: relative;
+  min-height: 54px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 233, 181, 0.3);
+  border-radius: 8px;
+  color: #fff7df;
+  background: linear-gradient(180deg, #a33a2d, #5d1815);
+  box-shadow: 0 4px 0 rgba(43, 10, 8, 0.45);
+  cursor: pointer;
+  font-weight: 1000;
+}
+
+.tactic-cell i {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  background: linear-gradient(180deg, rgba(230, 180, 76, 0.16), rgba(242, 201, 96, 0.46));
+}
+
+.tactic-cell b,
+.tactic-cell em {
+  position: relative;
+  z-index: 1;
+  display: block;
+  font-style: normal;
+}
+
+.tactic-cell b {
+  margin-top: 9px;
+}
+
+.tactic-cell em {
+  color: #ffe8a8;
+  font-size: 11px;
+}
+
+.mini-order {
+  min-height: 38px;
+  padding: 0 6px;
+}
+
+.tactic-cell:hover,
+.mini-order:hover {
+  transform: translateY(-1px);
+  filter: saturate(1.1);
+}
+
+.tactic-cell:disabled,
+.mini-order:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.7);
+  opacity: 0.45;
+  transform: none;
+}
+
 .event-list {
   display: grid;
   gap: 9px;

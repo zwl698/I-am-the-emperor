@@ -6,17 +6,24 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"i-am-the-emperor/backend/game"
 )
 
 type apiGameState struct {
-	ID      string `json:"id"`
-	Phase   string `json:"phase"`
-	Command int    `json:"command"`
-	Wars    []struct {
+	ID        string `json:"id"`
+	Phase     string `json:"phase"`
+	ReignYear int    `json:"reignYear"`
+	Season    string `json:"season"`
+	Command   int    `json:"command"`
+	Wars      []struct {
 		ID       string `json:"id"`
 		Threat   int    `json:"threat"`
 		Progress int    `json:"progress"`
 	} `json:"wars"`
+	Provinces []struct {
+		ID string `json:"id"`
+	} `json:"provinces"`
 	Court []struct {
 		ID string `json:"id"`
 	} `json:"court"`
@@ -24,11 +31,49 @@ type apiGameState struct {
 		ID       string `json:"id"`
 		HolderID string `json:"holderId"`
 	} `json:"offices"`
+	LegalCases []struct {
+		ID string `json:"id"`
+	} `json:"legalCases"`
 	Scene struct {
 		Choices []struct {
 			ID string `json:"id"`
 		} `json:"choices"`
 	} `json:"scene"`
+}
+
+func TestGetGameRepairsLegacyStateForClient(t *testing.T) {
+	app := New()
+	state := game.NewGame(1302)
+	state.Phase = game.PhaseEmperor
+	state.Turn = 19
+	state.ReignYear = 0
+	state.Season = ""
+	state.Provinces = nil
+	state.Wars = nil
+	state.Offices = nil
+	state.LegalCases = nil
+	state.Scene = nil
+	app.games[state.ID] = state
+
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/games/"+state.ID, nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var payload apiGameState
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.ReignYear < 1 || payload.Season == "" {
+		t.Fatalf("expected repaired calendar, got %+v", payload)
+	}
+	if len(payload.Provinces) == 0 || len(payload.Wars) == 0 || len(payload.Offices) == 0 || len(payload.LegalCases) == 0 {
+		t.Fatalf("expected repaired systems, got %+v", payload)
+	}
+	if len(payload.Scene.Choices) == 0 {
+		t.Fatalf("expected repaired emperor scene, got %+v", payload.Scene)
+	}
 }
 
 type apiActionResponse struct {
@@ -212,6 +257,54 @@ func TestApplyWarOrderAPI(t *testing.T) {
 	}
 	if afterWar.Progress <= beforeWar.Progress || afterWar.Threat >= beforeWar.Threat {
 		t.Fatalf("expected campaign to advance and reduce threat, before %+v after %+v", beforeWar, afterWar)
+	}
+}
+
+func TestApplyUnifiedActionAPI(t *testing.T) {
+	app := New()
+	create := httptest.NewRecorder()
+	app.ServeHTTP(create, httptest.NewRequest(http.MethodPost, "/api/games", bytes.NewBufferString(`{"seed":23,"dynastyId":"xuanshuo"}`)))
+
+	var state apiGameState
+	if err := json.Unmarshal(create.Body.Bytes(), &state); err != nil {
+		t.Fatalf("decode create response: %v", err)
+	}
+	for i := 0; i < 5; i++ {
+		body := []byte(`{"choiceId":"` + state.Scene.Choices[0].ID + `"}`)
+		rec := httptest.NewRecorder()
+		app.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/games/"+state.ID+"/choices", bytes.NewBuffer(body)))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("advance to emperor status %d: %s", rec.Code, rec.Body.String())
+		}
+		var payload apiActionResponse
+		if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+			t.Fatalf("decode advance response: %v", err)
+		}
+		state = payload.State
+	}
+	if len(state.Wars) == 0 {
+		t.Fatalf("expected war campaigns after coronation, got %+v", state)
+	}
+
+	beforeCommand := state.Command
+	beforeWar := state.Wars[0]
+	rec := httptest.NewRecorder()
+	body := `{"kind":"war_tactic","target":"` + beforeWar.ID + `","mode":"campaign"}`
+	app.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/games/"+state.ID+"/actions", bytes.NewBufferString(body)))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var payload apiActionResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	afterWar := payload.State.Wars[0]
+	if payload.State.Command != beforeCommand-1 {
+		t.Fatalf("expected action to spend one command point, before %d after %d", beforeCommand, payload.State.Command)
+	}
+	if afterWar.Progress <= beforeWar.Progress || afterWar.Threat >= beforeWar.Threat {
+		t.Fatalf("expected action to advance war and reduce threat, before %+v after %+v", beforeWar, afterWar)
 	}
 }
 

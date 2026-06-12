@@ -97,8 +97,8 @@ function dynamicComicPanels(game, action) {
 }
 
 function selectComicBeat(game, action) {
-  if (action?.kind) {
-    const orderBeats = comicBeats.filter((beat) => beat.when === "order" && beat.kind === action.kind);
+  if (action?.kind || action?.mode) {
+    const orderBeats = comicBeats.filter((beat) => beat.when === "order" && (beat.kind === action.kind || beat.kind === action.mode));
     if (orderBeats.length > 0) return orderBeats[game.turn % orderBeats.length];
   }
   if (action?.domain) {
@@ -116,9 +116,9 @@ function comicBeatMatches(beat, game, action) {
   if (beat.when === "scene") return game.scene?.id === beat.scene;
   if (beat.when === "phase") return game.phase === beat.phase;
   if (beat.when === "domain") return action?.domain === beat.domain || game.scene?.choices?.some((choice) => choice.domain === beat.domain);
-  if (beat.when === "order") return action?.kind === beat.kind;
-  if (beat.when === "eventCategory") return (game.recentEvents || []).some((event) => event.category === beat.category);
-  if (beat.when === "eventTag") return (game.recentEvents || []).some((event) => (event.tags || []).includes(beat.tag));
+  if (beat.when === "order") return action?.kind === beat.kind || action?.mode === beat.kind;
+  if (beat.when === "eventCategory") return [...(game.recentEvents || []), ...(game.eventHand || [])].some((event) => event.category === beat.category);
+  if (beat.when === "eventTag") return [...(game.recentEvents || []), ...(game.eventHand || [])].some((event) => (event.tags || []).includes(beat.tag));
   if (beat.when === "relationTense") return (game.relations || []).some((relation) => relation.tension >= 65);
   if (beat.when === "foreignThreat") return (game.foreignStates || []).some((foreign) => foreign.threat >= 72);
   if (beat.when === "plotDanger") return (game.plots || []).some((plot) => !plot.resolved && plot.progress >= 70);

@@ -91,6 +91,7 @@ func (s *GameState) ApplyChoice(choiceID string) (*Resolution, error) {
 	s.advanceAfter()
 	s.applyWorldPressure(choice.Domain)
 	events := s.triggerSeasonalEvents(choice.Domain)
+	s.dealEventHand()
 	s.updateObjectives()
 	s.Ending = s.checkEnding()
 	if s.Ending == nil {
@@ -184,6 +185,7 @@ func (s *GameState) ForceCoronationForTest() {
 		s.Stats.BorderThreat = 38
 	}
 	s.ensureCourtSystems()
+	s.dealEventHand()
 	s.updateObjectives()
 	s.Scene = emperorScene(s)
 }
@@ -621,6 +623,7 @@ func (s *GameState) coronate() {
 	s.Stats.BorderThreat = clamp(s.Dynasty.Initial.BorderThreat-s.Stats.Martial/8, 5, 100)
 	s.Command = s.commandBudget()
 	s.ensureCourtSystems()
+	s.dealEventHand()
 }
 
 func (s *GameState) ensureCourtSystems() {

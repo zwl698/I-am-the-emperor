@@ -30,6 +30,8 @@ const els = {
   portrait: document.querySelector("#current-portrait"),
   sceneArt: document.querySelector("#scene-art"),
   comicStrip: document.querySelector("#comic-strip"),
+  eventHand: document.querySelector("#event-hand-panel"),
+  playdesk: document.querySelector("#playdesk-panel"),
   kicker: document.querySelector("#scene-kicker"),
   title: document.querySelector("#scene-title"),
   body: document.querySelector("#scene-body"),
@@ -204,6 +206,36 @@ async function issueOrder(kind, target, label) {
   }
 }
 
+async function issueAction(kind, target, mode, label) {
+  if (!state.game || state.busy || state.game.phase !== "emperor") return;
+  setBusy(true);
+  try {
+    const res = await fetch(`/api/games/${state.game.id}/actions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind, target, mode }),
+    });
+    const payload = await readJSON(res);
+    state.game = normalizeGame(payload.state);
+    state.lastAction = {
+      type: "action",
+      kind,
+      mode,
+      title: label || orderTitle(mode),
+      domain: orderDomain(mode),
+      summary: payload.resolution?.summary || "",
+    };
+    renderResolution(payload.resolution);
+    renderGame();
+    speakResolution(payload.resolution);
+    pulseCourt();
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    setBusy(false);
+  }
+}
+
 function renderGame() {
   if (!state.game) return;
   els.board.classList.remove("is-empty");
@@ -211,21 +243,18 @@ function renderGame() {
   renderStats();
   renderScene();
   renderComicStrip();
+  renderExternalPanelsIfReady();
   renderDynastyStatus();
   renderCrisis();
-  renderSeasonEventsIfReady();
   renderCommands();
   renderObjectives();
-  renderGrandStrategyIfReady();
   renderProvinces();
   renderWars();
-  renderDiplomacyIntrigueIfReady();
-  renderJusticePanelsIfReady();
-  renderSystemPanelsIfReady();
   renderFactions();
   renderCourt();
   renderHistory();
   attachOrderButtons();
+  attachActionButtons();
   syncMusicToScene();
 }
 
@@ -236,7 +265,7 @@ function renderIdentity() {
   els.portrait.className = `portrait-crop ${portraitClass}`;
   els.portrait.style.backgroundImage = `url('${identityPortrait()}')`;
   els.phase.textContent = `${dynasty.name} · ${phaseName[game.phase] || "未知"}`;
-  const calendar = game.phase === "emperor" ? `登基${game.reignYear}年 · ${game.season}` : `${game.age} 岁`;
+  const calendar = game.phase === "emperor" ? `登基${game.reignYear || 1}年 · ${game.season || "春"}` : `${game.age || 1} 岁`;
   const commandText = game.phase === "emperor" ? ` · 御令剩 ${game.command ?? 0}` : "";
   els.age.textContent = `${calendar} · 第 ${game.turn} 回合${commandText}`;
 }
@@ -372,7 +401,7 @@ function renderCommands() {
   const command = game.command ?? 0;
   els.commandStatus.innerHTML = `
     <strong>${command} 道御令可用</strong>
-    <span>先用御令处理具体省份/派系，再点中央大议题推进季度。盛世终局至少需要 72 个大回合。</span>
+    <span>先玩上方御前操作台或右侧系统面板处理具体战局、案卷、任官，再点朝会大议题推进季度。</span>
   `;
 }
 
@@ -601,56 +630,17 @@ function attachOrderButtons() {
   });
 }
 
-function renderSystemPanelsIfReady() {
-  if (typeof window.renderSystemPanels !== "function") return;
-  window.renderSystemPanels(
-    state.game,
-    {
-      harem: els.harem,
-      heirs: els.heirs,
-      offices: els.offices,
-    },
-    {
-      portraitAt,
-      portraitIndexByRole,
-    },
-  );
-}
-
-function renderSeasonEventsIfReady() {
-  if (typeof window.renderSeasonEvents !== "function") return;
-  window.renderSeasonEvents(state.game, els.events, {
-    portraitAt,
-    portraitIndexByRole,
+function attachActionButtons() {
+  document.querySelectorAll("[data-action-kind]").forEach((button) => {
+    button.addEventListener("click", () => {
+      issueAction(button.dataset.actionKind, button.dataset.actionTarget, button.dataset.actionMode, button.dataset.actionLabel);
+    });
   });
 }
 
-function renderGrandStrategyIfReady() {
-  if (typeof window.renderGrandStrategy !== "function") return;
-  window.renderGrandStrategy(state.game, {
-    strategy: els.strategy,
-    relations: els.relations,
-  });
-}
-
-function renderDiplomacyIntrigueIfReady() {
-  if (typeof window.renderDiplomacyIntrigue !== "function") return;
-  window.renderDiplomacyIntrigue(
-    state.game,
-    {
-      foreign: els.foreign,
-      plots: els.plots,
-    },
-    {
-      portraitAt,
-      portraitIndexByRole,
-    },
-  );
-}
-
-function renderJusticePanelsIfReady() {
-  if (typeof window.renderJusticePanels !== "function") return;
-  window.renderJusticePanels(state.game, { opinion: els.opinion, cases: els.cases });
+function renderExternalPanelsIfReady() {
+  if (typeof window.renderExternalPanels !== "function") return;
+  window.renderExternalPanels(state.game, els, { portraitAt, portraitIndexByRole });
 }
 
 function provinceTemperature(p) {
@@ -727,7 +717,7 @@ function normalizeGame(game) {
       portraitGallery: portraitGalleryFallback,
       ...(game.assets || {}),
     },
-    command: game.command ?? 0,
+    command: game.command ?? 0, reignYear: game.phase === "emperor" ? game.reignYear || 1 : game.reignYear || 0, season: game.season || "春",
     crisis: game.crisis || {
       title: "朝局未明",
       severity: 40,
@@ -765,6 +755,7 @@ function normalizeGame(game) {
     wars: game.wars || [],
     recentEvents: game.recentEvents || [],
     eventLog: game.eventLog || [],
+    eventHand: game.eventHand || [],
     history: game.history || [],
   };
 }
