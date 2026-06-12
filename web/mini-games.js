@@ -21,6 +21,8 @@
   }
 
   function warMiniGame(game) {
+    const strategic = strategyWarMiniGame(game);
+    if (strategic) return strategic;
     const war = (game.wars || []).find((item) => item.stage !== "凯旋") || (game.wars || [])[0];
     if (!war) {
       return `<article class="mini-game-card"><h3>兵棋沙盘</h3><p>边境暂宁，暂无可推演战局。</p></article>`;
@@ -35,6 +37,26 @@
           ${tacticButton("fortify", war.id, "筑垒", 100 - war.threat, "固边墙，拖垮敌势", (game.command ?? 0) <= 0)}
         </div>
         <small>敌势 ${war.threat} · 粮道 ${war.supply} · 士气 ${war.morale} · 战果 ${war.progress}</small>
+      </article>
+    `;
+  }
+
+  function strategyWarMiniGame(game) {
+    const strategy = game.strategy || {};
+    if (!(strategy.cities || []).length || !(strategy.armies || []).length) return "";
+    const army = (strategy.armies || []).find((item) => item.factionId === "court");
+    if (!army) return "";
+    const action = armyPrimaryAction(army, strategy);
+    return `
+      <article class="mini-game-card war-game">
+        <h3>兵棋沙盘</h3>
+        <p>${safe(army.name)} · ${safe(cityName(strategy, army.location))} · ${safe(army.status)}</p>
+        <div class="tactical-board">
+          ${actionButton("army_command", "train", army.id, "整", "闭营整训，提升士气训练", (game.command ?? 0) <= 0)}
+          ${actionButton("army_command", "supply", army.id, "粮", "转运军粮，稳住粮道", (game.command ?? 0) <= 0)}
+          ${actionButton("army_command", action.mode, action.target, action.label.slice(0, 1), action.label, (game.command ?? 0) <= 0 || !action.target)}
+        </div>
+        <small>兵 ${army.troops} · 粮 ${army.grain} · 士气 ${army.morale} · 训练 ${army.training}</small>
       </article>
     `;
   }
@@ -113,6 +135,31 @@
       court: minister.role === "长公主" ? 18 : 0,
     };
     return base + (roleBonus[domain] || 0);
+  }
+
+  function armyPrimaryAction(army, strategy) {
+    const hostile = roadNeighbors(strategy, army.location)
+      .map((id) => (strategy.cities || []).find((city) => city.id === id))
+      .find((city) => city && city.ownerId !== "court");
+    if (hostile) return { mode: "assault", target: `${army.id}:${hostile.id}`, label: `攻打${hostile.name}` };
+    const friendly = roadNeighbors(strategy, army.location)
+      .map((id) => (strategy.cities || []).find((city) => city.id === id))
+      .find((city) => city && city.ownerId === "court");
+    if (friendly) return { mode: "march", target: `${army.id}:${friendly.id}`, label: `行军至${friendly.name}` };
+    return { mode: "train", target: army.id, label: "整训" };
+  }
+
+  function roadNeighbors(strategy, cityID) {
+    const neighbors = [];
+    for (const road of strategy.roads || []) {
+      if (road.from === cityID) neighbors.push(road.to);
+      if (road.to === cityID) neighbors.push(road.from);
+    }
+    return neighbors;
+  }
+
+  function cityName(strategy, cityID) {
+    return (strategy.cities || []).find((city) => city.id === cityID)?.name || cityID;
   }
 
   function clamp(value) {

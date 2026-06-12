@@ -58,6 +58,9 @@ func (s *GameState) applyCourtOrder(req OrderRequest) (Effects, string, bool, er
 	case OrderMarriage:
 		effects, summary, err := s.arrangeMarriageAlliance(req.Target)
 		return effects, summary, true, err
+	case OrderRecruitTalent:
+		effects, summary, err := s.recruitTalent(req.Target)
+		return effects, summary, true, err
 	default:
 		return Effects{}, "", false, nil
 	}

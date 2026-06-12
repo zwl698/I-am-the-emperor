@@ -44,19 +44,20 @@
     const category = card.category || "";
     const domain = card.domain || "";
     if (category.includes("战争") || domain === "military") {
+      const action = strategicWarAction(game);
+      if (action.target) return action;
       const war = mostThreateningWar(game);
-      return {
-        kind: "war_tactic",
-        mode: (war?.threat || 0) >= 70 ? "campaign" : "mobilize",
-        target: war?.id || "",
-        label: (war?.threat || 0) >= 70 ? "开沙盘决战" : "拨粮整军",
-      };
+      return { kind: "war_tactic", mode: (war?.threat || 0) >= 70 ? "campaign" : "mobilize", target: war?.id || "", label: (war?.threat || 0) >= 70 ? "开沙盘决战" : "拨粮整军" };
     }
     if (category.includes("灾害") || domain === "domestic") {
+      const city = worstStrategicCity(game);
+      if (city) return { kind: "city_develop", mode: "relief", target: city.id, label: "开仓赈灾" };
       const province = worstProvince(game);
       return { kind: "map_allocation", mode: "relief", target: province?.id || "", label: "调度赈灾" };
     }
     if (category.includes("财政") || domain === "economy") {
+      const city = richestStrategicCity(game);
+      if (city) return { kind: "city_develop", mode: "market", target: city.id, label: "修市筹银" };
       const province = richestProvince(game);
       return { kind: "map_allocation", mode: "tax", target: province?.id || "", label: "清丈筹银" };
     }
@@ -94,6 +95,40 @@
 
   function mostThreateningWar(game) {
     return (game.wars || []).slice().sort((a, b) => (b.threat || 0) - (a.threat || 0))[0];
+  }
+
+  function strategicWarAction(game) {
+    const strategy = game.strategy || {};
+    const army = (strategy.armies || []).find((item) => item.factionId === "court");
+    if (!army) return { kind: "army_command", mode: "train", target: "", label: "整训军团" };
+    const hostile = roadNeighbors(strategy, army.location)
+      .map((id) => (strategy.cities || []).find((city) => city.id === id))
+      .find((city) => city && city.ownerId !== "court");
+    if (hostile) return { kind: "army_command", mode: "assault", target: `${army.id}:${hostile.id}`, label: `攻打${hostile.name}` };
+    return { kind: "army_command", mode: "train", target: army.id, label: "整训军团" };
+  }
+
+  function roadNeighbors(strategy, cityID) {
+    const neighbors = [];
+    for (const road of strategy.roads || []) {
+      if (road.from === cityID) neighbors.push(road.to);
+      if (road.to === cityID) neighbors.push(road.from);
+    }
+    return neighbors;
+  }
+
+  function worstStrategicCity(game) {
+    return (game.strategy?.cities || [])
+      .filter((city) => city.ownerId === "court")
+      .slice()
+      .sort((a, b) => (b.disaster || 0) + (50 - (b.order || 0)) - ((a.disaster || 0) + (50 - (a.order || 0))))[0];
+  }
+
+  function richestStrategicCity(game) {
+    return (game.strategy?.cities || [])
+      .filter((city) => city.ownerId === "court")
+      .slice()
+      .sort((a, b) => (b.commerce || 0) + (b.gold || 0) - ((a.commerce || 0) + (a.gold || 0)))[0];
   }
 
   function worstProvince(game) {

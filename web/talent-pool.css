@@ -1,0 +1,98 @@
+.talent-pool,
+.talent-empty {
+  display: grid;
+  gap: 8px;
+}
+
+.talent-empty {
+  color: rgba(77, 45, 28, 0.78);
+  line-height: 1.55;
+}
+
+.talent-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.talent-head strong {
+  font-size: 0.95rem;
+}
+
+.talent-head small {
+  color: rgba(77, 45, 28, 0.66);
+  font-size: 0.74rem;
+  text-align: right;
+}
+
+.talent-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid rgba(120, 68, 38, 0.2);
+  border-left: 4px solid #a83d2f;
+  border-radius: 8px;
+  background: rgba(255, 245, 218, 0.58);
+}
+
+.talent-row.domain-military {
+  border-left-color: #a82021;
+}
+
+.talent-row.domain-economy {
+  border-left-color: #b37b21;
+}
+
+.talent-row.domain-diplomacy {
+  border-left-color: #2d6e9d;
+}
+
+.talent-row.domain-reform {
+  border-left-color: #7b4aa8;
+}
+
+.talent-row.domain-domestic {
+  border-left-color: #29a078;
+}
+
+.talent-row strong,
+.talent-row small,
+.talent-row em,
+.talent-row span {
+  display: block;
+}
+
+.talent-row strong {
+  color: #341609;
+}
+
+.talent-row small,
+.talent-row em,
+.talent-row span {
+  color: rgba(77, 45, 28, 0.74);
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+.talent-row em {
+  font-style: normal;
+}
+
+.talent-row button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(168, 32, 33, 0.28);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ba3c31, #7a211d);
+  color: #fff7da;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.talent-row button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

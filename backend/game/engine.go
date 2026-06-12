@@ -46,6 +46,7 @@ func NewGameWithDynasty(dynastyID string, seed int64) (*GameState, error) {
 		Stats:         dynasty.Initial,
 		Factions:      startingFactions(dynasty.ID),
 		Court:         startingCourt(),
+		TalentPool:    startingTalentPool(dynasty.ID),
 		Harem:         startingHarem(dynasty.ID),
 		Heirs:         startingHeirs(dynasty.ID),
 		Succession:    startingSuccession(dynasty.ID),
@@ -59,6 +60,7 @@ func NewGameWithDynasty(dynastyID string, seed int64) (*GameState, error) {
 		PublicOpinion: startingPublicOpinion(dynasty.ID),
 		Provinces:     startingProvinces(dynasty.ID),
 		Wars:          startingWars(dynasty.ID),
+		Strategy:      startingStrategicState(dynasty.ID),
 		Crisis:        startingCrisis(dynasty.ID),
 		Objectives:    startingObjectives(dynasty.ID),
 		rng:           rand.New(rand.NewSource(seed)),
@@ -639,10 +641,12 @@ func (s *GameState) ensureCourtSystems() {
 	if len(s.Offices) == 0 {
 		s.Offices = startingOffices(s.Dynasty.ID)
 	}
+	s.ensureTalentPool()
 	s.ensureGrandStrategySystems()
 	s.ensureForeignSystems()
 	s.ensurePlotSystems()
 	s.ensureJusticeSystems()
+	s.ensureStrategicSystems()
 }
 
 func (s *GameState) commandBudget() int {
@@ -692,6 +696,7 @@ func (s *GameState) applyWorldPressure(domain Domain) {
 	s.applyForeignPressure(domain)
 	s.applyPlotPressure(domain)
 	s.applyJusticePressure(domain)
+	s.applyStrategicPressure(domain)
 }
 
 func (s *GameState) applyWarPressure(domain Domain) {

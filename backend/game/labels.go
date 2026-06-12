@@ -58,6 +58,8 @@ func orderLabel(kind OrderKind) string {
 		return "御令：禁谣"
 	case OrderProclaimVerdict:
 		return "御令：宣判"
+	case OrderRecruitTalent:
+		return "御令：征辟"
 	default:
 		return "御令"
 	}

@@ -53,6 +53,7 @@ const (
 	OrderClemency        OrderKind = "clemency"
 	OrderCensorRumor     OrderKind = "censor_rumor"
 	OrderProclaimVerdict OrderKind = "proclaim_verdict"
+	OrderRecruitTalent   OrderKind = "recruit_talent"
 )
 
 type EndingKind string
@@ -128,16 +129,20 @@ type Faction struct {
 }
 
 type Minister struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Role      string `json:"role"`
-	Trait     string `json:"trait"`
-	Loyalty   int    `json:"loyalty"`
-	Ability   int    `json:"ability"`
-	Ambition  int    `json:"ambition"`
-	Integrity int    `json:"integrity"`
-	Stress    int    `json:"stress"`
-	Portrait  string `json:"portrait"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Role        string `json:"role"`
+	Trait       string `json:"trait"`
+	Loyalty     int    `json:"loyalty"`
+	Ability     int    `json:"ability"`
+	Ambition    int    `json:"ambition"`
+	Integrity   int    `json:"integrity"`
+	Stress      int    `json:"stress"`
+	Portrait    string `json:"portrait"`
+	Specialty   Domain `json:"specialty,omitempty"`
+	Origin      string `json:"origin,omitempty"`
+	Inspiration string `json:"inspiration,omitempty"`
+	School      string `json:"school,omitempty"`
 }
 
 type Province struct {
@@ -240,6 +245,7 @@ type GameState struct {
 	Stats         Stats             `json:"stats"`
 	Factions      []Faction         `json:"factions"`
 	Court         []Minister        `json:"court"`
+	TalentPool    []Minister        `json:"talentPool"`
 	Harem         []Consort         `json:"harem"`
 	Heirs         []Heir            `json:"heirs"`
 	Succession    Succession        `json:"succession"`
@@ -253,6 +259,7 @@ type GameState struct {
 	PublicOpinion PublicOpinion     `json:"publicOpinion"`
 	Provinces     []Province        `json:"provinces"`
 	Wars          []WarCampaign     `json:"wars"`
+	Strategy      StrategicState    `json:"strategy"`
 	Crisis        Crisis            `json:"crisis"`
 	RecentEvents  []SeasonEvent     `json:"recentEvents"`
 	EventLog      []SeasonEvent     `json:"eventLog"`

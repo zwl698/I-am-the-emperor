@@ -51,6 +51,15 @@ context.window.renderEventHand(
         urgency: 61,
       },
     ],
+    strategy: {
+      cities: [
+        { id: "south", name: "江南", ownerId: "court", x: 58, y: 68, disaster: 72, order: 41 },
+        { id: "north", name: "北境", ownerId: "court", x: 50, y: 20 },
+        { id: "snow-ridge", name: "雪岭", ownerId: "beidi", x: 50, y: 8 },
+      ],
+      roads: [{ from: "north", to: "snow-ridge" }],
+      armies: [{ id: "northern-banner", name: "北府军", factionId: "court", location: "north" }],
+    },
     provinces: [{ id: "south", name: "江南", disaster: 72, order: 41 }],
     wars: [{ id: "north", name: "雪岭攻防", threat: 77, progress: 31 }],
     heirs: [{ id: "crown", name: "萧承曜", talent: 64, legitimacy: 70 }],
@@ -62,10 +71,11 @@ assert.match(target.innerHTML, /事件手牌/);
 assert.match(target.innerHTML, /河堤决口/);
 assert.match(target.innerHTML, /雪夜奇袭/);
 assert.match(target.innerHTML, /太子伴读/);
-assert.match(target.innerHTML, /data-action-kind="map_allocation"/);
+assert.match(target.innerHTML, /data-action-kind="city_develop"/);
 assert.match(target.innerHTML, /data-action-mode="relief"/);
-assert.match(target.innerHTML, /data-action-kind="war_tactic"/);
-assert.match(target.innerHTML, /data-action-mode="campaign"/);
+assert.match(target.innerHTML, /data-action-kind="army_command"/);
+assert.match(target.innerHTML, /data-action-mode="assault"/);
+assert.match(target.innerHTML, /data-action-target="northern-banner:snow-ridge"/);
 assert.match(target.innerHTML, /data-action-kind="heir_lesson"/);
 assert.match(target.innerHTML, /data-action-mode="study"/);
 

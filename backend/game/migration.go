@@ -33,7 +33,9 @@ func (s *GameState) EnsurePlayableState() {
 	if len(s.Objectives) == 0 {
 		s.Objectives = startingObjectives(s.Dynasty.ID)
 	}
+	s.ensureTalentPool()
 	s.ensureCourtSystems()
+	s.ensureStrategicSystems()
 	if s.Phase == PhaseEmperor && len(s.EventHand) == 0 {
 		s.dealEventHand()
 	}

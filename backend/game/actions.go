@@ -9,12 +9,16 @@ import (
 type ActionKind string
 
 const (
-	ActionMapAllocation ActionKind = "map_allocation"
-	ActionWarTactic     ActionKind = "war_tactic"
-	ActionTrialMove     ActionKind = "trial_move"
-	ActionOfficeAssign  ActionKind = "office_assign"
-	ActionHeirLesson    ActionKind = "heir_lesson"
-	ActionEnvoyMission  ActionKind = "envoy_mission"
+	ActionMapAllocation  ActionKind = "map_allocation"
+	ActionWarTactic      ActionKind = "war_tactic"
+	ActionTrialMove      ActionKind = "trial_move"
+	ActionOfficeAssign   ActionKind = "office_assign"
+	ActionHeirLesson     ActionKind = "heir_lesson"
+	ActionEnvoyMission   ActionKind = "envoy_mission"
+	ActionCityDevelop    ActionKind = "city_develop"
+	ActionArmyCommand    ActionKind = "army_command"
+	ActionSiegeCommand   ActionKind = "siege_command"
+	ActionGovernorAssign ActionKind = "governor_assign"
 )
 
 type ActionRequest struct {
@@ -56,12 +60,29 @@ func ActionCatalog() []ActionDefinition {
 		{Kind: ActionHeirLesson, Mode: "ritual", Label: "太庙习礼", Panel: "东宫培养", Domain: DomainCourt, Description: "压低储位争议，稳宗室观感。"},
 		{Kind: ActionEnvoyMission, Mode: "embassy", Label: "遣使修好", Panel: "鸿胪外交", Domain: DomainDiplomacy, Description: "提升邦交关系并打探虚实。"},
 		{Kind: ActionEnvoyMission, Mode: "treaty", Label: "缔结盟约", Panel: "鸿胪外交", Domain: DomainDiplomacy, Description: "以资源和承诺换长期边境缓冲。"},
+		{Kind: ActionCityDevelop, Mode: "farm", Label: "垦田积粮", Panel: "战略地图", Domain: DomainDomestic, Description: "提升城池农业和粮草，是长期战争的底盘。"},
+		{Kind: ActionCityDevelop, Mode: "market", Label: "修市开榷", Panel: "战略地图", Domain: DomainEconomy, Description: "提升城池商业和府库，支撑军费。"},
+		{Kind: ActionCityDevelop, Mode: "fortify", Label: "筑城修垒", Panel: "战略地图", Domain: DomainMilitary, Description: "提升城防，让前线能扛住敌军推进。"},
+		{Kind: ActionCityDevelop, Mode: "relief", Label: "开仓赈灾", Panel: "战略地图", Domain: DomainDomestic, Description: "压低灾害并恢复治安。"},
+		{Kind: ActionCityDevelop, Mode: "patrol", Label: "巡查缉盗", Panel: "战略地图", Domain: DomainIntrigue, Description: "提升治安，压制叛乱滋生。"},
+		{Kind: ActionCityDevelop, Mode: "levy", Label: "募兵守城", Panel: "战略地图", Domain: DomainMilitary, Description: "增加城防兵，但伤民心和秩序。"},
+		{Kind: ActionArmyCommand, Mode: "train", Label: "整训军团", Panel: "战略地图", Domain: DomainMilitary, Description: "提升军团士气和训练。"},
+		{Kind: ActionArmyCommand, Mode: "supply", Label: "转运军粮", Panel: "战略地图", Domain: DomainEconomy, Description: "从所在城调粮给军团。"},
+		{Kind: ActionArmyCommand, Mode: "march", Label: "沿道行军", Panel: "战略地图", Domain: DomainMilitary, Description: "军团沿道路移动到相邻城。"},
+		{Kind: ActionArmyCommand, Mode: "assault", Label: "攻城决战", Panel: "战略地图", Domain: DomainMilitary, Description: "攻击相邻敌城，胜则占领。"},
+		{Kind: ActionArmyCommand, Mode: "recruit", Label: "征募城防", Panel: "战略地图", Domain: DomainMilitary, Description: "在己方城池补充守军。"},
+		{Kind: ActionSiegeCommand, Mode: "besiege", Label: "围城断粮", Panel: "战略地图", Domain: DomainMilitary, Description: "围困敌城，消耗敌方粮草和治安。"},
+		{Kind: ActionGovernorAssign, Mode: "appoint", Label: "任命太守", Panel: "战略地图", Domain: DomainCourt, Description: "派官员治理城池，影响秩序和产出。"},
 	}
 }
 
 func (s *GameState) ApplyAction(req ActionRequest) (*Resolution, error) {
 	if s == nil {
 		return nil, errors.New("game state is nil")
+	}
+	switch req.Kind {
+	case ActionCityDevelop, ActionArmyCommand, ActionSiegeCommand, ActionGovernorAssign:
+		return s.applyStrategicAction(req)
 	}
 	order, err := req.toOrderRequest()
 	if err != nil {

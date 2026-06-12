@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="/styles.css" />
     <link rel="stylesheet" href="/systems.css" />
     <link rel="stylesheet" href="/gameplay.css" />
+    <link rel="stylesheet" href="/strategy-map.css" />
+    <link rel="stylesheet" href="/talent-pool.css" />
   </head>
   <body>
     <main class="app-shell">
@@ -52,6 +54,7 @@
           <div id="scene-art" class="scene-art"></div>
           <div id="comic-strip" class="comic-strip" aria-label="动态漫画分镜"></div>
           <div id="event-hand-panel" class="event-hand-panel"></div>
+          <div id="strategy-map-panel" class="strategy-map-panel"></div>
           <div id="playdesk-panel" class="playdesk-panel"></div>
           <div class="scene-content">
             <div id="scene-kicker" class="scene-kicker">待诏</div>
@@ -121,6 +124,10 @@
             <div class="panel-title">官职任免</div>
             <div id="office-list" class="office-list"></div>
           </section>
+          <section class="world-card talent-card">
+            <div class="panel-title">天下人才谱</div>
+            <div id="talent-list" class="talent-list"></div>
+          </section>
           <section class="world-card">
             <div class="panel-title">朝堂派系</div>
             <div id="faction-list" class="faction-list"></div>
@@ -146,6 +153,8 @@
     <script src="/diplomacy-ui.js"></script>
     <script src="/justice-ui.js"></script>
     <script src="/event-hand-ui.js"></script>
+    <script src="/strategy-map-ui.js"></script>
+    <script src="/talent-pool-ui.js"></script>
     <script src="/mini-games.js"></script>
     <script src="/panel-renderers.js"></script>
     <script src="/app.js"></script>
