@@ -12,6 +12,439 @@
     radial-gradient(circle at 90% 0%, rgba(139, 36, 35, 0.16), transparent 46%);
 }
 
+.strategy-card {
+  border-color: rgba(95, 58, 22, 0.2);
+  background:
+    linear-gradient(135deg, rgba(255, 250, 231, 0.9), rgba(232, 216, 174, 0.74)),
+    radial-gradient(circle at 15% 10%, rgba(49, 115, 93, 0.13), transparent 45%);
+}
+
+.strategy-list,
+.relation-list {
+  display: grid;
+  gap: 9px;
+}
+
+.strategy-empty {
+  padding: 10px;
+  border: 1px dashed rgba(110, 47, 22, 0.24);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.strategy-subtitle {
+  margin-top: 2px;
+  color: #6b2b17;
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: 0.08em;
+}
+
+.strategy-row,
+.relation-row {
+  display: grid;
+  gap: 6px;
+  padding: 9px;
+  border: 1px solid rgba(98, 39, 18, 0.13);
+  border-radius: 8px;
+  background: rgba(255, 251, 232, 0.76);
+}
+
+.strategy-row.active {
+  border-color: rgba(42, 126, 86, 0.32);
+  background: rgba(238, 252, 229, 0.72);
+}
+
+.strategy-row span,
+.strategy-row small,
+.relation-row span,
+.relation-bars small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.strategy-meter {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px;
+  align-items: center;
+}
+
+.strategy-meter::before {
+  grid-column: 1;
+  grid-row: 1;
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(83, 35, 18, 0.12);
+  content: "";
+}
+
+.strategy-meter i {
+  z-index: 1;
+  grid-column: 1;
+  grid-row: 1;
+  height: 9px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8d2b1c, #dca944, #2c8f65);
+}
+
+.strategy-meter em {
+  color: #6b2b17;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.relation-bars {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 5px 7px;
+  align-items: center;
+}
+
+.relation-bars i {
+  height: 7px;
+  border-radius: 999px;
+}
+
+.relation-bars .trust {
+  background: linear-gradient(90deg, #376f52, #82b866);
+}
+
+.relation-bars .tension {
+  background: linear-gradient(90deg, #8d2b1c, #d9873b);
+}
+
+.diplomacy-card {
+  border-color: rgba(116, 57, 22, 0.22);
+  background:
+    linear-gradient(135deg, rgba(255, 249, 229, 0.92), rgba(235, 218, 178, 0.76)),
+    radial-gradient(circle at 80% 10%, rgba(28, 116, 97, 0.13), transparent 44%);
+}
+
+.foreign-list,
+.plot-list {
+  display: grid;
+  gap: 9px;
+}
+
+.diplomacy-row {
+  position: relative;
+  display: flex;
+  gap: 9px;
+  overflow: hidden;
+  padding: 9px;
+  border: 1px solid rgba(98, 39, 18, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 251, 232, 0.78);
+}
+
+.diplomacy-row::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, #9f2f25, #dca944);
+  content: "";
+}
+
+.diplomacy-row.friendly::before,
+.diplomacy-row.treaty::before {
+  background: linear-gradient(180deg, #267553, #dca944);
+}
+
+.diplomacy-row.danger::before,
+.plot-row.exposed::before {
+  background: linear-gradient(180deg, #9f2f25, #541514);
+}
+
+.plot-row.resolved {
+  opacity: 0.74;
+}
+
+.diplomacy-portrait,
+.plot-sigil {
+  z-index: 1;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border: 2px solid rgba(143, 39, 28, 0.34);
+  border-radius: 8px;
+  background-position: center;
+  background-size: cover;
+  box-shadow: 0 4px 10px rgba(80, 30, 16, 0.14);
+}
+
+.plot-sigil {
+  display: grid;
+  place-items: center;
+  color: #fff7df;
+  background:
+    radial-gradient(circle at 35% 28%, rgba(255, 231, 159, 0.38), transparent 34%),
+    linear-gradient(180deg, #7d231d, #2f1210);
+  font-size: 18px;
+  font-weight: 1000;
+}
+
+.diplomacy-main {
+  z-index: 1;
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 4px;
+}
+
+.diplomacy-main strong {
+  color: #4f1e13;
+  font-size: 13px;
+}
+
+.diplomacy-main small,
+.diplomacy-main em,
+.diplomacy-main span {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.diplomacy-main .row-head {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.diplomacy-main .row-head small {
+  padding: 1px 5px;
+  border-radius: 999px;
+  color: #fff7df;
+  background: linear-gradient(180deg, #9f2f25, #651617);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.foreign-row.friendly .row-head small,
+.foreign-row.treaty .row-head small {
+  background: linear-gradient(180deg, #287452, #154c36);
+}
+
+.diplomacy-meters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.diplomacy-meters span {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px 1fr 24px;
+  gap: 4px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.diplomacy-meters span::before {
+  position: absolute;
+  right: 28px;
+  left: 22px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(83, 35, 18, 0.12);
+  content: "";
+}
+
+.diplomacy-meters i {
+  position: relative;
+  z-index: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8d2b1c, #dca944, #2f9664);
+}
+
+.diplomacy-meters em {
+  color: #6b2b17;
+  font-style: normal;
+  text-align: right;
+}
+
+.justice-card {
+  border-color: rgba(92, 43, 30, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 248, 226, 0.92), rgba(229, 211, 171, 0.78)),
+    radial-gradient(circle at 18% 0%, rgba(126, 31, 25, 0.15), transparent 44%);
+}
+
+.opinion-panel,
+.case-list {
+  display: grid;
+  gap: 9px;
+}
+
+.opinion-card,
+.case-row {
+  position: relative;
+  overflow: hidden;
+  padding: 9px;
+  border: 1px solid rgba(98, 39, 18, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 251, 232, 0.78);
+}
+
+.opinion-card {
+  display: grid;
+  gap: 6px;
+}
+
+.opinion-card::before,
+.case-row::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, #6b2b17, #dca944);
+  content: "";
+}
+
+.opinion-card.rumor-hot::before,
+.case-row.danger::before {
+  background: linear-gradient(180deg, #9f2f25, #541514);
+}
+
+.opinion-card.lawful::before,
+.case-row.resolved::before {
+  background: linear-gradient(180deg, #287452, #dca944);
+}
+
+.opinion-card p {
+  z-index: 1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.42;
+}
+
+.case-row {
+  display: flex;
+  gap: 9px;
+}
+
+.case-row.resolved {
+  opacity: 0.78;
+}
+
+.case-sigil {
+  z-index: 1;
+  display: grid;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 2px solid rgba(104, 41, 22, 0.3);
+  border-radius: 8px;
+  color: #fff7df;
+  background:
+    radial-gradient(circle at 35% 28%, rgba(255, 231, 159, 0.38), transparent 34%),
+    linear-gradient(180deg, #6f211a, #2e120f);
+  box-shadow: 0 4px 10px rgba(80, 30, 16, 0.14);
+  font-size: 18px;
+  font-weight: 1000;
+}
+
+.case-main {
+  z-index: 1;
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 4px;
+}
+
+.opinion-card .row-head,
+.case-main .row-head {
+  z-index: 1;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.opinion-card strong,
+.case-main strong {
+  color: #4f1e13;
+  font-size: 13px;
+}
+
+.opinion-card small,
+.case-main small {
+  padding: 1px 5px;
+  border-radius: 999px;
+  color: #fff7df;
+  background: linear-gradient(180deg, #8b2a22, #651617);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.case-row.resolved .row-head small {
+  background: linear-gradient(180deg, #287452, #154c36);
+}
+
+.case-main em,
+.case-main span {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.justice-meters {
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.opinion-card .justice-meters {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.justice-meters span {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px 1fr 24px;
+  gap: 4px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.justice-meters span::before {
+  position: absolute;
+  right: 28px;
+  left: 32px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(83, 35, 18, 0.12);
+  content: "";
+}
+
+.justice-meters i {
+  position: relative;
+  z-index: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8d2b1c, #dca944, #2f9664);
+}
+
+.justice-meters em {
+  color: #6b2b17;
+  font-style: normal;
+  text-align: right;
+}
+
 .event-list {
   display: grid;
   gap: 9px;

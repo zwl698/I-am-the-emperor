@@ -40,6 +40,12 @@ const els = {
   events: document.querySelector("#event-list"),
   commandStatus: document.querySelector("#command-status"),
   objectives: document.querySelector("#objective-list"),
+  strategy: document.querySelector("#strategy-list"),
+  relations: document.querySelector("#relation-list"),
+  foreign: document.querySelector("#foreign-list"),
+  plots: document.querySelector("#plot-list"),
+  opinion: document.querySelector("#opinion-panel"),
+  cases: document.querySelector("#case-list"),
   provinces: document.querySelector("#province-list"),
   wars: document.querySelector("#war-list"),
   harem: document.querySelector("#harem-list"),
@@ -210,8 +216,11 @@ function renderGame() {
   renderSeasonEventsIfReady();
   renderCommands();
   renderObjectives();
+  renderGrandStrategyIfReady();
   renderProvinces();
   renderWars();
+  renderDiplomacyIntrigueIfReady();
+  renderJusticePanelsIfReady();
   renderSystemPanelsIfReady();
   renderFactions();
   renderCourt();
@@ -616,6 +625,34 @@ function renderSeasonEventsIfReady() {
   });
 }
 
+function renderGrandStrategyIfReady() {
+  if (typeof window.renderGrandStrategy !== "function") return;
+  window.renderGrandStrategy(state.game, {
+    strategy: els.strategy,
+    relations: els.relations,
+  });
+}
+
+function renderDiplomacyIntrigueIfReady() {
+  if (typeof window.renderDiplomacyIntrigue !== "function") return;
+  window.renderDiplomacyIntrigue(
+    state.game,
+    {
+      foreign: els.foreign,
+      plots: els.plots,
+    },
+    {
+      portraitAt,
+      portraitIndexByRole,
+    },
+  );
+}
+
+function renderJusticePanelsIfReady() {
+  if (typeof window.renderJusticePanels !== "function") return;
+  window.renderJusticePanels(state.game, { opinion: els.opinion, cases: els.cases });
+}
+
 function provinceTemperature(p) {
   if (p.disaster >= 60) return "灾情急";
   if (p.order <= 35) return "民变险";
@@ -625,7 +662,20 @@ function provinceTemperature(p) {
 }
 
 function orderTitle(kind) {
-  return [...provinceOrders, ...factionOrders, ...warOrders, ...consortOrders, ...heirOrders, ...officeOrders].find((order) => order.kind === kind)?.title || "御令";
+  return [
+    ...provinceOrders,
+    ...factionOrders,
+    ...warOrders,
+    ...consortOrders,
+    ...heirOrders,
+    ...heirTrainingOrders,
+    ...officeOrders,
+    ...projectOrders,
+    ...policyOrders,
+    ...foreignOrders,
+    ...plotOrders,
+    ...justiceOrders,
+  ].find((order) => order.kind === kind)?.title || "御令";
 }
 
 function orderDomain(kind) {
@@ -647,6 +697,17 @@ function orderDomain(kind) {
     name_heir: "court",
     favor_consort: "court",
     marriage_alliance: "diplomacy",
+    fund_project: "reform",
+    enact_policy: "court",
+    embassy: "diplomacy",
+    treaty: "diplomacy",
+    investigate_plot: "intrigue",
+    suppress_plot: "intrigue",
+    educate_heir: "court",
+    open_trial: "intrigue",
+    clemency: "court",
+    censor_rumor: "intrigue",
+    proclaim_verdict: "court",
   };
   return map[kind] || "court";
 }
@@ -687,6 +748,20 @@ function normalizeGame(game) {
       lastSuccessionMove: "旧存档缺少储位数据。",
     },
     offices: game.offices || [],
+    projects: game.projects || [],
+    policies: game.policies || [],
+    relations: game.relations || [],
+    foreignStates: game.foreignStates || [],
+    plots: game.plots || [],
+    legalCases: game.legalCases || [],
+    publicOpinion: game.publicOpinion || {
+      popular: 50,
+      elite: 45,
+      rumor: 40,
+      fear: 25,
+      justice: 45,
+      lastEdict: "旧存档缺少舆论数据，法司按默认风声续局。",
+    },
     wars: game.wars || [],
     recentEvents: game.recentEvents || [],
     eventLog: game.eventLog || [],

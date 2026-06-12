@@ -25,23 +25,34 @@ const (
 type OrderKind string
 
 const (
-	OrderRelief   OrderKind = "relief"
-	OrderGarrison OrderKind = "garrison"
-	OrderTax      OrderKind = "tax"
-	OrderInspect  OrderKind = "inspect"
-	OrderAppease  OrderKind = "appease"
-	OrderPurge    OrderKind = "purge"
-	OrderCanal    OrderKind = "canal"
-	OrderTrade    OrderKind = "trade"
-	OrderMobilize OrderKind = "mobilize"
-	OrderCampaign OrderKind = "campaign"
-	OrderFortify  OrderKind = "fortify"
-	OrderTruce    OrderKind = "truce"
-	OrderAppoint  OrderKind = "appoint"
-	OrderDismiss  OrderKind = "dismiss"
-	OrderNameHeir OrderKind = "name_heir"
-	OrderFavor    OrderKind = "favor_consort"
-	OrderMarriage OrderKind = "marriage_alliance"
+	OrderRelief          OrderKind = "relief"
+	OrderGarrison        OrderKind = "garrison"
+	OrderTax             OrderKind = "tax"
+	OrderInspect         OrderKind = "inspect"
+	OrderAppease         OrderKind = "appease"
+	OrderPurge           OrderKind = "purge"
+	OrderCanal           OrderKind = "canal"
+	OrderTrade           OrderKind = "trade"
+	OrderMobilize        OrderKind = "mobilize"
+	OrderCampaign        OrderKind = "campaign"
+	OrderFortify         OrderKind = "fortify"
+	OrderTruce           OrderKind = "truce"
+	OrderAppoint         OrderKind = "appoint"
+	OrderDismiss         OrderKind = "dismiss"
+	OrderNameHeir        OrderKind = "name_heir"
+	OrderFavor           OrderKind = "favor_consort"
+	OrderMarriage        OrderKind = "marriage_alliance"
+	OrderFundProject     OrderKind = "fund_project"
+	OrderEnactPolicy     OrderKind = "enact_policy"
+	OrderEmbassy         OrderKind = "embassy"
+	OrderTreaty          OrderKind = "treaty"
+	OrderInvestigatePlot OrderKind = "investigate_plot"
+	OrderSuppressPlot    OrderKind = "suppress_plot"
+	OrderEducateHeir     OrderKind = "educate_heir"
+	OrderOpenTrial       OrderKind = "open_trial"
+	OrderClemency        OrderKind = "clemency"
+	OrderCensorRumor     OrderKind = "censor_rumor"
+	OrderProclaimVerdict OrderKind = "proclaim_verdict"
 )
 
 type EndingKind string
@@ -216,32 +227,39 @@ type Resolution struct {
 }
 
 type GameState struct {
-	ID           string         `json:"id"`
-	Seed         int64          `json:"seed"`
-	Turn         int            `json:"turn"`
-	Age          int            `json:"age"`
-	Phase        Phase          `json:"phase"`
-	Dynasty      Dynasty        `json:"dynasty"`
-	Assets       Assets         `json:"assets"`
-	ReignYear    int            `json:"reignYear"`
-	Season       string         `json:"season"`
-	Command      int            `json:"command"`
-	Stats        Stats          `json:"stats"`
-	Factions     []Faction      `json:"factions"`
-	Court        []Minister     `json:"court"`
-	Harem        []Consort      `json:"harem"`
-	Heirs        []Heir         `json:"heirs"`
-	Succession   Succession     `json:"succession"`
-	Offices      []Office       `json:"offices"`
-	Provinces    []Province     `json:"provinces"`
-	Wars         []WarCampaign  `json:"wars"`
-	Crisis       Crisis         `json:"crisis"`
-	RecentEvents []SeasonEvent  `json:"recentEvents"`
-	EventLog     []SeasonEvent  `json:"eventLog"`
-	Objectives   []Objective    `json:"objectives"`
-	Scene        *Scene         `json:"scene,omitempty"`
-	Ending       *Ending        `json:"ending,omitempty"`
-	History      []HistoryEntry `json:"history"`
+	ID            string            `json:"id"`
+	Seed          int64             `json:"seed"`
+	Turn          int               `json:"turn"`
+	Age           int               `json:"age"`
+	Phase         Phase             `json:"phase"`
+	Dynasty       Dynasty           `json:"dynasty"`
+	Assets        Assets            `json:"assets"`
+	ReignYear     int               `json:"reignYear"`
+	Season        string            `json:"season"`
+	Command       int               `json:"command"`
+	Stats         Stats             `json:"stats"`
+	Factions      []Faction         `json:"factions"`
+	Court         []Minister        `json:"court"`
+	Harem         []Consort         `json:"harem"`
+	Heirs         []Heir            `json:"heirs"`
+	Succession    Succession        `json:"succession"`
+	Offices       []Office          `json:"offices"`
+	Projects      []ImperialProject `json:"projects"`
+	Policies      []StandingPolicy  `json:"policies"`
+	Relations     []Relation        `json:"relations"`
+	ForeignStates []ForeignState    `json:"foreignStates"`
+	Plots         []Plot            `json:"plots"`
+	LegalCases    []LegalCase       `json:"legalCases"`
+	PublicOpinion PublicOpinion     `json:"publicOpinion"`
+	Provinces     []Province        `json:"provinces"`
+	Wars          []WarCampaign     `json:"wars"`
+	Crisis        Crisis            `json:"crisis"`
+	RecentEvents  []SeasonEvent     `json:"recentEvents"`
+	EventLog      []SeasonEvent     `json:"eventLog"`
+	Objectives    []Objective       `json:"objectives"`
+	Scene         *Scene            `json:"scene,omitempty"`
+	Ending        *Ending           `json:"ending,omitempty"`
+	History       []HistoryEntry    `json:"history"`
 
 	rng *rand.Rand
 }

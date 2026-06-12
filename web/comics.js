@@ -32,7 +32,23 @@ var comicBeats = [
   { id: "heir-canon", when: "order", kind: "name_heir", title: "册文入庙", caption: "储君二字写得很端正，宫墙里的心却未必。", sceneIndex: 18, portrait: "prince" },
   { id: "harem-lantern", when: "order", kind: "favor_consort", title: "宫灯偏照", caption: "今夜哪座宫灯更亮，明日哪家外戚就更近。", sceneIndex: 16, portrait: "consort" },
   { id: "marriage-jade", when: "order", kind: "marriage_alliance", title: "玉册联姻", caption: "红绸连起两族，也把筹码系上龙案。", sceneIndex: 12, portrait: "empress" },
+  { id: "project-canal", when: "order", kind: "fund_project", title: "百工开局", caption: "多年国策不是一纸朱批，是一季又一季的银、粮、人心。", sceneIndex: 13, portrait: "engineer" },
+  { id: "policy-scroll", when: "order", kind: "enact_policy", title: "国策颁行", caption: "真正改变帝国的，往往不是某天的选择，而是每季都有效的制度。", sceneIndex: 10, portrait: "reformer" },
+  { id: "embassy-gold-seal", when: "order", kind: "embassy", title: "金册出关", caption: "使节带着礼物，也带着皇帝没有说完的话。", sceneIndex: 9, portrait: "diplomat" },
+  { id: "treaty-silk-oath", when: "order", kind: "treaty", title: "盟书落印", caption: "朱印按下去时，边境的刀声暂时远了。", sceneIndex: 28, portrait: "envoy" },
+  { id: "plot-candle-map", when: "order", kind: "investigate_plot", title: "密线入图", caption: "一枚暗桩被拔起，整张网才露出形状。", sceneIndex: 11, portrait: "spy" },
+  { id: "plot-night-arrest", when: "order", kind: "suppress_plot", title: "夜捕无声", caption: "宫门没有开鼓，名单上的人已经少了一半。", sceneIndex: 17, portrait: "assassin" },
+  { id: "heir-lesson-bells", when: "order", kind: "educate_heir", title: "东宫加课", caption: "储君要学的不只是课本，还有如何被天下注视。", sceneIndex: 1, portrait: "tutor" },
+  { id: "trial-drum", when: "order", kind: "open_trial", title: "三司鸣鼓", caption: "堂鼓一响，朝堂暗线被拖到日光下。", sceneIndex: 11, portrait: "scholar" },
+  { id: "clemency-scroll", when: "order", kind: "clemency", title: "朱批从宽", caption: "宽赦能救一时人心，也会留下下一场争论。", sceneIndex: 18, portrait: "emperor" },
+  { id: "rumor-ban", when: "order", kind: "censor_rumor", title: "茶楼噤声", caption: "禁谣令贴满街口，京城忽然只剩靴声。", sceneIndex: 23, portrait: "guard" },
+  { id: "verdict-board", when: "order", kind: "proclaim_verdict", title: "榜文昭告", caption: "判词贴出去，案件才真正进入天下人的记忆。", sceneIndex: 25, portrait: "minister" },
   { id: "court-office-draft", when: "domain", domain: "court", title: "差遣重排", caption: "吏部纸面上几行小字，能让朝局换一个重心。", sceneIndex: 19, portrait: "tutor" },
+  { id: "relation-table", when: "relationTense", title: "关系裂帛", caption: "群臣不是属性栏，他们会结盟，会嫉恨，也会等待你失衡。", sceneIndex: 5, portrait: "scholar" },
+  { id: "foreign-border-ultimatum", when: "foreignThreat", title: "边外勒书", caption: "外邦的笑意越来越薄，马蹄声越来越近。", sceneIndex: 14, portrait: "khan" },
+  { id: "plot-shadow-corridor", when: "plotDanger", title: "暗线逼近", caption: "密谋不是突然发生的，只是你突然看见了。", sceneIndex: 17, portrait: "assassin" },
+  { id: "opinion-boiling", when: "opinionRumor", title: "流言沸城", caption: "每一句传闻都像火星，等着落进干草。", sceneIndex: 23, portrait: "merchant" },
+  { id: "case-heat", when: "caseHeat", title: "案卷压案", caption: "没有审完的案子，会自己长出新的证词。", sceneIndex: 11, portrait: "minister" },
   { id: "event-edict-stack", when: "eventCategory", category: "system_pressure", title: "突发奏报", caption: "平静不是默认状态，只是奏章还没递到殿前。", sceneIndex: 5, portrait: "minister" },
   { id: "event-micro-check", when: "eventCategory", category: "micro_game", title: "御前检定", caption: "这一刻，不是选项在判定你，是此前所有经营在判定你。", sceneIndex: 10, portrait: "reformer" },
   { id: "event-heir-rumor", when: "eventTag", tag: "继承", title: "东宫传闻", caption: "储位的风声，常常比正式册文更快。", sceneIndex: 18, portrait: "prince" },
@@ -103,6 +119,11 @@ function comicBeatMatches(beat, game, action) {
   if (beat.when === "order") return action?.kind === beat.kind;
   if (beat.when === "eventCategory") return (game.recentEvents || []).some((event) => event.category === beat.category);
   if (beat.when === "eventTag") return (game.recentEvents || []).some((event) => (event.tags || []).includes(beat.tag));
+  if (beat.when === "relationTense") return (game.relations || []).some((relation) => relation.tension >= 65);
+  if (beat.when === "foreignThreat") return (game.foreignStates || []).some((foreign) => foreign.threat >= 72);
+  if (beat.when === "plotDanger") return (game.plots || []).some((plot) => !plot.resolved && plot.progress >= 70);
+  if (beat.when === "opinionRumor") return (game.publicOpinion?.rumor || 0) >= 70;
+  if (beat.when === "caseHeat") return (game.legalCases || []).some((item) => !item.resolved && item.heat >= 75);
   if (beat.when === "war") return (game.wars || []).some((war) => war.threat >= 70);
   if (beat.when === "warSupply") return (game.wars || []).some((war) => war.supply <= 30);
   if (beat.when === "courtStress") return (game.court || []).some((minister) => minister.stress >= 70);

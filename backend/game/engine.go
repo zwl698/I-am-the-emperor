@@ -42,19 +42,26 @@ func NewGameWithDynasty(dynastyID string, seed int64) (*GameState, error) {
 			SceneGallery:    sceneGalleryPaths(),
 			PortraitGallery: portraitGalleryPaths(),
 		},
-		Season:     "春",
-		Stats:      dynasty.Initial,
-		Factions:   startingFactions(dynasty.ID),
-		Court:      startingCourt(),
-		Harem:      startingHarem(dynasty.ID),
-		Heirs:      startingHeirs(dynasty.ID),
-		Succession: startingSuccession(dynasty.ID),
-		Offices:    startingOffices(dynasty.ID),
-		Provinces:  startingProvinces(dynasty.ID),
-		Wars:       startingWars(dynasty.ID),
-		Crisis:     startingCrisis(dynasty.ID),
-		Objectives: startingObjectives(dynasty.ID),
-		rng:        rand.New(rand.NewSource(seed)),
+		Season:        "春",
+		Stats:         dynasty.Initial,
+		Factions:      startingFactions(dynasty.ID),
+		Court:         startingCourt(),
+		Harem:         startingHarem(dynasty.ID),
+		Heirs:         startingHeirs(dynasty.ID),
+		Succession:    startingSuccession(dynasty.ID),
+		Offices:       startingOffices(dynasty.ID),
+		Projects:      startingProjects(dynasty.ID),
+		Policies:      startingPolicies(dynasty.ID),
+		Relations:     startingRelations(dynasty.ID),
+		ForeignStates: startingForeignStates(dynasty.ID),
+		Plots:         startingPlots(dynasty.ID),
+		LegalCases:    startingLegalCases(dynasty.ID),
+		PublicOpinion: startingPublicOpinion(dynasty.ID),
+		Provinces:     startingProvinces(dynasty.ID),
+		Wars:          startingWars(dynasty.ID),
+		Crisis:        startingCrisis(dynasty.ID),
+		Objectives:    startingObjectives(dynasty.ID),
+		rng:           rand.New(rand.NewSource(seed)),
 	}
 	state.updateObjectives()
 	state.Scene = princeScene(0, state)
@@ -263,6 +270,18 @@ func (s *GameState) applyChoiceToWorld(choice Choice) {
 
 func (s *GameState) applyOrderToWorld(req OrderRequest) (Effects, string, error) {
 	if effects, summary, ok, err := s.applyCourtOrder(req); ok || err != nil {
+		return effects, summary, err
+	}
+	if effects, summary, ok, err := s.applyGrandStrategyOrder(req); ok || err != nil {
+		return effects, summary, err
+	}
+	if effects, summary, ok, err := s.applyForeignOrder(req); ok || err != nil {
+		return effects, summary, err
+	}
+	if effects, summary, ok, err := s.applyPlotOrder(req); ok || err != nil {
+		return effects, summary, err
+	}
+	if effects, summary, ok, err := s.applyJusticeOrder(req); ok || err != nil {
 		return effects, summary, err
 	}
 	switch req.Kind {
@@ -617,6 +636,10 @@ func (s *GameState) ensureCourtSystems() {
 	if len(s.Offices) == 0 {
 		s.Offices = startingOffices(s.Dynasty.ID)
 	}
+	s.ensureGrandStrategySystems()
+	s.ensureForeignSystems()
+	s.ensurePlotSystems()
+	s.ensureJusticeSystems()
 }
 
 func (s *GameState) commandBudget() int {
@@ -662,6 +685,10 @@ func (s *GameState) applyWorldPressure(domain Domain) {
 	}
 	s.applyWarPressure(domain)
 	s.applyCourtPressure(domain)
+	s.applyGrandStrategyPressure(domain)
+	s.applyForeignPressure(domain)
+	s.applyPlotPressure(domain)
+	s.applyJusticePressure(domain)
 }
 
 func (s *GameState) applyWarPressure(domain Domain) {
@@ -841,47 +868,6 @@ func (e Effects) Describe() string {
 	add("边患", e.BorderThreat)
 	add("新政", e.Reform)
 	return strings.Join(parts, "、")
-}
-
-func orderLabel(kind OrderKind) string {
-	switch kind {
-	case OrderRelief:
-		return "御令：赈济"
-	case OrderGarrison:
-		return "御令：驻防"
-	case OrderTax:
-		return "御令：督税"
-	case OrderInspect:
-		return "御令：密查"
-	case OrderAppease:
-		return "御令：安抚"
-	case OrderPurge:
-		return "御令：削权"
-	case OrderCanal:
-		return "御令：修渠"
-	case OrderTrade:
-		return "御令：互市"
-	case OrderMobilize:
-		return "御令：动员"
-	case OrderCampaign:
-		return "御令：出征"
-	case OrderFortify:
-		return "御令：固边"
-	case OrderTruce:
-		return "御令：议和"
-	case OrderAppoint:
-		return "御令：任官"
-	case OrderDismiss:
-		return "御令：罢官"
-	case OrderNameHeir:
-		return "御令：册储"
-	case OrderFavor:
-		return "御令：临幸"
-	case OrderMarriage:
-		return "御令：联姻"
-	default:
-		return "御令"
-	}
 }
 
 func averageProvinceWealth(provinces []Province) int {

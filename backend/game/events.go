@@ -144,7 +144,7 @@ func pickEventTemplate(s *GameState, category EventCategory, domain Domain, salt
 			score += 35
 		}
 		if recentEventID(s.RecentEvents, template.id) {
-			score -= 80
+			score -= 1000
 		}
 		if score > bestScore {
 			bestScore = score
@@ -234,6 +234,36 @@ func randomEventTemplates() []eventTemplate {
 			pressure: func(s *GameState, d Domain) int { return strongestConsortPower(s.Harem) + s.Succession.Dispute },
 			after: func(s *GameState, success bool) {
 				s.Succession.Dispute = clamp(s.Succession.Dispute+4, 0, 100)
+			},
+		},
+		{
+			id: "capital-tabloid", title: "京城小报", category: EventSystem, domain: DomainIntrigue, severity: 50,
+			summary: "茶楼小报把宫中旧案、边镇军饷和东宫闲话写成连篇话本。传闻不再只是传闻，它正在替朝廷解释朝廷。",
+			detail:  "系统风暴：舆论热度会放大案卷和密谋压力，禁谣能压火，宣判能转化口碑。",
+			effects: Effects{Legitimacy: -1, Stability: -2}, tags: []string{"舆论", "谣言"}, portrait: "merchant",
+			pressure: func(s *GameState, d Domain) int {
+				return s.PublicOpinion.Rumor + maxLegalCaseHeat(s.LegalCases)/2 + len(s.Plots)*4
+			},
+			after: func(s *GameState, success bool) {
+				s.PublicOpinion.Rumor = clamp(s.PublicOpinion.Rumor+5, 0, 100)
+				s.PublicOpinion.Elite = clamp(s.PublicOpinion.Elite-2, 0, 100)
+			},
+		},
+		{
+			id: "ministry-case-deadline", title: "刑部限期", category: EventSystem, domain: DomainIntrigue, severity: 55,
+			summary: "刑部、大理寺、都察院互相移文催案。案卷越拖，证词越多，派系也越有时间把自己摘出去。",
+			detail:  "系统风暴：未结案件会持续升温，明审、宽赦或宣判能把热度转成明确后果。",
+			effects: Effects{Influence: -1, Stability: -2}, tags: []string{"刑狱", "官职", "舆论"}, portrait: "minister",
+			pressure: func(s *GameState, d Domain) int {
+				return openLegalCasePressure(s.LegalCases) + averageOfficeVacancyRisk(s.Offices)/2
+			},
+			after: func(s *GameState, success bool) {
+				for i := range s.LegalCases {
+					if !s.LegalCases[i].Resolved {
+						s.LegalCases[i].Heat = clamp(s.LegalCases[i].Heat+5, 0, 100)
+					}
+				}
+				s.PublicOpinion.Justice = clamp(s.PublicOpinion.Justice-2, 0, 100)
 			},
 		},
 		{

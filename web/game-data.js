@@ -163,9 +163,40 @@ var heirOrders = [
   { kind: "name_heir", label: "储", title: "册储：指定继承人，提升拥护但可能激化争议" },
 ];
 
+var heirTrainingOrders = [
+  { kind: "educate_heir", focus: "study", label: "经", title: "经史：提升资质与文治名望" },
+  { kind: "educate_heir", focus: "drill", label: "射", title: "骑射：提升资质与野心，培养武略" },
+  { kind: "educate_heir", focus: "rites", label: "礼", title: "礼法：提升拥护与储位稳定" },
+];
+
 var officeOrders = [
   { kind: "appoint", label: "任", title: "任官：指派臣子掌官署，消耗御令" },
   { kind: "dismiss", label: "罢", title: "罢官：清空官位，震慑群臣但制造空转" },
+];
+
+var projectOrders = [
+  { kind: "fund_project", label: "营", title: "营造：投入银粮人手推进多年国策工程" },
+];
+
+var policyOrders = [
+  { kind: "enact_policy", label: "策", title: "国策：启用或暂罢常驻政策，每季自动生效" },
+];
+
+var foreignOrders = [
+  { kind: "embassy", label: "使", title: "遣使：改善关系、降低威胁，耗国库" },
+  { kind: "treaty", label: "盟", title: "盟约：关系足够时签订长期贡贸盟约" },
+];
+
+var plotOrders = [
+  { kind: "investigate_plot", label: "侦", title: "侦缉：降低隐秘和进度，可能暴露阴谋" },
+  { kind: "suppress_plot", label: "平", title: "平谋：阴谋暴露后可直接结案" },
+];
+
+var justiceOrders = [
+  { kind: "open_trial", label: "审", title: "明审：公开审理案件，提升法度但牵动派系" },
+  { kind: "clemency", label: "赦", title: "宽赦：从轻发落，稳局面但伤清议" },
+  { kind: "censor_rumor", label: "禁", title: "禁谣：压低流言和热度，但增加畏惧并损名望" },
+  { kind: "proclaim_verdict", label: "宣", title: "宣判：已结案件榜示天下，转化为民望与士论" },
 ];
 
 var musicTracks = [

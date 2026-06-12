@@ -379,6 +379,120 @@ func TestSeasonalRandomEventsVaryAcrossTurns(t *testing.T) {
 	}
 }
 
+func TestNewGameIncludesGrandStrategySystems(t *testing.T) {
+	state, err := NewGameWithDynasty("dayin", 88)
+	if err != nil {
+		t.Fatalf("new dynasty game: %v", err)
+	}
+	state.ForceCoronationForTest()
+
+	if len(state.Projects) < 5 {
+		t.Fatalf("expected long-term imperial projects, got %+v", state.Projects)
+	}
+	if len(state.Policies) < 5 {
+		t.Fatalf("expected standing policies, got %+v", state.Policies)
+	}
+	if len(state.Relations) < 6 {
+		t.Fatalf("expected court relationship web, got %+v", state.Relations)
+	}
+	for _, project := range state.Projects {
+		if project.ID == "" || project.Name == "" || project.Stage == "" || project.Domain == "" {
+			t.Fatalf("project should expose identity and stage: %+v", project)
+		}
+		if project.Investment <= 0 || project.Risk < 0 {
+			t.Fatalf("project should expose investment and risk: %+v", project)
+		}
+	}
+	for _, policy := range state.Policies {
+		if policy.ID == "" || policy.Name == "" || policy.Domain == "" {
+			t.Fatalf("policy should expose identity and domain: %+v", policy)
+		}
+		if policy.Upkeep < 0 {
+			t.Fatalf("policy upkeep should not be negative: %+v", policy)
+		}
+	}
+}
+
+func TestProjectOrderAdvancesLongTermProject(t *testing.T) {
+	state := NewGame(89)
+	state.ForceCoronationForTest()
+	project := state.Projects[0]
+	beforeCommand := state.Command
+	beforeProgress := project.Progress
+
+	resolution, err := state.ApplyOrder(OrderRequest{
+		Kind:   OrderFundProject,
+		Target: project.ID,
+	})
+	if err != nil {
+		t.Fatalf("fund project: %v", err)
+	}
+
+	if resolution == nil || resolution.Summary == "" {
+		t.Fatalf("expected project resolution, got %+v", resolution)
+	}
+	if state.Command != beforeCommand-1 {
+		t.Fatalf("expected command to decrease, before %d after %d", beforeCommand, state.Command)
+	}
+	afterProject, ok := projectByID(state, project.ID)
+	if !ok {
+		t.Fatalf("project missing after funding: %q", project.ID)
+	}
+	if afterProject.Progress <= beforeProgress {
+		t.Fatalf("expected project progress to advance, before %+v after %+v", project, afterProject)
+	}
+	if afterProject.Stage == project.Stage && afterProject.Progress >= 35 {
+		t.Fatalf("expected project stage to react to progress, before %+v after %+v", project, afterProject)
+	}
+}
+
+func TestPolicyOrderActivatesSeasonalPolicy(t *testing.T) {
+	state := NewGame(90)
+	state.ForceCoronationForTest()
+	beforeCommand := state.Command
+	policy := state.Policies[0]
+
+	if _, err := state.ApplyOrder(OrderRequest{Kind: OrderEnactPolicy, Target: policy.ID}); err != nil {
+		t.Fatalf("enact policy: %v", err)
+	}
+	afterPolicy, ok := policyByID(state, policy.ID)
+	if !ok {
+		t.Fatalf("policy missing after enactment: %q", policy.ID)
+	}
+	if !afterPolicy.Active {
+		t.Fatalf("expected policy to be active: %+v", afterPolicy)
+	}
+	if state.Command != beforeCommand-1 {
+		t.Fatalf("expected command to decrease, before %d after %d", beforeCommand, state.Command)
+	}
+
+	beforeStats := state.Stats
+	if _, err := state.ApplyChoice(state.Scene.Choices[0].ID); err != nil {
+		t.Fatalf("advance season: %v", err)
+	}
+	if state.Stats == beforeStats {
+		t.Fatalf("expected active policy to affect seasonal state, before %+v after %+v", beforeStats, state.Stats)
+	}
+}
+
+func TestRelationshipWebShiftsFromGrandStrategy(t *testing.T) {
+	state := NewGame(91)
+	state.ForceCoronationForTest()
+	relation := state.Relations[0]
+
+	if _, err := state.ApplyOrder(OrderRequest{Kind: OrderFundProject, Target: state.Projects[0].ID}); err != nil {
+		t.Fatalf("fund project: %v", err)
+	}
+
+	afterRelation, ok := relationByID(state, relation.ID)
+	if !ok {
+		t.Fatalf("relation missing after strategy order: %q", relation.ID)
+	}
+	if afterRelation.Trust == relation.Trust && afterRelation.Tension == relation.Tension {
+		t.Fatalf("expected relationship web to shift, before %+v after %+v", relation, afterRelation)
+	}
+}
+
 func TestFrontierDynastyStartsWithExternalWarCampaign(t *testing.T) {
 	state, err := NewGameWithDynasty("xuanshuo", 18)
 	if err != nil {
@@ -734,4 +848,31 @@ func eventSignature(events []SeasonEvent) string {
 		parts = append(parts, event.ID)
 	}
 	return strings.Join(parts, "|")
+}
+
+func projectByID(state *GameState, id string) (ImperialProject, bool) {
+	for _, project := range state.Projects {
+		if project.ID == id {
+			return project, true
+		}
+	}
+	return ImperialProject{}, false
+}
+
+func policyByID(state *GameState, id string) (StandingPolicy, bool) {
+	for _, policy := range state.Policies {
+		if policy.ID == id {
+			return policy, true
+		}
+	}
+	return StandingPolicy{}, false
+}
+
+func relationByID(state *GameState, id string) (Relation, bool) {
+	for _, relation := range state.Relations {
+		if relation.ID == id {
+			return relation, true
+		}
+	}
+	return Relation{}, false
 }

@@ -69,6 +69,7 @@
                 ])}
                 <div class="order-buttons">
                   ${orderButton("name_heir", heir.id, "储", "册储：指定此人为继承人", disabled)}
+                  ${heirTrainingButtons(heir, game.command)}
                 </div>
               </span>
             </article>
@@ -127,6 +128,21 @@
         ${orders.map((order) => orderButton(order.kind, target, order.label, `${targetName} · ${order.title}`, command <= 0)).join("")}
       </div>
     `;
+  }
+
+  function heirTrainingButtons(heir, command) {
+    if (!Array.isArray(heirTrainingOrders)) return "";
+    return heirTrainingOrders
+      .map((order) =>
+        orderButton(
+          order.kind,
+          `${heir.id}:${order.focus}`,
+          order.label,
+          `${heir.name} · ${order.title}`,
+          command <= 0,
+        ),
+      )
+      .join("");
   }
 
   function orderButton(kind, target, label, title, disabled) {
