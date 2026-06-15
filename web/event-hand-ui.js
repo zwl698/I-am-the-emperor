@@ -99,13 +99,44 @@
 
   function strategicWarAction(game) {
     const strategy = game.strategy || {};
-    const army = (strategy.armies || []).find((item) => item.factionId === "court");
-    if (!army) return { kind: "army_command", mode: "train", target: "", label: "整训军团" };
+    const plan = strategicWarPlan(strategy);
+    if (!plan) return { kind: "army_command", mode: "train", target: "", label: "整训军团" };
+    const { army, action } = plan;
+    return { kind: "army_command", mode: action.mode, target: action.target, label: action.label };
+  }
+
+  function armyPrimaryAction(army, strategy) {
+    if ((army.grain ?? 99) <= 10) return { mode: "supply", target: army.id, label: "转运军粮" };
     const hostile = roadNeighbors(strategy, army.location)
       .map((id) => (strategy.cities || []).find((city) => city.id === id))
       .find((city) => city && city.ownerId !== "court");
-    if (hostile) return { kind: "army_command", mode: "assault", target: `${army.id}:${hostile.id}`, label: `攻打${hostile.name}` };
-    return { kind: "army_command", mode: "train", target: army.id, label: "整训军团" };
+    if (hostile) return { mode: "assault", target: `${army.id}:${hostile.id}`, label: `攻打${hostile.name}` };
+    const friendly = roadNeighbors(strategy, army.location)
+      .map((id) => (strategy.cities || []).find((city) => city.id === id))
+      .find((city) => city && city.ownerId === "court");
+    if (friendly) return { mode: "march", target: `${army.id}:${friendly.id}`, label: `行军至${friendly.name}` };
+    return { mode: "train", target: army.id, label: "整训军团" };
+  }
+
+  function strategicWarPlan(strategy) {
+    const candidates = (strategy.armies || [])
+      .filter((army) => army.factionId === "court")
+      .map((army) => ({ army, action: armyPrimaryAction(army, strategy) }))
+      .filter((plan) => plan.action.target);
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => warPlanScore(b, strategy) - warPlanScore(a, strategy));
+    return candidates[0];
+  }
+
+  function warPlanScore(plan, strategy) {
+    const modeScore = { supply: 120, assault: 100, march: 58, train: 32 };
+    const city = (strategy.cities || []).find((item) => item.id === plan.army.location);
+    let score = modeScore[plan.action.mode] || 0;
+    if (city?.front) score += 18;
+    score += Math.min(20, (plan.army.troops || 0) / 1000);
+    score += Math.min(12, plan.army.morale || 0) / 2;
+    if ((plan.army.grain ?? 99) <= 10) score += 35;
+    return score;
   }
 
   function roadNeighbors(strategy, cityID) {

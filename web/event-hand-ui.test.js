@@ -79,6 +79,74 @@ assert.match(target.innerHTML, /data-action-target="northern-banner:snow-ridge"/
 assert.match(target.innerHTML, /data-action-kind="heir_lesson"/);
 assert.match(target.innerHTML, /data-action-mode="study"/);
 
+const lowSupplyTarget = { innerHTML: "" };
+context.window.renderEventHand(
+  {
+    phase: "emperor",
+    command: 2,
+    eventHand: [
+      {
+        id: "war-low-supply",
+        title: "粮道断续",
+        category: "对外战争",
+        domain: "military",
+        summary: "北府军粮车迟迟不至。",
+        severity: 80,
+        urgency: 90,
+      },
+    ],
+    strategy: {
+      cities: [
+        { id: "north", name: "北境", ownerId: "court" },
+        { id: "snow-ridge", name: "雪岭", ownerId: "beidi" },
+      ],
+      roads: [{ from: "north", to: "snow-ridge" }],
+      armies: [{ id: "northern-banner", name: "北府军", factionId: "court", location: "north", grain: 5, troops: 18000, morale: 66, training: 70 }],
+    },
+  },
+  lowSupplyTarget,
+);
+assert.match(lowSupplyTarget.innerHTML, /data-action-kind="army_command"/);
+assert.match(lowSupplyTarget.innerHTML, /data-action-mode="supply"/);
+assert.match(lowSupplyTarget.innerHTML, /data-action-target="northern-banner"/);
+
+const urgentArmyTarget = { innerHTML: "" };
+context.window.renderEventHand(
+  {
+    phase: "emperor",
+    command: 2,
+    eventHand: [
+      {
+        id: "war-urgent-army",
+        title: "决战请命",
+        category: "对外战争",
+        domain: "military",
+        summary: "北境主将请准攻城。",
+        severity: 74,
+        urgency: 82,
+      },
+    ],
+    strategy: {
+      cities: [
+        { id: "capital", name: "京畿", ownerId: "court" },
+        { id: "north", name: "北境", ownerId: "court", front: true },
+        { id: "snow-ridge", name: "雪岭", ownerId: "beidi" },
+      ],
+      roads: [
+        { from: "capital", to: "north" },
+        { from: "north", to: "snow-ridge" },
+      ],
+      armies: [
+        { id: "imperial-guard", name: "禁军右营", factionId: "court", location: "capital", grain: 70, troops: 16000, morale: 68, training: 62 },
+        { id: "northern-banner", name: "北府军", factionId: "court", location: "north", grain: 54, troops: 18000, morale: 66, training: 70 },
+      ],
+    },
+  },
+  urgentArmyTarget,
+);
+assert.match(urgentArmyTarget.innerHTML, /data-action-mode="assault"/);
+assert.match(urgentArmyTarget.innerHTML, /data-action-target="northern-banner:snow-ridge"/);
+
 const lockedTarget = { innerHTML: "" };
 context.window.renderEventHand({ phase: "prince" }, lockedTarget);
 assert.match(lockedTarget.innerHTML, /登基后/);

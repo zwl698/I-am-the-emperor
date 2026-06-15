@@ -43,6 +43,9 @@ func TestAssaultUsesFriendlySupportAndRecordsBattleReport(t *testing.T) {
 	if !containsString(report.Participants, "imperial-guard") {
 		t.Fatalf("expected support participant in report: %+v", report)
 	}
+	if len(report.Factors) < 3 || !containsText(report.Factors, "攻势") || !containsText(report.Factors, "守势") {
+		t.Fatalf("expected battle report to explain combat factors, got %+v", report.Factors)
+	}
 }
 
 func TestBesiegeCanForceSurrenderAfterMultipleRounds(t *testing.T) {
@@ -75,6 +78,9 @@ func TestBesiegeCanForceSurrenderAfterMultipleRounds(t *testing.T) {
 	}
 	if len(state.Strategy.Battles) == 0 || state.Strategy.Battles[0].Outcome != "surrender" {
 		t.Fatalf("expected surrender battle report, got %+v", state.Strategy.Battles)
+	}
+	if !containsText(state.Strategy.Battles[0].Factors, "围城") || !containsText(state.Strategy.Battles[0].Factors, "城粮") {
+		t.Fatalf("expected surrender report to expose siege factors, got %+v", state.Strategy.Battles[0].Factors)
 	}
 }
 
@@ -115,6 +121,19 @@ func containsString(items []string, target string) bool {
 	for _, item := range items {
 		if item == target {
 			return true
+		}
+	}
+	return false
+}
+
+func containsText(items []string, text string) bool {
+	for _, item := range items {
+		if len(item) >= len(text) {
+			for i := 0; i <= len(item)-len(text); i++ {
+				if item[i:i+len(text)] == text {
+					return true
+				}
+			}
 		}
 	}
 	return false

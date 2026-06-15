@@ -103,9 +103,9 @@ func (s *GameState) eventCardPressure(card EventCard) int {
 	case DomainEconomy:
 		return max(0, 90-s.Stats.Treasury) + factionPower(s.Factions, "merchant")/2
 	case DomainMilitary:
-		return s.Stats.BorderThreat + maxWarThreat(s.Wars)
+		return s.Stats.BorderThreat + max(maxWarThreat(s.Wars), s.strategicMilitaryPressure())
 	case DomainDiplomacy:
-		return s.Stats.BorderThreat/2 + maxForeignThreat(s.ForeignStates) + max(0, 70-s.Stats.Diplomacy)
+		return s.Stats.BorderThreat/2 + max(maxForeignThreat(s.ForeignStates), s.strategicMilitaryPressure()/2) + max(0, 70-s.Stats.Diplomacy)
 	case DomainCourt:
 		return s.Succession.Dispute + strongestConsortPower(s.Harem)/2
 	case DomainReform:

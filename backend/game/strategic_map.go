@@ -85,6 +85,7 @@ type BattleReport struct {
 	DefenderLoss int      `json:"defenderLoss"`
 	Participants []string `json:"participants"`
 	Summary      string   `json:"summary"`
+	Factors      []string `json:"factors,omitempty"`
 	Severity     int      `json:"severity"`
 }
 

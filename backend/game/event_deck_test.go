@@ -66,6 +66,25 @@ func TestEventHandChangesAfterSeasonAdvance(t *testing.T) {
 	}
 }
 
+func TestEventCardPressureIncludesStrategicWarMap(t *testing.T) {
+	state, err := NewGameWithDynasty("xuanshuo", 1403)
+	if err != nil {
+		t.Fatalf("new dynasty game: %v", err)
+	}
+	state.ForceCoronationForTest()
+	state.Stats.BorderThreat = 0
+	state.Wars = nil
+	factionIndex, _ := state.Strategy.factionIndex("beidi")
+	state.Strategy.Factions[factionIndex].Threat = 94
+	card := EventCard{ID: "war-pressure-test", Domain: DomainMilitary}
+
+	pressure := state.eventCardPressure(card)
+
+	if pressure < 70 {
+		t.Fatalf("expected military event pressure to include strategic faction threat, got %d", pressure)
+	}
+}
+
 func eventHandSignature(cards []EventCard) string {
 	out := ""
 	for _, card := range cards {

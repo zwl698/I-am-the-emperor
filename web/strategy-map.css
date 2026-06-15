@@ -201,6 +201,14 @@
   font-style: normal;
 }
 
+.strategy-battle-report ul {
+  margin: 4px 0 0;
+  padding-left: 1rem;
+  color: rgba(255, 244, 216, 0.82);
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
 .strategy-actions {
   display: flex;
   flex-wrap: wrap;

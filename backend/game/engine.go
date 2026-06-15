@@ -384,10 +384,11 @@ func (s *GameState) applyOrderToWorld(req OrderRequest) (Effects, string, error)
 		}
 		war := s.Wars[i]
 		s.adjustWar(i, 3, 12, 10, -3, 0)
+		strategic := s.applyStrategicWarTactic(OrderMobilize, war)
 		s.adjustFactionByID("border", 5, 4)
 		s.adjustMinisterByRole("大将军", 3, 8)
 		effects := Effects{Treasury: -9, Grain: -7, Army: 4, BorderThreat: -3}
-		return effects, fmt.Sprintf("你向%s增发军饷与粮车，%s粮道升至%d、士气升至%d。", war.Front, war.Name, s.Wars[i].Supply, s.Wars[i].Morale), nil
+		return effects, withStrategicSummary(fmt.Sprintf("你向%s增发军饷与粮车，%s粮道升至%d、士气升至%d。", war.Front, war.Name, s.Wars[i].Supply, s.Wars[i].Morale), strategic), nil
 	case OrderCampaign:
 		i, ok := s.findWarIndex(req.Target)
 		if !ok {
@@ -397,10 +398,11 @@ func (s *GameState) applyOrderToWorld(req OrderRequest) (Effects, string, error)
 		advance := 10 + s.Stats.Martial/12 + s.Wars[i].Morale/18
 		threatDrop := 7 + s.Wars[i].Supply/25
 		s.adjustWar(i, advance, -6, -5, -threatDrop, 1)
-		s.adjustProvinceByID("north", -2, 1, 4, 0)
+		strategic := s.applyStrategicWarTactic(OrderCampaign, war)
+		s.adjustProvinceByID(strategicProvinceIDForWar(war), -2, 1, 4, 0)
 		s.adjustMinisterByRole("大将军", 2, 10)
 		effects := Effects{Treasury: -12, Grain: -8, Army: -4, BorderThreat: -threatDrop, Martial: 1}
-		return effects, fmt.Sprintf("你准%s出塞决战，战役推进到%d/%d，敌势降至%d。", war.Name, s.Wars[i].Progress, 100, s.Wars[i].Threat), nil
+		return effects, withStrategicSummary(fmt.Sprintf("你准%s出塞决战，战役推进到%d/%d，敌势降至%d。", war.Name, s.Wars[i].Progress, 100, s.Wars[i].Threat), strategic), nil
 	case OrderFortify:
 		i, ok := s.findWarIndex(req.Target)
 		if !ok {
@@ -408,9 +410,10 @@ func (s *GameState) applyOrderToWorld(req OrderRequest) (Effects, string, error)
 		}
 		war := s.Wars[i]
 		s.adjustWar(i, 2, 5, 4, -10, 0)
-		s.adjustProvinceByID("north", -3, 2, 12, -2)
+		strategic := s.applyStrategicWarTactic(OrderFortify, war)
+		s.adjustProvinceByID(strategicProvinceIDForWar(war), -3, 2, 12, -2)
 		effects := Effects{Treasury: -8, Grain: -4, BorderThreat: -8, Stability: 1}
-		return effects, fmt.Sprintf("%s沿线筑堡、修烽燧、屯军粮。敌军威胁降至%d，北境防务更稳。", war.Front, s.Wars[i].Threat), nil
+		return effects, withStrategicSummary(fmt.Sprintf("%s沿线筑堡、修烽燧、屯军粮。敌军威胁降至%d，北境防务更稳。", war.Front, s.Wars[i].Threat), strategic), nil
 	case OrderTruce:
 		i, ok := s.findWarIndex(req.Target)
 		if !ok {
@@ -418,10 +421,11 @@ func (s *GameState) applyOrderToWorld(req OrderRequest) (Effects, string, error)
 		}
 		war := s.Wars[i]
 		s.adjustWar(i, 5, -2, -4, -12, 1)
+		strategic := s.applyStrategicWarTactic(OrderTruce, war)
 		s.adjustFactionByID("border", -4, -3)
 		s.adjustMinisterByRole("长公主", 4, 4)
 		effects := Effects{Treasury: -6, Diplomacy: 8, BorderThreat: -10, Legitimacy: -1}
-		return effects, fmt.Sprintf("使团在%s外设帐议和，%s退去一营骑兵；武臣不满，但边患暂缓。", war.Front, war.Enemy), nil
+		return effects, withStrategicSummary(fmt.Sprintf("使团在%s外设帐议和，%s退去一营骑兵；武臣不满，但边患暂缓。", war.Front, war.Enemy), strategic), nil
 	default:
 		return Effects{}, "", fmt.Errorf("unknown order kind %q", req.Kind)
 	}

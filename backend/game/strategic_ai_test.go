@@ -45,3 +45,24 @@ func TestStrategicPressurePushesForeignWarFront(t *testing.T) {
 		t.Fatalf("expected strategy log for front pressure")
 	}
 }
+
+func TestStrategicPressureSyncsForeignThreatFromMap(t *testing.T) {
+	state, err := NewGameWithDynasty("xuanshuo", 2803)
+	if err != nil {
+		t.Fatalf("create game: %v", err)
+	}
+	state.ForceCoronationForTest()
+	factionIndex, _ := state.Strategy.factionIndex("beidi")
+	foreignIndex, _ := state.findForeignIndex("beidi")
+	state.Strategy.Factions[factionIndex].Threat = 96
+	state.Strategy.Factions[factionIndex].Relation = 18
+	state.ForeignStates[foreignIndex].Threat = 22
+	state.ForeignStates[foreignIndex].Relation = 60
+
+	state.applyStrategicPressure(DomainCourt)
+
+	foreign := state.ForeignStates[foreignIndex]
+	if foreign.Threat < 70 || foreign.Relation >= 60 {
+		t.Fatalf("expected strategic faction pressure to sync into foreign state, got %+v", foreign)
+	}
+}

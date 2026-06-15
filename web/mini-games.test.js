@@ -47,6 +47,36 @@ assert.match(target.innerHTML, /data-action-mode="open_trial"/);
 assert.match(target.innerHTML, /data-action-kind="office_assign"/);
 assert.match(target.innerHTML, /data-action-target="censorate:gu"|data-action-target="censorate:huo"/);
 
+const urgentTarget = { innerHTML: "" };
+context.window.renderMiniGames(
+  {
+    phase: "emperor",
+    command: 2,
+    strategy: {
+      cities: [
+        { id: "capital", name: "京畿", ownerId: "court", x: 51, y: 44 },
+        { id: "north", name: "北境", ownerId: "court", x: 50, y: 20, front: true },
+        { id: "snow-ridge", name: "雪岭", ownerId: "beidi", x: 50, y: 8 },
+      ],
+      roads: [
+        { from: "capital", to: "north" },
+        { from: "north", to: "snow-ridge" },
+      ],
+      armies: [
+        { id: "imperial-guard", name: "禁军右营", factionId: "court", location: "capital", troops: 16000, grain: 70, morale: 68, training: 62, status: "驻防" },
+        { id: "northern-banner", name: "北府军", factionId: "court", location: "north", troops: 18000, grain: 54, morale: 66, training: 70, status: "驻防" },
+      ],
+    },
+    legalCases: [],
+    offices: [],
+    court: [],
+  },
+  urgentTarget,
+);
+
+assert.match(urgentTarget.innerHTML, /北府军/);
+assert.match(urgentTarget.innerHTML, /data-action-target="northern-banner:snow-ridge"/);
+
 const lockedTarget = { innerHTML: "" };
 context.window.renderMiniGames({ phase: "prince" }, lockedTarget);
 assert.match(lockedTarget.innerHTML, /登基后/);

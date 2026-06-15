@@ -178,7 +178,9 @@ func randomEventTemplates() []eventTemplate {
 			summary: "北境童谣开始传进京城：雪线以北，母亲把战报缝进孩子棉衣。民间已经把边患想象成一场迟早落下的雪。",
 			detail:  "剧情弧：外战压力会改变民间叙事，军务不再只是军力数字。",
 			effects: Effects{Legitimacy: -1, BorderThreat: 2}, tags: []string{"战争", "民心"}, portrait: "general",
-			pressure: func(s *GameState, d Domain) int { return s.Stats.BorderThreat + maxWarThreat(s.Wars) },
+			pressure: func(s *GameState, d Domain) int {
+				return s.Stats.BorderThreat + max(maxWarThreat(s.Wars), s.strategicMilitaryPressure())
+			},
 		},
 		{
 			id: "market-rumor", title: "市井银荒", category: EventStory, domain: DomainEconomy, severity: 42,
@@ -271,8 +273,10 @@ func randomEventTemplates() []eventTemplate {
 			summary: "兵部送来逃卒名册，墨迹未干。粮道一弱，士气就会先从纸面上掉下去。",
 			detail:  "系统风暴：战争补给不足会直接拖累军力与危机钟。",
 			effects: Effects{Army: -4, BorderThreat: 3, Stability: -1}, tags: []string{"战争", "粮道"}, portrait: "guard",
-			pressure: func(s *GameState, d Domain) int { return max(0, 90-activeWarSupply(s.Wars)) + maxWarThreat(s.Wars) },
-			after:    func(s *GameState, success bool) { s.adjustActiveWar(-2, -3, -5, 3, 0) },
+			pressure: func(s *GameState, d Domain) int {
+				return max(0, 90-activeWarSupply(s.Wars)) + max(maxWarThreat(s.Wars), s.strategicMilitaryPressure())
+			},
+			after: func(s *GameState, success bool) { s.adjustActiveWar(-2, -3, -5, 3, 0) },
 		},
 		{
 			id: "grain-mold", title: "仓粮霉变", category: EventSystem, domain: DomainDomestic, severity: 48,
@@ -313,7 +317,9 @@ func randomEventTemplates() []eventTemplate {
 			successEffects: Effects{Army: 3, BorderThreat: -5, Martial: 1},
 			failEffects:    Effects{Army: -3, BorderThreat: 4, Grain: -3},
 			tags:           []string{"微玩法", "战争"}, portrait: "general",
-			pressure:   func(s *GameState, d Domain) int { return maxWarThreat(s.Wars) + s.Stats.BorderThreat },
+			pressure: func(s *GameState, d Domain) int {
+				return max(maxWarThreat(s.Wars), s.strategicMilitaryPressure()) + s.Stats.BorderThreat
+			},
 			checkScore: func(s *GameState) int { return s.Stats.Martial + s.Stats.Army/3 + activeWarMorale(s.Wars)/2 },
 			after: func(s *GameState, success bool) {
 				if success {

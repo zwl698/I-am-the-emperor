@@ -59,7 +59,12 @@ func (s *GameState) resolveCourtAssault(armyIndex, cityIndex int) (Effects, stri
 			DefenderLoss: defenderLoss,
 			Participants: s.armyIDs(attackerIndexes),
 			Summary:      summary,
-			Severity:     76,
+			Factors: []string{
+				fmt.Sprintf("攻势 %d > 守势 %d", attackScore, defenseScore),
+				fmt.Sprintf("主将 %d · 士气 %d · 训练 %d", s.commanderAbility(army.CommanderID), army.Morale, army.Training),
+				fmt.Sprintf("粮草 %d · 支援军 %d", army.Grain, len(supportIndexes)),
+			},
+			Severity: 76,
 		})
 		return Effects{Army: -3, Grain: -6, BorderThreat: -12, Legitimacy: 3, Martial: 2}, summary, nil
 	}
@@ -89,7 +94,12 @@ func (s *GameState) resolveCourtAssault(armyIndex, cityIndex int) (Effects, stri
 		DefenderLoss: cityLoss,
 		Participants: s.armyIDs(attackerIndexes),
 		Summary:      summary,
-		Severity:     68,
+		Factors: []string{
+			fmt.Sprintf("攻势 %d <= 守势 %d", attackScore, defenseScore),
+			fmt.Sprintf("城防 %d · 守军 %d · 城粮 %d", city.Defense, city.Troops, city.Grain),
+			fmt.Sprintf("攻方粮草 %d · 支援军 %d", army.Grain, len(supportIndexes)),
+		},
+		Severity: 68,
 	})
 	return Effects{Army: -6, Grain: -6, BorderThreat: 4, Stability: -2}, summary, nil
 }
@@ -98,6 +108,7 @@ func (s *GameState) forceStrategicSurrender(armyIndex, cityIndex int) (Effects, 
 	army := s.Strategy.Armies[armyIndex]
 	city := s.Strategy.Cities[cityIndex]
 	oldOwner := city.OwnerID
+	siegeProgress := army.Siege
 	defenderLoss := max(900, city.Troops/3)
 	attackerLoss := max(120, army.Troops/60)
 	army.Troops = max(0, army.Troops-attackerLoss)
@@ -127,7 +138,12 @@ func (s *GameState) forceStrategicSurrender(armyIndex, cityIndex int) (Effects, 
 		DefenderLoss: defenderLoss,
 		Participants: []string{army.ID},
 		Summary:      summary,
-		Severity:     72,
+		Factors: []string{
+			fmt.Sprintf("围城进度 %d", siegeProgress),
+			fmt.Sprintf("城粮 %d · 治安 %d", city.Grain, city.Order),
+			fmt.Sprintf("攻方粮草 %d · 士气 %d", army.Grain, army.Morale),
+		},
+		Severity: 72,
 	})
 	return Effects{Army: -1, Grain: -4, BorderThreat: -8, Legitimacy: 2, Martial: 1}, summary
 }
@@ -180,7 +196,12 @@ func (s *GameState) resolveEnemyAssault(armyIndex, cityIndex int, faction Strate
 		DefenderLoss: defenderLoss,
 		Participants: []string{army.ID},
 		Summary:      fmt.Sprintf("%s趁%s空虚突入，%s易帜，朝野震动。", army.Name, city.Name, city.Name),
-		Severity:     88,
+		Factors: []string{
+			fmt.Sprintf("敌势 %d · 攻势 %d", faction.Threat, s.armyBattlePower(army)),
+			fmt.Sprintf("城防 %d · 守军 %d · 治安 %d", city.Defense, city.Troops, city.Order),
+			fmt.Sprintf("城粮 %d · 敌军粮草 %d", city.Grain, army.Grain),
+		},
+		Severity: 88,
 	})
 	s.addStrategyLog("边城失守", fmt.Sprintf("%s被%s攻占，边患陡升。", city.Name, faction.Name), 88)
 	return true

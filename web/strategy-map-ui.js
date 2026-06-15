@@ -124,6 +124,7 @@
                 <span>${safe(outcomeLabel(battle.outcome))}</span>
                 <small>攻损${formatLoss(battle.attackerLoss)} · 守损${formatLoss(battle.defenderLoss)}</small>
                 <em>${safe(participantText(battle.participants, strategy))}</em>
+                ${battleFactors(battle)}
               </div>
             `,
           )
@@ -141,6 +142,12 @@
         ${logs.map((log) => `<p><b>${safe(log.title)}</b> ${safe(log.summary)}</p>`).join("")}
       </article>
     `;
+  }
+
+  function battleFactors(battle) {
+    const factors = (battle.factors || []).slice(0, 3);
+    if (!factors.length) return "";
+    return `<ul>${factors.map((factor) => `<li>${safe(factor)}</li>`).join("")}</ul>`;
   }
 
   function armyPrimaryAction(army, strategy) {

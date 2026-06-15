@@ -41,6 +41,7 @@ context.window.renderStrategyMap(
           defenderLoss: 7600,
           participants: ["northern-banner", "imperial-guard"],
           summary: "北府军攻破雪岭，禁军右营侧翼支援。",
+          factors: ["攻势 92000 > 守势 64000", "粮草 54", "支援军 1"],
           severity: 76,
         },
       ],
@@ -65,6 +66,8 @@ assert.match(target.innerHTML, /雪岭攻城战/);
 assert.match(target.innerHTML, /攻占/);
 assert.match(target.innerHTML, /损3200/);
 assert.match(target.innerHTML, /imperial-guard/);
+assert.match(target.innerHTML, /攻势 92000 &gt; 守势 64000/);
+assert.match(target.innerHTML, /支援军 1/);
 
 const lockedTarget = { innerHTML: "" };
 context.window.renderStrategyMap({ phase: "prince" }, lockedTarget);
