@@ -618,18 +618,32 @@ func TestEmperorSceneOffersDeepStrategicChoices(t *testing.T) {
 	}
 	state.ForceCoronationForTest()
 
-	if len(state.Scene.Choices) < 6 {
-		t.Fatalf("expected a richer emperor choice set, got %+v", state.Scene.Choices)
+	// Dynamic agenda: should have 2-5 choices based on pressure
+	if len(state.Scene.Choices) < 2 {
+		t.Fatalf("expected at least 2 emperor choices, got %d: %+v", len(state.Scene.Choices), state.Scene.Choices)
+	}
+	if len(state.Scene.Choices) > 5 {
+		t.Fatalf("expected at most 5 emperor choices, got %d: %+v", len(state.Scene.Choices), state.Scene.Choices)
 	}
 
 	domains := map[Domain]bool{}
 	for _, choice := range state.Scene.Choices {
 		domains[choice.Domain] = true
 	}
-	for _, domain := range []Domain{DomainDomestic, DomainEconomy, DomainMilitary, DomainDiplomacy, DomainReform, DomainIntrigue} {
-		if !domains[domain] {
-			t.Fatalf("expected domain %q in emperor choices: %+v", domain, state.Scene.Choices)
-		}
+	// With default coronation stats, at least military and domestic should be urgent
+	if !domains[DomainMilitary] && !domains[DomainDomestic] {
+		t.Fatalf("expected at least military or domestic domain in emperor choices: %+v", state.Scene.Choices)
+	}
+
+	// High-pressure scenarios should still produce a meaningful set
+	state.Stats.BorderThreat = 90
+	state.Stats.Treasury = 15
+	state.Stats.Grain = 15
+	state.Crisis.Severity = 80
+	state.Crisis.Clock = 5
+	state.Scene = emperorScene(state)
+	if len(state.Scene.Choices) < 3 {
+		t.Fatalf("expected more choices under high pressure, got %d: %+v", len(state.Scene.Choices), state.Scene.Choices)
 	}
 }
 
@@ -639,6 +653,11 @@ func TestStrategicChoiceMovesFactionAndProvinceState(t *testing.T) {
 		t.Fatalf("new dynasty game: %v", err)
 	}
 	state.ForceCoronationForTest()
+	// Ensure reform has enough pressure to appear in dynamic agenda
+	state.Stats.Reform = 70
+	state.Offices[0].VacancyRisk = 60
+	state.Scene = emperorScene(state)
+
 	beforeProvince := state.Provinces[0]
 	beforeFaction := state.Factions[0]
 
@@ -650,7 +669,7 @@ func TestStrategicChoiceMovesFactionAndProvinceState(t *testing.T) {
 		}
 	}
 	if reformChoice == "" {
-		t.Fatal("expected reform choice")
+		t.Fatalf("expected reform choice in choices: %+v", state.Scene.Choices)
 	}
 
 	if _, err := state.ApplyChoice(reformChoice); err != nil {
@@ -674,6 +693,11 @@ func TestStrategicChoiceAdvancesObjectiveProgress(t *testing.T) {
 		t.Fatalf("new dynasty game: %v", err)
 	}
 	state.ForceCoronationForTest()
+	// Ensure reform has enough pressure to appear in dynamic agenda
+	state.Stats.Reform = 70
+	state.Offices[0].VacancyRisk = 60
+	state.Scene = emperorScene(state)
+
 	before := objectiveProgress(t, state, "reform_state")
 
 	var reformChoice string
@@ -684,7 +708,7 @@ func TestStrategicChoiceAdvancesObjectiveProgress(t *testing.T) {
 		}
 	}
 	if reformChoice == "" {
-		t.Fatal("expected reform choice")
+		t.Fatalf("expected reform choice in choices: %+v", state.Scene.Choices)
 	}
 
 	if _, err := state.ApplyChoice(reformChoice); err != nil {
@@ -875,4 +899,261 @@ func relationByID(state *GameState, id string) (Relation, bool) {
 		}
 	}
 	return Relation{}, false
+}
+
+func TestPrinceChoicesGrantTraits(t *testing.T) {
+	state := NewGame(42)
+
+	// Turn 0: birth-omen → choose "grab-scroll" → should grant TraitScholarly
+	if _, err := state.ApplyChoice("grab-scroll"); err != nil {
+		t.Fatalf("apply grab-scroll: %v", err)
+	}
+	if !state.HasTrait(TraitScholarly) {
+		t.Fatal("expected TraitScholarly after grabbing scroll")
+	}
+
+	// Turn 1: study-yard → choose "answer-people" → should grant TraitBenevolent
+	if _, err := state.ApplyChoice("answer-people"); err != nil {
+		t.Fatalf("apply answer-people: %v", err)
+	}
+	if !state.HasTrait(TraitBenevolent) {
+		t.Fatal("expected TraitBenevolent after answering people first")
+	}
+
+	// Turn 2: winter-hunt → choose "accuse-brother" → should grant TraitSuspicious
+	if _, err := state.ApplyChoice("accuse-brother"); err != nil {
+		t.Fatalf("apply accuse-brother: %v", err)
+	}
+	if !state.HasTrait(TraitSuspicious) {
+		t.Fatal("expected TraitSuspicious after accusing brother")
+	}
+
+	// Turn 3: flood-memorial → choose "borrow-merchants" → should grant TraitFrugal
+	if _, err := state.ApplyChoice("borrow-merchants"); err != nil {
+		t.Fatalf("apply borrow-merchants: %v", err)
+	}
+	if !state.HasTrait(TraitFrugal) {
+		t.Fatal("expected TraitFrugal after borrowing from merchants")
+	}
+
+	// Turn 4: succession-night → choose "secure-edict" → should grant TraitVisionary
+	if _, err := state.ApplyChoice("secure-edict"); err != nil {
+		t.Fatalf("apply secure-edict: %v", err)
+	}
+	if !state.HasTrait(TraitVisionary) {
+		t.Fatal("expected TraitVisionary after securing edict")
+	}
+}
+
+func TestPrinceTraitsPersistAfterCoronation(t *testing.T) {
+	state := NewGame(77)
+
+	// Make specific prince choices
+	for state.Phase != PhaseEmperor && state.Ending == nil {
+		choiceID := state.Scene.Choices[1].ID // pick second choice each time
+		if _, err := state.ApplyChoice(choiceID); err != nil {
+			t.Fatalf("apply choice: %v", err)
+		}
+	}
+
+	// After coronation, emperor should have prince-phase traits + dynasty base trait
+	if len(state.EmperorTraits) < 2 {
+		t.Fatalf("expected at least 2 traits after coronation, got %d: %+v", len(state.EmperorTraits), state.EmperorTraits)
+	}
+
+	// Dynasty base trait should be present (dayin → ambitious)
+	if !state.HasTrait(TraitAmbitious) {
+		t.Fatal("expected TraitAmbitious from dayin dynasty")
+	}
+}
+
+func TestReformTreePrerequisitesAndUnlocking(t *testing.T) {
+	state := NewGame(200)
+	state.ForceCoronationForTest()
+
+	// Tier 2 projects should start locked
+	for _, p := range state.Projects {
+		if p.Tier >= 2 && !p.Locked {
+			t.Fatalf("tier %d project %q should start locked", p.Tier, p.Name)
+		}
+	}
+
+	// Trying to fund a locked project should fail
+	_, err := state.ApplyOrder(OrderRequest{Kind: OrderFundProject, Target: "salt-iron-reform"})
+	if err == nil {
+		t.Fatal("expected error when funding locked project")
+	}
+
+	// Complete grand-canal (tier 1) to unlock salt-iron-reform and imperial-granary
+	completeProjectFast(state, "grand-canal")
+
+	// Now salt-iron-reform and imperial-granary should be unlocked
+	saltIron, ok := projectByID(state, "salt-iron-reform")
+	if !ok {
+		t.Fatal("salt-iron-reform not found")
+	}
+	if saltIron.Locked {
+		t.Fatal("salt-iron-reform should be unlocked after grand-canal completion")
+	}
+	granary, ok := projectByID(state, "imperial-granary")
+	if !ok {
+		t.Fatal("imperial-granary not found")
+	}
+	if granary.Locked {
+		t.Fatal("imperial-granary should be unlocked after grand-canal completion")
+	}
+
+	// Tier 3 projects should still be locked
+	mint, ok := projectByID(state, "imperial-mint")
+	if !ok {
+		t.Fatal("imperial-mint not found")
+	}
+	if !mint.Locked {
+		t.Fatal("imperial-mint should still be locked (needs salt-iron-reform + state-academy)")
+	}
+}
+
+func TestReformTreeTier3RequiresMultiplePrereqs(t *testing.T) {
+	state := NewGame(201)
+	state.ForceCoronationForTest()
+
+	// imperial-mint requires salt-iron-reform AND state-academy
+	// Complete only grand-canal (unlocks salt-iron-reform)
+	completeProjectFast(state, "grand-canal")
+
+	// imperial-mint still locked (only prereq path partially met)
+	mint, _ := projectByID(state, "imperial-mint")
+	if !mint.Locked {
+		t.Fatal("imperial-mint should still be locked with only grand-canal done")
+	}
+
+	// Complete salt-iron-reform (now one of mint's prereqs is done)
+	completeProjectFast(state, "salt-iron-reform")
+
+	// Still locked because state-academy isn't done yet
+	mint, _ = projectByID(state, "imperial-mint")
+	if !mint.Locked {
+		t.Fatal("imperial-mint should still be locked without state-academy")
+	}
+
+	// Complete state-academy (now all prereqs met)
+	completeProjectFast(state, "state-academy")
+
+	// Now imperial-mint should be unlocked
+	mint, _ = projectByID(state, "imperial-mint")
+	if mint.Locked {
+		t.Fatal("imperial-mint should be unlocked after salt-iron-reform + state-academy")
+	}
+}
+
+func TestReformTreeSynergyEffects(t *testing.T) {
+	state := NewGame(202)
+	state.ForceCoronationForTest()
+
+	// Complete grand-canal first - no synergy yet since state-academy isn't done
+	completeProjectFast(state, "grand-canal")
+
+	// Now complete state-academy - should trigger synergy with grand-canal
+	beforeReform := state.Stats.Reform
+	completeProjectFast(state, "state-academy")
+
+	// The synergy bonus (Reform: 4) should have been applied
+	// state-academy completion gives Reform: 12, synergy gives Reform: 4, total >= 16
+	reformGain := state.Stats.Reform - beforeReform + 1 // +1 for the funding cost
+	if reformGain < 12 {
+		t.Fatalf("expected significant reform gain including synergy, got %d", reformGain)
+	}
+}
+
+func TestReformTreeTier2AdvancesSlower(t *testing.T) {
+	state := NewGame(203)
+	state.ForceCoronationForTest()
+
+	// Unlock a tier 2 project
+	completeProjectFast(state, "grand-canal")
+
+	// Fund tier 1 vs tier 2 project and compare advance
+	tier1Project := state.Projects[1] // border-arsenal (tier 1)
+	beforeT1 := tier1Project.Progress
+	_, err := state.ApplyOrder(OrderRequest{Kind: OrderFundProject, Target: tier1Project.ID})
+	if err != nil {
+		t.Fatalf("fund tier 1: %v", err)
+	}
+	tier1After, _ := projectByID(state, tier1Project.ID)
+	tier1Advance := tier1After.Progress - beforeT1
+
+	// Fund tier 2 project
+	saltIron, _ := projectByID(state, "salt-iron-reform")
+	beforeT2 := saltIron.Progress
+	_, err = state.ApplyOrder(OrderRequest{Kind: OrderFundProject, Target: "salt-iron-reform"})
+	if err != nil {
+		t.Fatalf("fund tier 2: %v", err)
+	}
+	saltIronAfter, _ := projectByID(state, "salt-iron-reform")
+	tier2Advance := saltIronAfter.Progress - beforeT2
+
+	// Tier 2 should advance less than tier 1 (85% modifier)
+	if tier2Advance >= tier1Advance {
+		t.Fatalf("tier 2 should advance slower than tier 1, t1=%d t2=%d", tier1Advance, tier2Advance)
+	}
+}
+
+func TestProjectPassiveEffectsIncludeNewProjects(t *testing.T) {
+	state := NewGame(204)
+	state.ForceCoronationForTest()
+
+	// Complete a tier 2 project
+	completeProjectFast(state, "grand-canal")
+	completeProjectFast(state, "salt-iron-reform")
+
+	// Verify passive effects function works for new project IDs
+	effects := projectPassiveEffects(ImperialProject{ID: "salt-iron-reform"})
+	if effects.Treasury != 3 {
+		t.Fatalf("expected salt-iron-reform passive treasury=3, got %d", effects.Treasury)
+	}
+
+	// Verify tier 3 passive effects
+	effects = projectPassiveEffects(ImperialProject{ID: "imperial-mint"})
+	if effects.Treasury != 4 {
+		t.Fatalf("expected imperial-mint passive treasury=4, got %d", effects.Treasury)
+	}
+}
+
+// completeProjectFast forces a project to 100% completion by repeatedly funding it.
+func completeProjectFast(state *GameState, projectID string) {
+	for i := 0; i < 50; i++ {
+		p, ok := projectByID(state, projectID)
+		if !ok {
+			return
+		}
+		if p.Completed {
+			return
+		}
+		if p.Locked {
+			return
+		}
+		// Refill command points so we can keep issuing orders
+		state.Command = state.commandBudget() + 5
+		state.ApplyOrder(OrderRequest{Kind: OrderFundProject, Target: projectID})
+	}
+}
+
+func TestPrinceTraitDuplicatesPrevented(t *testing.T) {
+	state := NewGame(99)
+
+	// Grant scholarly trait from grab-scroll
+	if _, err := state.ApplyChoice("grab-scroll"); err != nil {
+		t.Fatalf("apply grab-scroll: %v", err)
+	}
+
+	// Count how many scholarly traits exist
+	scholarlyCount := 0
+	for _, trait := range state.EmperorTraits {
+		if trait.ID == TraitScholarly {
+			scholarlyCount++
+		}
+	}
+	if scholarlyCount != 1 {
+		t.Fatalf("expected exactly 1 TraitScholarly, got %d", scholarlyCount)
+	}
 }

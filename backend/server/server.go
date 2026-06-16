@@ -48,6 +48,7 @@ func (a *App) routes() {
 	a.mux.HandleFunc("POST /api/games", a.handleGames)
 	a.mux.HandleFunc("GET /api/games/{id}", a.handleGetGame)
 	a.mux.HandleFunc("POST /api/games/{id}/choices", a.handleApplyChoice)
+	a.mux.HandleFunc("POST /api/games/{id}/crisis-choice", a.handleApplyCrisisChoice)
 	a.mux.HandleFunc("POST /api/games/{id}/orders", a.handleApplyOrder)
 	a.mux.HandleFunc("POST /api/games/{id}/actions", a.handleApplyAction)
 	a.mux.Handle("/", http.FileServer(http.Dir(filepath.Clean("web"))))
@@ -112,6 +113,37 @@ func (a *App) handleApplyChoice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resolution, err := state.ApplyChoice(req.ChoiceID)
+	a.mu.Unlock()
+
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	state.EnsurePlayableState()
+
+	writeJSON(w, http.StatusOK, choiceResponse{Resolution: resolution, State: state})
+}
+
+func (a *App) handleApplyCrisisChoice(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	var req choiceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "圣裁请求格式错误")
+		return
+	}
+	if req.ChoiceID == "" {
+		writeError(w, http.StatusBadRequest, "缺少 choiceId")
+		return
+	}
+
+	a.mu.Lock()
+	state := a.games[id]
+	if state == nil {
+		a.mu.Unlock()
+		writeError(w, http.StatusNotFound, "存档不存在")
+		return
+	}
+	resolution, err := state.ApplyCrisisChoice(req.ChoiceID)
 	a.mu.Unlock()
 
 	if err != nil {

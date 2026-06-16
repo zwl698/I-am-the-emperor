@@ -14,21 +14,60 @@
       .map((event) => {
         const portrait = portraitFor(event.portrait, api);
         const check = event.category === "micro_game" ? checkLine(event) : "";
+        const crisis = event.crisisBranch ? crisisBlock(event) : "";
         return `
-          <article class="season-event domain-${event.domain}">
+          <article class="season-event domain-${event.domain} ${event.crisisBranch ? "crisis-branch-event" : ""}">
             <span class="portrait-dot event-portrait" style="background-image:url('${portrait}')"></span>
             <span class="event-main">
-              <strong>${safe(event.title)} <em>${categoryLabel(event.category)}</em></strong>
+              <strong>${safe(event.title)} <em>${categoryLabel(event.category)}${event.crisisBranch ? " · 圣裁" : ""}</em></strong>
               <small>${safe(event.detail)}</small>
               <p>${safe(event.summary)}</p>
               ${check}
-              <b>${formatEventEffects(event.effects)}</b>
+              ${!event.crisisBranch ? `<b>${formatEventEffects(event.effects)}</b>` : ""}
               <i>${(event.tags || []).map((tag) => `<u>${safe(tag)}</u>`).join("")}</i>
+              ${crisis}
             </span>
           </article>
         `;
       })
       .join("");
+
+    // Bind crisis choice buttons
+    target.querySelectorAll("[data-crisis-choice]").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (typeof window.resolveCrisis === "function") {
+          window.resolveCrisis(button.dataset.crisisChoice);
+        }
+      });
+    });
+  }
+
+  function crisisBlock(event) {
+    if (event.resolved) {
+      const chosen = (event.choices || []).find((c) => c.id === event.resolvedChoiceId);
+      return `
+        <div class="crisis-resolved">
+          <span class="crisis-resolved-badge">已圣裁</span>
+          <em>${safe(chosen ? chosen.text : "")}</em>
+          <p>${safe(event.resolvedOutcome || "")}</p>
+        </div>
+      `;
+    }
+    const buttons = (event.choices || [])
+      .map(
+        (choice) => `
+        <button class="crisis-choice-btn domain-${choice.domain}" type="button" data-crisis-choice="${choice.id}">
+          <span class="crisis-choice-icon">⚖</span>
+          <span class="crisis-choice-body">
+            <strong>${safe(choice.text)}</strong>
+            <small>${safe(choice.detail)}</small>
+            <em>${formatEventEffects(choice.effects)}</em>
+          </span>
+        </button>
+      `
+      )
+      .join("");
+    return `<div class="crisis-choices">${buttons}</div>`;
   }
 
   function checkLine(event) {

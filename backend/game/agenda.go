@@ -14,15 +14,133 @@ type agendaOption struct {
 	strategicFn func(s *GameState, opt agendaOption) // 回写战略地图的副作用
 }
 
+// domainPressure computes a 0-100 urgency score for each agenda domain,
+// based on Stats, Crisis, Strategy, Wars, and other world state.
+func domainPressure(s *GameState, domain Domain) int {
+	switch domain {
+	case DomainDomestic:
+		p := worstProvinceDisaster(s.Provinces) + worstStrategicCityDisaster(s.Strategy.Cities)/2
+		p += max(0, 60-s.Stats.Populace) + max(0, 50-s.Stats.Grain)/2
+		if s.Stats.Grain < 30 {
+			p += 20
+		}
+		return clamp(p, 0, 100)
+	case DomainEconomy:
+		p := max(0, 70-s.Stats.Treasury) + max(0, 50-totalStrategicGold(s.Strategy.Cities))/3
+		if s.Stats.Treasury < 30 {
+			p += 25
+		}
+		if s.Stats.Grain < 35 {
+			p += 10
+		}
+		return clamp(p, 0, 100)
+	case DomainMilitary:
+		p := s.Stats.BorderThreat + maxWarThreat(s.Wars)/2 + s.strategicMilitaryPressure()/3
+		if courtArmyGrainLow(s.Strategy.Armies) {
+			p += 15
+		}
+		if s.Stats.Army < 50 {
+			p += 15
+		}
+		return clamp(p, 0, 100)
+	case DomainDiplomacy:
+		p := s.Stats.BorderThreat/2 + maxStrategicFactionThreat(s.Strategy.Factions)/2
+		p += max(0, 50-s.Stats.Diplomacy)
+		if s.Stats.BorderThreat >= 60 && s.Stats.Diplomacy < 50 {
+			p += 20
+		}
+		return clamp(p, 0, 100)
+	case DomainReform:
+		p := s.Stats.Reform/2 + averageOfficeVacancyRisk(s.Offices)/2
+		if s.Stats.Reform >= 50 {
+			p += 15 // 高改革值产生推进动力
+		}
+		if s.Stats.Stability < 40 {
+			p -= 10 // 朝不稳则改革阻力大
+		}
+		return clamp(p, 0, 100)
+	case DomainIntrigue:
+		p := s.Crisis.Severity/2 + maxFactionPower(s.Factions)/3
+		p += len(s.Plots) * 5
+		if s.Crisis.Clock >= 5 {
+			p += 20
+		}
+		return clamp(p, 0, 100)
+	case DomainCourt:
+		p := s.Succession.Dispute/2 + strongestConsortPower(s.Harem)/3
+		p += averageOfficeVacancyRisk(s.Offices) / 4
+		if s.Succession.Dispute >= 50 {
+			p += 15
+		}
+		return clamp(p, 0, 100)
+	default:
+		return 30
+	}
+}
+
+type domainChoice struct {
+	domain   Domain
+	choice   Choice
+	pressure int
+}
+
 func emperorChoices(s *GameState) []Choice {
-	return []Choice{
-		domesticAgenda(s),
-		economyAgenda(s),
-		militaryAgenda(s),
-		diplomacyAgenda(s),
-		reformAgenda(s),
-		intrigueAgenda(s),
-		courtAgenda(s),
+	// Step 1: 为每个领域生成候选选项
+	allCandidates := []domainChoice{
+		{domain: DomainDomestic, choice: domesticAgenda(s), pressure: domainPressure(s, DomainDomestic)},
+		{domain: DomainEconomy, choice: economyAgenda(s), pressure: domainPressure(s, DomainEconomy)},
+		{domain: DomainMilitary, choice: militaryAgenda(s), pressure: domainPressure(s, DomainMilitary)},
+		{domain: DomainDiplomacy, choice: diplomacyAgenda(s), pressure: domainPressure(s, DomainDiplomacy)},
+		{domain: DomainReform, choice: reformAgenda(s), pressure: domainPressure(s, DomainReform)},
+		{domain: DomainIntrigue, choice: intrigueAgenda(s), pressure: domainPressure(s, DomainIntrigue)},
+		{domain: DomainCourt, choice: courtAgenda(s), pressure: domainPressure(s, DomainCourt)},
+	}
+
+	// Step 2: 按压力降序排列
+	sortByPressure(allCandidates)
+
+	// Step 3: 筛选核心议题——压力>=35 的领域必选，最多4个
+	var core []Choice
+	var sidelined []Choice
+	for _, c := range allCandidates {
+		if c.pressure >= 35 && len(core) < 4 {
+			core = append(core, c.choice)
+		} else {
+			sidelined = append(sidelined, c.choice)
+		}
+	}
+	// 至少保留2个
+	if len(core) < 2 {
+		for _, c := range allCandidates {
+			if len(core) >= 2 {
+				break
+			}
+			found := false
+			for _, cc := range core {
+				if cc.ID == c.choice.ID {
+					found = true
+					break
+				}
+			}
+			if !found {
+				core = append(core, c.choice)
+			}
+		}
+	}
+
+	// Step 4: 如果危机钟 >= 4，追加一个紧急选项（来自被跳过的领域中压力最高的）
+	if s.Crisis.Clock >= 4 && len(sidelined) > 0 {
+		core = append(core, sidelined[0])
+	}
+
+	return core
+}
+
+func sortByPressure(candidates []domainChoice) {
+	for i := 1; i < len(candidates); i++ {
+		for j := i; j > 0 && candidates[j].pressure > candidates[j-1].pressure; j-- {
+			candidates[j], candidates[j-1] = candidates[j-1], candidates[j]
+		}
 	}
 }
 

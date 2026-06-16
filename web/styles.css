@@ -1007,3 +1007,422 @@ h1 {
     min-height: 650px;
   }
 }
+
+/* ──────────────────────────────────────────────
+   皇帝特质 & 健康状态样式
+   ────────────────────────────────────────────── */
+
+.emperor-traits-block {
+  margin-bottom: 12px;
+}
+
+.trait-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  margin: 2px 4px 2px 0;
+  border: 1px solid rgba(243, 187, 67, 0.45);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(243, 187, 67, 0.18), rgba(168, 32, 33, 0.12));
+  color: var(--gold);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: help;
+  transition: background 150ms ease;
+}
+
+.trait-tag:hover {
+  background: linear-gradient(135deg, rgba(243, 187, 67, 0.32), rgba(168, 32, 33, 0.22));
+}
+
+.emperor-health-block {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(86, 30, 13, 0.12);
+}
+
+.health-clock span {
+  background: linear-gradient(90deg, #29a078, #4ecdc4) !important;
+}
+
+.health-clock.trend-stable span {
+  background: linear-gradient(90deg, #4ecdc4, #89d4cf) !important;
+}
+
+.health-clock.trend-decline span {
+  background: linear-gradient(90deg, #f6a33d, #e87d2d) !important;
+}
+
+.health-clock.trend-critical span {
+  background: linear-gradient(90deg, #d93a2f, #ff4757) !important;
+}
+
+.illness-note {
+  display: block;
+  margin-top: 3px;
+  color: #e87d2d !important;
+  font-size: 0.72rem;
+}
+
+.abdication-note {
+  display: block;
+  margin-top: 2px;
+  color: #d93a2f !important;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.choice-trait-hint {
+  display: block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(243, 187, 67, 0.12), rgba(243, 187, 67, 0.06));
+  border-left: 3px solid rgba(243, 187, 67, 0.55);
+  color: var(--gold);
+  font-size: 0.72rem;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* ── 皇帝状态面板容器 ── */
+
+.emperor-status-panel {
+  display: grid;
+  gap: 0;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 2px solid var(--line);
+}
+
+.emperor-status-panel[hidden] {
+  display: none;
+}
+
+/* ── 特质 Tooltip ── */
+
+.trait-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.trait-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 12px;
+  margin: 0;
+  border: 1px solid rgba(243, 187, 67, 0.45);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(243, 187, 67, 0.18), rgba(168, 32, 33, 0.12));
+  color: var(--gold);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: help;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.trait-tag:hover {
+  background: linear-gradient(135deg, rgba(243, 187, 67, 0.32), rgba(168, 32, 33, 0.22));
+  border-color: rgba(243, 187, 67, 0.7);
+  box-shadow: 0 2px 10px rgba(243, 187, 67, 0.18);
+}
+
+.trait-tooltip {
+  position: absolute;
+  z-index: 20;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  display: none;
+  width: 200px;
+  padding: 10px 12px;
+  border: 1px solid rgba(243, 187, 67, 0.38);
+  border-radius: var(--radius);
+  background: rgba(54, 17, 11, 0.96);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  color: #fff4d7;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.trait-tooltip::after {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+  border-top-color: rgba(54, 17, 11, 0.96);
+  transform: translateX(-50%);
+  content: "";
+}
+
+.trait-hover:hover .trait-tooltip,
+.trait-tag:hover .trait-tooltip {
+  display: block;
+  animation: tooltipFadeIn 180ms ease;
+}
+
+.trait-tooltip strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--gold);
+  font-size: 0.84rem;
+}
+
+.trait-tooltip em {
+  display: block;
+  margin-bottom: 4px;
+  color: rgba(255, 244, 215, 0.88);
+  font-style: normal;
+  line-height: 1.5;
+}
+
+.trait-tooltip-source {
+  display: block;
+  margin-bottom: 2px;
+  color: rgba(255, 244, 215, 0.55);
+  font-size: 0.68rem;
+}
+
+.trait-tooltip-effects {
+  display: block;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 224, 134, 0.18);
+  color: #89d4cf;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ── 健康条多层视觉 ── */
+
+.health-bar-container {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.health-bar-track {
+  position: relative;
+  height: 16px;
+  overflow: hidden;
+  border: 2px solid rgba(86, 30, 13, 0.18);
+  border-radius: 999px;
+  background: rgba(83, 35, 18, 0.1);
+}
+
+.health-bar-max {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: rgba(83, 35, 18, 0.1);
+  transition: width 360ms ease;
+}
+
+.health-bar-current {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #29a078, #4ecdc4);
+  transition: width 360ms ease;
+  z-index: 1;
+}
+
+.health-bar-current.trend-strong {
+  background: linear-gradient(90deg, #29a078, #4ecdc4);
+}
+
+.health-bar-current.trend-stable {
+  background: linear-gradient(90deg, #4ecdc4, #89d4cf);
+}
+
+.health-bar-current.trend-decline {
+  background: linear-gradient(90deg, #f6a33d, #e87d2d);
+}
+
+.health-bar-current.trend-critical {
+  background: linear-gradient(90deg, #d93a2f, #ff4757);
+  animation: healthPulse 1.2s ease-in-out infinite;
+}
+
+.health-bar-predicted {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(217, 58, 47, 0.35) 0px,
+    rgba(217, 58, 47, 0.35) 3px,
+    transparent 3px,
+    transparent 7px
+  );
+  transition: width 360ms ease;
+  z-index: 0;
+}
+
+.health-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.health-bar-labels span:last-child {
+  color: rgba(129, 85, 57, 0.65);
+}
+
+@keyframes healthPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+/* 健康趋势徽标 */
+
+.health-trend-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.health-trend-badge.trend-strong {
+  border: 1px solid rgba(41, 160, 120, 0.4);
+  background: rgba(41, 160, 120, 0.15);
+  color: #29a078;
+}
+
+.health-trend-badge.trend-stable {
+  border: 1px solid rgba(78, 205, 196, 0.4);
+  background: rgba(78, 205, 196, 0.12);
+  color: #4ecdc4;
+}
+
+.health-trend-badge.trend-decline {
+  border: 1px solid rgba(246, 163, 61, 0.4);
+  background: rgba(246, 163, 61, 0.12);
+  color: #f6a33d;
+}
+
+.health-trend-badge.trend-critical {
+  border: 1px solid rgba(217, 58, 47, 0.5);
+  background: rgba(217, 58, 47, 0.15);
+  color: #d93a2f;
+  animation: healthPulse 1.2s ease-in-out infinite;
+}
+
+.health-details {
+  display: grid;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.health-details small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+/* ── 禅位压力仪表盘 ── */
+
+.abdication-block {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(86, 30, 13, 0.12);
+  background: rgba(255, 250, 230, 0.38);
+  transition: border-color 300ms ease, background 300ms ease;
+}
+
+.abdication-block.abdication-warning {
+  border-color: rgba(246, 163, 61, 0.4);
+  background: rgba(246, 163, 61, 0.06);
+}
+
+.abdication-block.abdication-critical {
+  border-color: rgba(217, 58, 47, 0.4);
+  background: rgba(217, 58, 47, 0.06);
+  animation: abdicationPulse 2s ease-in-out infinite;
+}
+
+.abdication-gauge {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0 4px;
+}
+
+.abdication-svg {
+  width: 130px;
+  height: 70px;
+  overflow: visible;
+}
+
+.abdication-gauge-fill {
+  transition: stroke-dasharray 600ms ease, stroke 300ms ease;
+}
+
+.abdication-gauge-text {
+  fill: var(--ink);
+  font-size: 22px;
+  font-weight: 900;
+  font-family: inherit;
+}
+
+.abdication-block.abdication-warning .abdication-gauge-text {
+  fill: #e87d2d;
+}
+
+.abdication-block.abdication-critical .abdication-gauge-text {
+  fill: #d93a2f;
+}
+
+.abdication-desc {
+  display: block;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.abdication-block.abdication-warning .abdication-desc {
+  color: #b86e1a;
+}
+
+.abdication-block.abdication-critical .abdication-desc {
+  color: #a82021;
+  font-weight: 600;
+}
+
+@keyframes abdicationPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(217, 58, 47, 0);
+  }
+  50% {
+    box-shadow: 0 0 14px 2px rgba(217, 58, 47, 0.18);
+  }
+}

@@ -87,7 +87,14 @@ func (s *GameState) ApplyChoice(choiceID string) (*Resolution, error) {
 		return nil, fmt.Errorf("unknown choice %q", choiceID)
 	}
 
-	s.applyEffects(choice.Effects)
+	// Grant traits based on prince-phase choices
+	if s.Phase == PhasePrince {
+		s.grantTraitForPrinceChoice(choiceID)
+	}
+
+	// Apply trait-modified effects
+	scaledEffects := s.computeTraitEffects(choice.Effects, choice.Domain)
+	s.applyEffects(scaledEffects)
 	s.applyChoiceToWorld(choice)
 	s.Turn++
 	s.advanceAfter()
@@ -108,12 +115,12 @@ func (s *GameState) ApplyChoice(choiceID string) (*Resolution, error) {
 		Phase:   s.Phase,
 		Choice:  choice.Text,
 		Summary: choice.Outcome,
-		Effects: choice.Effects,
+		Effects: scaledEffects,
 	})
 
 	return &Resolution{
 		Summary: strings.TrimSpace(choice.Outcome + " " + describeEvents(events)),
-		Effects: choice.Effects,
+		Effects: scaledEffects,
 		Scene:   s.Scene,
 		Ending:  s.Ending,
 	}, nil
@@ -201,6 +208,110 @@ func (s *GameState) findChoice(choiceID string) (Choice, bool) {
 	return Choice{}, false
 }
 
+// findCrisisChoice looks up a Choice from pending crisis branch events in RecentEvents.
+func (s *GameState) findCrisisChoice(choiceID string) (Choice, *SeasonEvent, bool) {
+	for i := range s.RecentEvents {
+		ev := &s.RecentEvents[i]
+		if !ev.CrisisBranch || ev.Resolved {
+			continue
+		}
+		for _, choice := range ev.Choices {
+			if choice.ID == choiceID {
+				return choice, ev, true
+			}
+		}
+	}
+	return Choice{}, nil, false
+}
+
+// ApplyCrisisChoice processes a player's decision on a crisis branch event.
+// Unlike ApplyChoice, this does NOT advance the turn or trigger a new scene;
+// it applies the chosen effects immediately and marks the event as resolved.
+func (s *GameState) ApplyCrisisChoice(choiceID string) (*Resolution, error) {
+	if s == nil {
+		return nil, errors.New("game state is nil")
+	}
+	s.ensureRNG()
+	if s.Ending != nil {
+		return nil, errors.New("game has already ended")
+	}
+
+	choice, event, ok := s.findCrisisChoice(choiceID)
+	if !ok {
+		return nil, fmt.Errorf("unknown crisis choice %q", choiceID)
+	}
+
+	// Apply the chosen effects
+	s.applyEffects(choice.Effects)
+
+	// Apply world consequences based on the crisis domain
+	s.applyCrisisConsequences(choice, event)
+
+	// Mark the event as resolved so it can't be chosen again
+	event.Resolved = true
+	event.ResolvedChoiceID = choiceID
+	event.ResolvedOutcome = choice.Outcome
+
+	// Reduce crisis clock as the player has addressed the crisis
+	s.Crisis.Clock = clamp(s.Crisis.Clock-1, 0, 8)
+	s.Crisis.Severity = clamp(s.Crisis.Severity-5, 0, 100)
+
+	// Record in history
+	s.History = append(s.History, HistoryEntry{
+		Turn:    s.Turn,
+		Age:     s.Age,
+		Phase:   s.Phase,
+		Choice:  "圣裁：" + choice.Text,
+		Summary: choice.Outcome,
+		Effects: choice.Effects,
+	})
+
+	// Check if crisis resolution triggers an ending
+	s.Ending = s.checkEnding()
+
+	return &Resolution{
+		Summary: strings.TrimSpace("圣裁已下：" + choice.Outcome),
+		Effects: choice.Effects,
+		Scene:   s.Scene,
+		Ending:  s.Ending,
+	}, nil
+}
+
+// applyCrisisConsequences applies domain-specific world changes from crisis choices.
+func (s *GameState) applyCrisisConsequences(choice Choice, event *SeasonEvent) {
+	switch choice.Domain {
+	case DomainDomestic:
+		for i := range s.Provinces {
+			s.Provinces[i].Order = clamp(s.Provinces[i].Order+3, 0, 100)
+			s.Provinces[i].Disaster = clamp(s.Provinces[i].Disaster-5, 0, 100)
+		}
+		s.Crisis.Severity = clamp(s.Crisis.Severity-3, 0, 100)
+	case DomainMilitary:
+		for i := range s.Wars {
+			if s.Wars[i].Stage != "凯旋" {
+				s.Wars[i].Threat = clamp(s.Wars[i].Threat-4, 0, 100)
+				s.Wars[i].Morale = clamp(s.Wars[i].Morale+5, 0, 100)
+			}
+		}
+		s.Crisis.Severity = clamp(s.Crisis.Severity-4, 0, 100)
+	case DomainIntrigue:
+		for i := range s.Factions {
+			s.Factions[i].Power = clamp(s.Factions[i].Power-4, 0, 100)
+		}
+		for i := range s.Plots {
+			s.Plots[i].Danger = clamp(s.Plots[i].Danger-8, 0, 100)
+		}
+		s.Crisis.Severity = clamp(s.Crisis.Severity-3, 0, 100)
+	case DomainDiplomacy:
+		for i := range s.Factions {
+			s.Factions[i].Loyalty = clamp(s.Factions[i].Loyalty+3, 0, 100)
+		}
+		s.Crisis.Severity = clamp(s.Crisis.Severity-2, 0, 100)
+	default:
+		s.Crisis.Severity = clamp(s.Crisis.Severity-2, 0, 100)
+	}
+}
+
 func (s *GameState) ensureRNG() {
 	if s.rng == nil {
 		s.rng = rand.New(rand.NewSource(s.Seed + int64(s.Turn*7919)))
@@ -266,9 +377,9 @@ func (s *GameState) applyChoiceToWorld(choice Choice) {
 
 	s.Crisis.Severity = clamp(s.Crisis.Severity+crisisDelta(choice.Domain), 0, 100)
 	if s.Crisis.Severity < 35 {
-		s.Crisis.Clock = max(0, s.Crisis.Clock-1)
+		s.Crisis.Clock = max(0, s.Crisis.Clock-1+s.traitCrisisClockDelta())
 	} else {
-		s.Crisis.Clock = clamp(s.Crisis.Clock+1, 0, 8)
+		s.Crisis.Clock = clamp(s.Crisis.Clock+1+s.traitCrisisClockDelta(), 0, 8)
 	}
 
 	// 联动2: 朝堂选择效果回写战略地图
@@ -610,6 +721,7 @@ func (s *GameState) advanceCalendar() {
 		idx = 0
 		s.ReignYear++
 		s.Age++
+		s.applyAging() // Apply aging effects at the start of each new year
 	}
 	s.Season = seasons[idx]
 	if s.ReignYear < 1 {
@@ -631,6 +743,11 @@ func (s *GameState) coronate() {
 	s.Stats.Stability = clamp(s.Dynasty.Initial.Stability+s.Stats.Influence/5+s.Stats.Legitimacy/8, 15, 100)
 	s.Stats.BorderThreat = clamp(s.Dynasty.Initial.BorderThreat-s.Stats.Martial/8, 5, 100)
 	s.Command = s.commandBudget()
+
+	// Initialize emperor traits and condition
+	s.initEmperorCondition()
+	s.assignInitialTraits()
+
 	s.ensureCourtSystems()
 	s.dealEventHand()
 }

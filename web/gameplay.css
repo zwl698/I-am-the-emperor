@@ -218,3 +218,129 @@
     animation: none;
   }
 }
+
+/* ──────────────────────────────────────────────
+   危机分支事件（圣裁）样式
+   ────────────────────────────────────────────── */
+
+.crisis-branch-event {
+  border-color: rgba(168, 32, 33, 0.55) !important;
+  box-shadow: 0 0 18px rgba(168, 32, 33, 0.25), 0 8px 20px rgba(27, 9, 6, 0.32);
+  animation: crisisPulse 2.8s ease-in-out infinite;
+}
+
+@keyframes crisisPulse {
+  0%, 100% {
+    box-shadow: 0 0 18px rgba(168, 32, 33, 0.25), 0 8px 20px rgba(27, 9, 6, 0.32);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(168, 32, 33, 0.45), 0 8px 24px rgba(27, 9, 6, 0.38);
+  }
+}
+
+.crisis-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.crisis-choice-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 230, 155, 0.38);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255, 223, 138, 0.15), transparent 40%),
+    linear-gradient(135deg, rgba(92, 28, 19, 0.92), rgba(44, 21, 11, 0.88));
+  color: #fff7da;
+  text-align: left;
+  cursor: pointer;
+  transition: filter 160ms ease, border-color 160ms ease;
+  box-shadow: 0 4px 14px rgba(27, 9, 6, 0.28);
+}
+
+.crisis-choice-btn:hover:not(:disabled) {
+  filter: brightness(1.12);
+  border-color: rgba(255, 224, 131, 0.7);
+}
+
+.crisis-choice-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.crisis-choice-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a82021, #7d241f);
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.crisis-choice-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.crisis-choice-body strong {
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.crisis-choice-body small {
+  display: block;
+  color: rgba(255, 245, 219, 0.78);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.crisis-choice-body em {
+  display: block;
+  margin-top: 3px;
+  color: #ffdf9a;
+  font-style: normal;
+  font-size: 0.76rem;
+}
+
+.crisis-resolved {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(42, 160, 120, 0.4);
+  border-radius: 6px;
+  background: rgba(42, 160, 120, 0.12);
+}
+
+.crisis-resolved-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #29a078, #1e7d5a);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.crisis-resolved em {
+  display: block;
+  color: #a8f0bf;
+  font-style: normal;
+  font-size: 0.88rem;
+  margin-bottom: 4px;
+}
+
+.crisis-resolved p {
+  color: rgba(255, 245, 219, 0.8);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  margin: 0;
+}

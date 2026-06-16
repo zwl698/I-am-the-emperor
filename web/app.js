@@ -239,6 +239,33 @@ async function issueAction(kind, target, mode, label) {
   }
 }
 
+async function resolveCrisis(choiceId) {
+  if (!state.game || state.busy) return;
+  setBusy(true);
+  try {
+    const res = await fetch(`/api/games/${state.game.id}/crisis-choice`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ choiceId }),
+    });
+    const payload = await readJSON(res);
+    state.game = normalizeGame(payload.state);
+    state.lastAction = {
+      type: "crisis",
+      title: "圣裁",
+      domain: "intrigue",
+      summary: payload.resolution?.summary || "",
+    };
+    renderResolution(payload.resolution);
+    renderGame();
+    pulseCourt();
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    setBusy(false);
+  }
+}
+
 function renderGame() {
   if (!state.game) return;
   els.board.classList.remove("is-empty");
@@ -272,6 +299,17 @@ function renderIdentity() {
   const calendar = game.phase === "emperor" ? `登基${game.reignYear || 1}年 · ${game.season || "春"}` : `${game.age || 1} 岁`;
   const commandText = game.phase === "emperor" ? ` · 御令剩 ${game.command ?? 0}` : "";
   els.age.textContent = `${calendar} · 第 ${game.turn} 回合${commandText}`;
+
+  // Emperor status panel (traits + health + abdication)
+  const statusPanel = document.getElementById("emperor-status-panel");
+  if (!statusPanel) return;
+  if (game.phase !== "emperor") {
+    statusPanel.innerHTML = "";
+    statusPanel.hidden = true;
+    return;
+  }
+  statusPanel.hidden = false;
+  renderEmperorStatus(game, statusPanel);
 }
 
 function renderEmptyStats() {
@@ -356,6 +394,9 @@ function renderComicStrip() {
 }
 
 function choiceButton(choice) {
+  const princeTrait = princeTraitForChoice(choice.id);
+  const traitHint = princeTrait ? `<span class="choice-trait-hint">→ 获得「${princeTrait.name}」${princeTrait.desc ? "：" + princeTrait.desc : ""}</span>` : "";
+  const domainLabel = choice.domain === "story" ? "成长抉择" : "大议题 · 推进一季";
   return `
     <button class="choice-card domain-${choice.domain}" type="button" data-choice="${choice.id}">
       <span class="choice-icon">${domainIcon[choice.domain] || "策"}</span>
@@ -363,10 +404,32 @@ function choiceButton(choice) {
         <strong>${choice.text}</strong>
         <small>${choice.detail}</small>
         <em>${formatEffects(choice.effects)}</em>
-        <b>大议题 · 推进一季</b>
+        ${traitHint}
+        <b>${domainLabel}</b>
       </span>
     </button>
   `;
+}
+
+function princeTraitForChoice(choiceId) {
+  const map = {
+    "grab-scroll":      { name: "好学", desc: "新政+25%" },
+    "smile-consort":    { name: "亲和", desc: "邦交+15%" },
+    "cry-loudly":       { name: "铁腕", desc: "势力+20%" },
+    "answer-people":    { name: "仁厚", desc: "民政+20%" },
+    "answer-army":      { name: "好大喜功", desc: "军务+15%" },
+    "answer-father":    { name: "远见", desc: "新政+15%" },
+    "mount-again":      { name: "好大喜功", desc: "军务+15%" },
+    "protect-servant":  { name: "仁厚", desc: "民政+20%" },
+    "accuse-brother":   { name: "多疑", desc: "暗线+20%" },
+    "open-granary":     { name: "仁厚", desc: "民政+20%" },
+    "borrow-merchants": { name: "节俭", desc: "国库消耗-20%" },
+    "send-army":        { name: "好大喜功", desc: "军务+15%" },
+    "secure-edict":     { name: "远见", desc: "新政+15%" },
+    "control-guards":   { name: "铁腕", desc: "势力+20%" },
+    "appeal-clans":     { name: "亲和", desc: "邦交+15%" },
+  };
+  return map[choiceId] || null;
 }
 
 function renderResolution(resolution) {
@@ -394,6 +457,146 @@ function renderCrisis() {
     </div>
     <small>烈度 ${crisis.severity} · 危机钟 ${crisis.clock}/8</small>
   `;
+}
+
+// ──────────────────────────────────────────────
+// 皇帝状态面板（特质 + 健康 + 禅位压力）
+// ──────────────────────────────────────────────
+
+function renderEmperorStatus(game, panel) {
+  const traits = game.emperorTraits || [];
+  const cond = game.condition || {};
+  const health = game.stats.health ?? 100;
+  const maxHealth = cond.maxHealth ?? 100;
+  const healthPct = Math.min(100, Math.round((health / maxHealth) * 100));
+  const maxHealthPct = Math.min(100, maxHealth);
+  const trendClass = { "强健": "trend-strong", "平稳": "trend-stable", "衰退": "trend-decline", "危急": "trend-critical" }[cond.healthTrend] || "";
+  const trendIcon = { "强健": "💪", "平稳": "😌", "衰退": "⚠️", "危急": "🚨" }[cond.healthTrend] || "";
+  const abdicationRisk = cond.abdicationRisk ?? 0;
+  const abdicationClass = abdicationRisk >= 60 ? "abdication-critical" : abdicationRisk >= 30 ? "abdication-warning" : "abdication-safe";
+
+  // Predicted health next year
+  const nextYearHealth = Math.max(0, health - (cond.decayRate ?? 0));
+  const nextYearMax = maxHealthByAgePrediction(game.age + 1);
+  const willDecline = nextYearHealth < health || nextYearMax < maxHealth;
+
+  let html = "";
+
+  // ── Traits section ──
+  if (traits.length > 0) {
+    html += `
+      <div class="emperor-traits-block">
+        <div class="panel-title">帝德</div>
+        <div class="trait-tags-row">
+          ${traits.map((t) => `
+            <span class="trait-tag trait-hover" data-trait-id="${t.id || t.name}">
+              ${t.name}
+              <span class="trait-tooltip">
+                <strong>${t.name}</strong>
+                <em>${t.description || ""}</em>
+                <span class="trait-tooltip-source">来源：${t.source || "成长"}${t.acquiredAge ? ` · ${t.acquiredAge}岁` : ""}</span>
+                <span class="trait-tooltip-effects">${traitEffectDescription(t.id || t.name)}</span>
+              </span>
+            </span>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  // ── Health section ──
+  if (cond.healthTrend) {
+    html += `
+      <div class="emperor-health-block">
+        <div class="panel-title">龙体 <span class="health-trend-badge ${trendClass}">${trendIcon}${cond.healthTrend}</span></div>
+        <div class="health-bar-container">
+          <div class="health-bar-track">
+            <div class="health-bar-max" style="width:${maxHealthPct}%"></div>
+            <div class="health-bar-current ${trendClass}" style="width:${healthPct}%"></div>
+            ${willDecline ? `<div class="health-bar-predicted" style="width:${Math.min(100, Math.round((Math.min(nextYearHealth, nextYearMax) / 100) * 100))}%"></div>` : ""}
+          </div>
+          <div class="health-bar-labels">
+            <span>${health}/${maxHealth}</span>
+            <span>上限${maxHealth}</span>
+          </div>
+        </div>
+        <div class="health-details">
+          <small>年衰 ${cond.decayRate ?? 0}${willDecline ? ` → 预计明年 ${Math.min(nextYearHealth, nextYearMax)}` : ""}</small>
+          ${cond.lastIllness ? `<small class="illness-note">最近：${cond.lastIllness} (第${cond.illnessTurn}回合) · 累计发病 ${cond.illnessCount ?? 0} 次</small>` : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  // ── Abdication pressure section ──
+  if (abdicationRisk > 0) {
+    html += `
+      <div class="abdication-block ${abdicationClass}">
+        <div class="panel-title">禅位压力</div>
+        <div class="abdication-gauge">
+          <svg viewBox="0 0 120 60" class="abdication-svg">
+            <path d="M 10 55 A 50 50 0 0 1 110 55" fill="none" stroke="rgba(86,30,13,0.15)" stroke-width="8" stroke-linecap="round" />
+            <path d="M 10 55 A 50 50 0 0 1 110 55" fill="none" stroke="${abdicationGaugeColor(abdicationRisk)}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${abdicationRisk * 1.57} 157" class="abdication-gauge-fill" />
+            <text x="60" y="48" text-anchor="middle" class="abdication-gauge-text">${abdicationRisk}</text>
+          </svg>
+        </div>
+        <small class="abdication-desc">${abdicationDescription(abdicationRisk, game)}</small>
+      </div>
+    `;
+  }
+
+  panel.innerHTML = html;
+}
+
+function traitEffectDescription(traitId) {
+  const map = {
+    benevolent: "民政+20% · 军务-10% · 每年健康+1",
+    suspicious: "暗线+20% · 朝堂-10% · 危机钟+1",
+    ambitious: "新政+20% · 国库消耗+15%",
+    vainglorious: "军务+15% · 国库-15% · 每年健康-1",
+    frugal: "国库消耗-20% · 宫廷-10% · 每年健康+1",
+    ruthless: "势力+20% · 民心-15% · 危机钟+1",
+    scholarly: "新政+25% · 学识+15%",
+    charismatic: "邦交+15% · 魅力+10% · 危机钟-1",
+    paranoid: "势力+15% · 每年健康-1",
+    visionary: "新政+15% · 朝堂-10%",
+    仁厚: "民政+20% · 军务-10% · 每年健康+1",
+    多疑: "暗线+20% · 朝堂-10% · 危机钟+1",
+    雄才: "新政+20% · 国库消耗+15%",
+    好大喜功: "军务+15% · 国库-15% · 每年健康-1",
+    节俭: "国库消耗-20% · 宫廷-10% · 每年健康+1",
+    铁腕: "势力+20% · 民心-15% · 危机钟+1",
+    好学: "新政+25% · 学识+15%",
+    亲和: "邦交+15% · 魅力+10% · 危机钟-1",
+    偏执: "势力+15% · 每年健康-1",
+    远见: "新政+15% · 朝堂-10%",
+  };
+  return map[traitId] || "未知效果";
+}
+
+function maxHealthByAgePrediction(age) {
+  if (age < 30) return 100;
+  if (age < 40) return 90;
+  if (age < 50) return 78;
+  if (age < 60) return 64;
+  if (age < 70) return 48;
+  return 30;
+}
+
+function abdicationGaugeColor(risk) {
+  if (risk >= 70) return "#d93a2f";
+  if (risk >= 50) return "#e87d2d";
+  if (risk >= 30) return "#f6a33d";
+  return "#4ecdc4";
+}
+
+function abdicationDescription(risk, game) {
+  const heirs = game.heirs || [];
+  const namedHeir = heirs.find((h) => game.succession?.namedHeirId === h.id);
+  if (risk >= 70) return `朝臣已在暗议内禅。${namedHeir ? `储君${namedHeir.name}的灯比御书房亮得更晚。` : "但尚无储君，诸王蠢蠢欲动。"}`;
+  if (risk >= 50) return "朝中开始有人低声议论禅位，东宫的人比以前更勤了。";
+  if (risk >= 30) return "有风声说龙体需要调养，几位老臣开始多看东宫几眼。";
+  return "朝局尚稳，暂无禅位议论。";
 }
 
 function renderCommands() {
@@ -927,6 +1130,16 @@ function normalizeGame(game) {
       fear: 25,
       justice: 45,
       lastEdict: "旧存档缺少舆论数据，法司按默认风声续局。",
+    },
+    emperorTraits: game.emperorTraits || [],
+    condition: game.condition || {
+      healthTrend: "强健",
+      maxHealth: 100,
+      decayRate: 0,
+      lastIllness: "",
+      illnessTurn: 0,
+      illnessCount: 0,
+      abdicationRisk: 0,
     },
     wars: game.wars || [],
     strategy: game.strategy || { cities: [], roads: [], factions: [], armies: [], logs: [], battles: [] },

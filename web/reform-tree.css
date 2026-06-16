@@ -1,0 +1,320 @@
+/* ──────────────────────────────────────────────
+   Reform Tree – 科技/改革树可视化
+   ────────────────────────────────────────────── */
+
+.reform-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 12px;
+}
+
+/* ── Tier rows ── */
+.reform-tier {
+  position: relative;
+}
+
+.reform-tier-label {
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  border-left: 3px solid;
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.reform-tier-nodes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+/* ── Tier connectors (visual arrow between tiers) ── */
+.reform-tier-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  margin: 4px 0;
+  opacity: 0.5;
+}
+
+.reform-tier-connector::before {
+  content: "▼";
+  font-size: 0.72rem;
+  color: var(--muted, #815539);
+}
+
+/* ── Individual project node ── */
+.reform-node {
+  position: relative;
+  padding: 10px 10px 8px;
+  border: 1.5px solid var(--line, rgba(89,40,18,0.22));
+  border-radius: 8px;
+  background: rgba(255, 250, 230, 0.72);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.reform-node:hover {
+  box-shadow: 0 4px 14px rgba(49,14,6,0.14);
+}
+
+/* State variants */
+.reform-node.project-active {
+  border-color: var(--gold, #f3bb43);
+  background: rgba(255, 250, 230, 0.82);
+}
+
+.reform-node.project-completed {
+  border-color: var(--jade, #29a078);
+  background: rgba(235, 255, 229, 0.72);
+}
+
+.reform-node.project-locked {
+  border-color: var(--storm, #4f5968);
+  background: rgba(200, 200, 200, 0.22);
+  opacity: 0.6;
+  filter: grayscale(0.35);
+}
+
+.reform-node.project-locked .reform-node-head strong {
+  text-decoration: line-through;
+  text-decoration-color: rgba(100, 100, 100, 0.45);
+}
+
+/* ── Node header ── */
+.reform-node-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+
+.reform-node-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--red, #a82021);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.reform-node-head strong {
+  font-size: 0.86rem;
+  line-height: 1.3;
+}
+
+/* ── Badges ── */
+.project-badge {
+  margin-left: auto;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badge-completed {
+  background: linear-gradient(135deg, #29a078, #1e7d5a);
+  color: #fff;
+}
+
+.badge-locked {
+  background: var(--storm, #4f5968);
+  color: #fff;
+}
+
+.badge-active {
+  background: linear-gradient(135deg, #c9a84d, #a8862e);
+  color: #fff;
+}
+
+/* ── Node body ── */
+.reform-node-desc {
+  color: var(--muted, #815539);
+  font-size: 0.74rem;
+  line-height: 1.42;
+  margin-bottom: 4px;
+}
+
+.reform-node-reward {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--red-deep, #651318);
+  margin-bottom: 4px;
+}
+
+/* ── Progress meter ── */
+.reform-node-meter {
+  margin-bottom: 4px;
+}
+
+.meter-track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(89, 40, 18, 0.12);
+  overflow: hidden;
+}
+
+.meter-track i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--gold, #f3bb43), var(--red, #a82021));
+  transition: width 400ms ease;
+}
+
+.reform-node-meter em {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 0.66rem;
+  color: var(--muted, #815539);
+}
+
+/* ── Prereq tags ── */
+.project-prereqs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  margin-top: 3px;
+  font-size: 0.66rem;
+  color: var(--muted, #815539);
+}
+
+.prereq-tag {
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.prereq-tag.prereq-met {
+  background: rgba(42, 160, 120, 0.18);
+  color: #1e7d5a;
+}
+
+.prereq-tag.prereq-unmet {
+  background: rgba(168, 32, 33, 0.14);
+  color: #a82021;
+}
+
+/* ── Synergy hint ── */
+.project-synergy-hint {
+  margin-top: 3px;
+  font-size: 0.64rem;
+  color: #6a3a9e;
+  cursor: help;
+}
+
+/* ── Unlock info ── */
+.project-unlocks {
+  margin-top: 3px;
+  font-size: 0.64rem;
+  color: var(--jade, #29a078);
+}
+
+/* ── Domain color accents ── */
+.reform-node.domain-economy .reform-node-icon { background: #2d6e9d; }
+.reform-node.domain-military .reform-node-icon { background: #a82021; }
+.reform-node.domain-reform .reform-node-icon { background: #6a3a9e; }
+.reform-node.domain-court .reform-node-icon { background: #c9a84d; }
+.reform-node.domain-intrigue .reform-node-icon { background: #4f5968; }
+
+.reform-node.project-active.domain-economy { border-color: rgba(45,110,157,0.5); }
+.reform-node.project-active.domain-military { border-color: rgba(168,32,33,0.5); }
+.reform-node.project-active.domain-reform { border-color: rgba(106,58,158,0.5); }
+.reform-node.project-active.domain-court { border-color: rgba(201,168,77,0.5); }
+.reform-node.project-active.domain-intrigue { border-color: rgba(79,89,104,0.5); }
+
+/* ── Policies section ── */
+.reform-policies-section {
+  margin-top: 12px;
+}
+
+.reform-subtitle {
+  margin-bottom: 8px;
+  font-size: 0.92rem;
+  font-weight: 900;
+  color: var(--ink, #2c150b);
+}
+
+.reform-policy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.reform-policy-card {
+  padding: 8px 10px;
+  border: 1.5px solid var(--line, rgba(89,40,18,0.22));
+  border-radius: 8px;
+  background: rgba(255, 250, 230, 0.52);
+  transition: border-color 160ms ease;
+}
+
+.reform-policy-card.policy-active {
+  border-color: var(--gold, #f3bb43);
+  background: rgba(255, 250, 230, 0.82);
+}
+
+.policy-card-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+
+.policy-card-head strong {
+  font-size: 0.82rem;
+}
+
+.policy-status {
+  margin-left: auto;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  font-weight: 800;
+}
+
+.status-active {
+  background: linear-gradient(135deg, #29a078, #1e7d5a);
+  color: #fff;
+}
+
+.status-inactive {
+  background: var(--storm, #4f5968);
+  color: #fff;
+}
+
+.policy-card-desc {
+  color: var(--muted, #815539);
+  font-size: 0.72rem;
+  line-height: 1.42;
+  margin-bottom: 3px;
+}
+
+.policy-card-cost {
+  font-size: 0.68rem;
+  color: var(--muted, #815539);
+  margin-bottom: 4px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 720px) {
+  .reform-tier-nodes {
+    grid-template-columns: 1fr;
+  }
+  .reform-policy-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

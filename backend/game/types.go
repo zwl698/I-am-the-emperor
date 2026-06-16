@@ -243,6 +243,8 @@ type GameState struct {
 	Season        string            `json:"season"`
 	Command       int               `json:"command"`
 	Stats         Stats             `json:"stats"`
+	EmperorTraits []EmperorTrait    `json:"emperorTraits"`
+	Condition     EmperorCondition  `json:"condition"`
 	Factions      []Faction         `json:"factions"`
 	Court         []Minister        `json:"court"`
 	TalentPool    []Minister        `json:"talentPool"`

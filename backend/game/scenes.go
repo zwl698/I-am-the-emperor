@@ -62,15 +62,48 @@ func princeScene(turn int, state *GameState) *Scene {
 
 func emperorScene(s *GameState) *Scene {
 	year := fmt.Sprintf("登基%d年 · %s", max(1, s.ReignYear), s.Season)
+	choices := emperorChoices(s)
+	body := crisisLine(s) + strategicSummaryLine(s)
+	body += agendaPressureSummary(s, choices)
 	return &Scene{
 		ID:      fmt.Sprintf("court-%d", s.Turn),
 		Title:   "太和朝议",
 		Year:    year,
 		Mood:    emperorMood(s.Stats),
 		Art:     emperorSceneArt(s),
-		Body:    crisisLine(s) + strategicSummaryLine(s) + " 六部、边军、宗室、后宫、东宫、清流与商帮都在等你落子。每季议题会随战争、储位、官署空转与民间灾情重组。",
-		Choices: emperorChoices(s),
+		Body:    body,
+		Choices: choices,
 	}
+}
+
+// agendaPressureSummary generates a narrative summary of which domains
+// are most urgent this season, based on the filtered choices.
+func agendaPressureSummary(s *GameState, choices []Choice) string {
+	if len(choices) == 0 {
+		return " 六部静候旨意。"
+	}
+
+	domainNames := map[Domain]string{
+		DomainDomestic:  "民政",
+		DomainEconomy:   "财政",
+		DomainMilitary:  "军务",
+		DomainDiplomacy: "外交",
+		DomainReform:    "新法",
+		DomainIntrigue:  "暗线",
+		DomainCourt:     "宫廷",
+	}
+
+	var active []string
+	for _, c := range choices {
+		if name, ok := domainNames[c.Domain]; ok {
+			active = append(active, name)
+		}
+	}
+
+	if s.Crisis.Clock >= 4 {
+		return fmt.Sprintf(" 危机逼近，朝议缩减为%d项急务——%s——其余留待来季。", len(choices), strings.Join(active, "、"))
+	}
+	return fmt.Sprintf(" 本季%d项急务列入朝议——%s。其余事项延后。", len(choices), strings.Join(active, "、"))
 }
 
 func sceneArt(s *GameState, index int) string {
