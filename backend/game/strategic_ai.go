@@ -11,6 +11,8 @@ func (s *GameState) applyStrategicPressure(domain Domain) {
 	s.applyStrategicArmySupply()
 	s.applyStrategicEnemyPressure(domain)
 	s.syncForeignStatesFromStrategicFactions()
+	// 联动3: 派系与战略势力双向联动
+	s.syncFactionsWithStrategicFactions()
 }
 
 func (s *GameState) applyStrategicCityProduction() {
@@ -135,6 +137,113 @@ func strategicFactionIDForForeign(foreignID string) string {
 		return "remnant"
 	default:
 		return foreignID
+	}
+}
+
+// ──────────────────────────────────────────────
+// 联动3: 派系与战略势力双向联动
+// ──────────────────────────────────────────────
+
+// factionToStrategicMap maps court Faction IDs to StrategicFaction IDs.
+// 边镇武勋 ↔ 北狄/敌军威胁; 宗室外戚 ↔ 外交关系; 漕运商帮 ↔ 海贸/商路势力
+var factionToStrategicMap = map[string][]string{
+	"border":   {"beidi", "remnant", "rebels"},
+	"clan":     {"haiguo", "nanling"},
+	"merchant": {"haiguo", "nanling"},
+	"scholar":  {},
+}
+
+// strategicFactionThreatForCourtFaction returns the combined threat from strategic factions
+// associated with a given court faction.
+func strategicFactionThreatForCourtFaction(s *GameState, factionID string) int {
+	strategicIDs, ok := factionToStrategicMap[factionID]
+	if !ok {
+		return 0
+	}
+	totalThreat := 0
+	for _, sfID := range strategicIDs {
+		sf, ok := s.Strategy.Faction(sfID)
+		if ok {
+			totalThreat += sf.Threat
+		}
+	}
+	return totalThreat
+}
+
+// syncFactionsWithStrategicFactions keeps court factions in sync with strategic map forces.
+// - 边镇武勋的Power随前线敌军威胁上升
+// - 宗室外戚的Loyalty随外交关系上升
+// - 漕运商帮的Power随商路势力关系上升
+// - 清流士林受战略态势影响较小，保持独立
+func (s *GameState) syncFactionsWithStrategicFactions() {
+	if len(s.Factions) == 0 || len(s.Strategy.Factions) == 0 {
+		return
+	}
+	for i, faction := range s.Factions {
+		switch faction.ID {
+		case "border":
+			// 边镇武勋：前线敌军威胁越高，边镇权势和影响力越大
+			threat := strategicFactionThreatForCourtFaction(s, "border")
+			if threat >= 120 {
+				s.Factions[i].Power = clamp(faction.Power+3, 0, 100)
+			} else if threat >= 80 {
+				s.Factions[i].Power = clamp(faction.Power+1, 0, 100)
+			}
+			// 边镇忠诚随我军补给和战况下降
+			if courtArmyGrainLow(s.Strategy.Armies) {
+				s.Factions[i].Loyalty = clamp(faction.Loyalty-2, 0, 100)
+			}
+		case "clan":
+			// 宗室外戚：外交关系越好，忠诚越高
+			diplomaticRelation := 0
+			for _, sfID := range factionToStrategicMap["clan"] {
+				sf, ok := s.Strategy.Faction(sfID)
+				if ok {
+					diplomaticRelation += sf.Relation
+				}
+			}
+			if diplomaticRelation >= 120 {
+				s.Factions[i].Loyalty = clamp(faction.Loyalty+1, 0, 100)
+			} else if diplomaticRelation < 60 {
+				s.Factions[i].Loyalty = clamp(faction.Loyalty-1, 0, 100)
+			}
+		case "merchant":
+			// 漕运商帮：商路势力的关系影响商帮权势
+			tradeRelation := 0
+			for _, sfID := range factionToStrategicMap["merchant"] {
+				sf, ok := s.Strategy.Faction(sfID)
+				if ok {
+					tradeRelation += sf.Relation
+				}
+			}
+			if tradeRelation >= 120 {
+				s.Factions[i].Power = clamp(faction.Power+2, 0, 100)
+			} else if tradeRelation < 60 {
+				s.Factions[i].Power = clamp(faction.Power-1, 0, 100)
+			}
+		}
+	}
+
+	// 反向同步: 朝堂派系的权力也影响战略势力
+	for i, sf := range s.Strategy.Factions {
+		if sf.IsPlayer {
+			continue
+		}
+		// 如果朝堂内斗严重（平均忠诚低），敌方威胁增长更快
+		avgLoyalty := averageFactionLoyalty(s.Factions)
+		if avgLoyalty < 40 {
+			s.Strategy.Factions[i].Threat = clamp(sf.Threat+1, 0, 100)
+		}
+		// 如果商帮权势高，与商路势力的关系改善
+		merchantPower := factionPower(s.Factions, "merchant")
+		if merchantPower >= 50 && (sf.ID == "haiguo" || sf.ID == "nanling") {
+			s.Strategy.Factions[i].Relation = clamp(sf.Relation+1, 0, 100)
+		}
+		// 如果边镇权势高，敌方威胁略微下降（威慑效果）
+		borderPower := factionPower(s.Factions, "border")
+		if borderPower >= 55 && (sf.ID == "beidi" || sf.ID == "rebels") {
+			s.Strategy.Factions[i].Threat = clamp(sf.Threat-1, 0, 100)
+		}
 	}
 }
 

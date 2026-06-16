@@ -270,6 +270,9 @@ func (s *GameState) applyChoiceToWorld(choice Choice) {
 	} else {
 		s.Crisis.Clock = clamp(s.Crisis.Clock+1, 0, 8)
 	}
+
+	// 联动2: 朝堂选择效果回写战略地图
+	s.applyStrategicConsequences(choice)
 }
 
 func (s *GameState) applyOrderToWorld(req OrderRequest) (Effects, string, error) {

@@ -99,13 +99,25 @@ func (s *GameState) eventCardPressure(card EventCard) int {
 	}
 	switch card.Domain {
 	case DomainDomestic:
-		return worstProvinceDisaster(s.Provinces) + max(0, 65-averageProvinceOrder(s.Provinces))
+		// 联动4: 加入战略地图城池灾情压力
+		strategicDisaster := worstStrategicCityDisaster(s.Strategy.Cities)
+		strategicOrder := averageStrategicCityOrder(s.Strategy.Cities)
+		return worstProvinceDisaster(s.Provinces) + strategicDisaster/2 + max(0, 65-averageProvinceOrder(s.Provinces)) + max(0, 50-strategicOrder)/2
 	case DomainEconomy:
-		return max(0, 90-s.Stats.Treasury) + factionPower(s.Factions, "merchant")/2
+		// 联动4: 加入战略地图城池商贸/黄金压力
+		strategicGold := totalStrategicGold(s.Strategy.Cities)
+		return max(0, 90-s.Stats.Treasury) + factionPower(s.Factions, "merchant")/2 + max(0, 60-strategicGold/4)
 	case DomainMilitary:
-		return s.Stats.BorderThreat + max(maxWarThreat(s.Wars), s.strategicMilitaryPressure())
+		// 联动4: 军事压力已含strategicMilitaryPressure，增加军队缺粮维度
+		armyPressure := 0
+		if courtArmyGrainLow(s.Strategy.Armies) {
+			armyPressure = 25
+		}
+		return s.Stats.BorderThreat + max(maxWarThreat(s.Wars), s.strategicMilitaryPressure()) + armyPressure
 	case DomainDiplomacy:
-		return s.Stats.BorderThreat/2 + max(maxForeignThreat(s.ForeignStates), s.strategicMilitaryPressure()/2) + max(0, 70-s.Stats.Diplomacy)
+		// 联动4: 加入战略势力关系/威胁维度
+		strategicFactionPressure := maxStrategicFactionThreat(s.Strategy.Factions)
+		return s.Stats.BorderThreat/2 + max(maxForeignThreat(s.ForeignStates), strategicFactionPressure) + max(0, 70-s.Stats.Diplomacy)
 	case DomainCourt:
 		return s.Succession.Dispute + strongestConsortPower(s.Harem)/2
 	case DomainReform:

@@ -62,6 +62,8 @@ func (s *GameState) sendEmbassy(id string) (Effects, string, error) {
 	foreign.Leverage = clamp(foreign.Leverage+5, 0, 100)
 	foreign.Attitude = foreignAttitude(foreign)
 	s.ForeignStates[i] = foreign
+	// 联动6: 外交行动同步更新战略势力关系与威胁
+	s.syncStrategicFactionFromForeignAction(id, 6, -6)
 	effects := Effects{Treasury: -5, Diplomacy: 5, BorderThreat: -2}
 	return effects, fmt.Sprintf("你遣%s出使%s，带去金册、丝帛与两句留白。邦交升至%d，敌意降至%d。", foreign.Envoy, foreign.Name, foreign.Relation, foreign.Threat), nil
 }
@@ -82,6 +84,8 @@ func (s *GameState) signTreaty(id string) (Effects, string, error) {
 	foreign.Leverage = clamp(foreign.Leverage+12, 0, 100)
 	foreign.Attitude = foreignAttitude(foreign)
 	s.ForeignStates[i] = foreign
+	// 联动6: 外交行动同步更新战略势力关系与威胁
+	s.syncStrategicFactionFromForeignAction(id, 10, -12)
 	s.shiftRelationsForDomain(DomainDiplomacy, 4, -2)
 	effects := Effects{Treasury: -6, Diplomacy: 8, BorderThreat: -5, Stability: 1}
 	return effects, fmt.Sprintf("%s在国书上落印，“%s”生效。贡贸升至%d，边境威胁降至%d。", foreign.Ruler, foreign.Treaty, foreign.Tribute, foreign.Threat), nil
@@ -128,6 +132,25 @@ func (s *GameState) findForeignIndex(id string) (int, bool) {
 		}
 	}
 	return 0, false
+}
+
+// ──────────────────────────────────────────────
+// 联动6: 外交行动同步更新战略势力关系与威胁
+// ──────────────────────────────────────────────
+
+// syncStrategicFactionFromForeignAction updates the corresponding StrategicFaction
+// when a foreign diplomatic action is taken, keeping the strategic map in sync
+// with the court diplomacy system.
+func (s *GameState) syncStrategicFactionFromForeignAction(foreignID string, relationDelta, threatDelta int) {
+	s.ensureStrategicSystems()
+	factionID := strategicFactionIDForForeign(foreignID)
+	for i, faction := range s.Strategy.Factions {
+		if faction.ID == factionID && !faction.IsPlayer {
+			s.Strategy.Factions[i].Relation = clamp(faction.Relation+relationDelta, 0, 100)
+			s.Strategy.Factions[i].Threat = clamp(faction.Threat+threatDelta, 0, 100)
+			break
+		}
+	}
 }
 
 func foreignAttitude(foreign ForeignState) string {

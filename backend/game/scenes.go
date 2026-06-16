@@ -1,6 +1,9 @@
 package game
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 func princeScene(turn int, state *GameState) *Scene {
 	scenes := []Scene{
@@ -65,7 +68,7 @@ func emperorScene(s *GameState) *Scene {
 		Year:    year,
 		Mood:    emperorMood(s.Stats),
 		Art:     emperorSceneArt(s),
-		Body:    crisisLine(s) + " 六部、边军、宗室、后宫、东宫、清流与商帮都在等你落子。每季议题会随战争、储位、官署空转与民间灾情重组。",
+		Body:    crisisLine(s) + strategicSummaryLine(s) + " 六部、边军、宗室、后宫、东宫、清流与商帮都在等你落子。每季议题会随战争、储位、官署空转与民间灾情重组。",
 		Choices: emperorChoices(s),
 	}
 }
@@ -79,6 +82,72 @@ func sceneArt(s *GameState, index int) string {
 		index += len(s.Assets.SceneGallery)
 	}
 	return s.Assets.SceneGallery[index]
+}
+
+// ──────────────────────────────────────────────
+// 联动5: 朝堂场景描述反映战略摘要
+// ──────────────────────────────────────────────
+
+// strategicSummaryLine generates a one-sentence strategic briefing
+// that appears in the emperor court scene body, linking map events to court decisions.
+func strategicSummaryLine(s *GameState) string {
+	if len(s.Strategy.Cities) == 0 || len(s.Strategy.Factions) == 0 {
+		return ""
+	}
+	s.ensureStrategicSystems()
+
+	var parts []string
+
+	// 前线告急
+	threatFactions := []string{}
+	for _, faction := range s.Strategy.Factions {
+		if !faction.IsPlayer && faction.Threat >= 55 {
+			threatFactions = append(threatFactions, faction.Name)
+		}
+	}
+	if len(threatFactions) > 0 {
+		parts = append(parts, fmt.Sprintf("%s蠢蠢欲动", strings.Join(threatFactions, "、")))
+	}
+
+	// 城池受灾
+	disasterCities := []string{}
+	for _, city := range s.Strategy.Cities {
+		if city.OwnerID == "court" && city.Disaster >= 35 {
+			disasterCities = append(disasterCities, city.Name)
+		}
+	}
+	if len(disasterCities) > 0 {
+		parts = append(parts, fmt.Sprintf("%s灾情严峻", strings.Join(disasterCities, "、")))
+	}
+
+	// 我军缺粮
+	if courtArmyGrainLow(s.Strategy.Armies) {
+		for _, army := range s.Strategy.Armies {
+			if army.FactionID == "court" && army.Grain <= 15 {
+				parts = append(parts, fmt.Sprintf("%s粮道吃紧", army.Name))
+				break
+			}
+		}
+	}
+
+	// 前线被围
+	for _, city := range s.Strategy.Cities {
+		if city.OwnerID == "court" && city.Front && city.Defense < 45 {
+			parts = append(parts, fmt.Sprintf("%s城防告急", city.Name))
+			break
+		}
+	}
+
+	// 近期战报
+	if len(s.Strategy.Battles) > 0 {
+		latest := s.Strategy.Battles[len(s.Strategy.Battles)-1]
+		parts = append(parts, latest.Title)
+	}
+
+	if len(parts) == 0 {
+		return " 天下棋盘暂无急报。"
+	}
+	return " " + strings.Join(parts, "；") + "。"
 }
 
 func emperorSceneArt(s *GameState) string {
