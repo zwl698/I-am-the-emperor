@@ -198,6 +198,7 @@ async function issueOrder(kind, target, label) {
     };
     renderResolution(payload.resolution);
     renderGame();
+    focusPanelForOrder(kind, target);
     speakResolution(payload.resolution);
     pulseCourt();
   } catch (error) {
@@ -228,6 +229,7 @@ async function issueAction(kind, target, mode, label) {
     };
     renderResolution(payload.resolution);
     renderGame();
+    focusPanelForAction(kind, target, mode);
     speakResolution(payload.resolution);
     pulseCourt();
   } catch (error) {
@@ -256,6 +258,7 @@ function renderGame() {
   renderHistory();
   attachOrderButtons();
   attachActionButtons();
+  attachFocusButtons();
   syncMusicToScene();
 }
 
@@ -452,7 +455,7 @@ function renderWars() {
     .map((war) => {
       const progress = Math.min(100, war.progress ?? 0);
       return `
-        <article class="war-row">
+        <article class="war-row" data-war-id="${escapeAttr(war.id)}">
           <div class="row-head">
             <strong>${war.name}</strong>
             <small>${war.stage}</small>
@@ -460,6 +463,7 @@ function renderWars() {
           <span>${war.enemy} · ${war.front} · 历时 ${war.duration} 季</span>
           <div class="war-meter"><b>战果</b><i style="width:${progress}%"></i><em>${progress}/100</em></div>
           <small>敌势 ${war.threat} · 粮道 ${war.supply} · 士气 ${war.morale}</small>
+          ${canOrder ? strategyMapJumpButton(war) : ""}
           ${canOrder ? orderButtons(warOrders, war.id, war.name) : ""}
         </article>
       `;
@@ -623,10 +627,28 @@ function orderButtons(orders, target, targetName) {
   `;
 }
 
+function strategyMapJumpButton(war) {
+  const target = strategicTargetForWar(war.id);
+  return `
+    <div class="order-buttons flow-buttons">
+      <button class="module-jump" type="button" data-focus-panel="strategy-map-panel" data-focus-target="${escapeAttr(target)}" data-focus-label="战略地图 · ${escapeAttr(war.name)}" title="进入战略地图查看${escapeAttr(war.name)}">入图</button>
+    </div>
+  `;
+}
+
 function attachOrderButtons() {
   document.querySelectorAll("[data-order-kind]").forEach((button) => {
     button.addEventListener("click", () => {
       issueOrder(button.dataset.orderKind, button.dataset.orderTarget, button.dataset.orderLabel);
+    });
+  });
+}
+
+function attachFocusButtons() {
+  document.querySelectorAll("[data-focus-panel]").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (button.dataset.actionKind || button.dataset.orderKind) return;
+      focusPanel(button.dataset.focusPanel, button.dataset.focusTarget, button.dataset.focusLabel);
     });
   });
 }
@@ -637,6 +659,159 @@ function attachActionButtons() {
       issueAction(button.dataset.actionKind, button.dataset.actionTarget, button.dataset.actionMode, button.dataset.actionLabel);
     });
   });
+}
+
+function focusPanelForOrder(kind, target) {
+  if (["mobilize", "campaign", "fortify", "truce"].includes(kind)) {
+    return focusPanel("strategy-map-panel", strategicTargetForWar(target), "战略地图");
+  }
+  if (["embassy", "treaty"].includes(kind)) return focusPanel("foreign-list", target, "外邦诸国");
+  if (["investigate_plot", "suppress_plot"].includes(kind)) return focusPanel("plot-list", target, "密谋暗线");
+  if (["open_trial", "clemency", "censor_rumor", "proclaim_verdict"].includes(kind)) return focusPanel("case-list", target, "刑狱案卷");
+  if (["appoint", "dismiss"].includes(kind)) return focusPanel("office-list", firstTargetPart(target), "官职任免");
+  if (["name_heir", "educate_heir"].includes(kind)) return focusPanel("heir-list", firstTargetPart(target), "储位继承");
+  if (["favor_consort", "marriage_alliance"].includes(kind)) return focusPanel("harem-list", target, "后宫势力");
+  if (["fund_project", "enact_policy"].includes(kind)) return focusPanel("strategy-list", target, "长期国策");
+  if (["relief", "garrison", "tax", "canal", "trade"].includes(kind)) return focusPanel("province-list", target, "四方省势");
+  if (["appease", "purge"].includes(kind) || (kind === "inspect" && hasCollectionItem("factions", target))) {
+    return focusPanel("faction-list", target, "朝堂派系");
+  }
+  if (kind === "inspect") return focusPanel("province-list", target, "四方省势");
+  return false;
+}
+
+function focusPanelForAction(kind, target, mode) {
+  if (["city_develop", "army_command", "siege_command", "governor_assign", "war_tactic"].includes(kind)) {
+    return focusPanel("strategy-map-panel", focusTargetForStrategicAction(kind, target, mode), "战略地图");
+  }
+  if (kind === "map_allocation") {
+    const cityTarget = hasStrategyCity(target) ? target : "";
+    return cityTarget ? focusPanel("strategy-map-panel", cityTarget, "战略地图") : focusPanel("province-list", target, "四方省势");
+  }
+  if (kind === "trial_move") return focusPanel("case-list", target, "刑狱案卷");
+  if (kind === "office_assign") return focusPanel("office-list", firstTargetPart(target), "官职任免");
+  if (kind === "envoy_mission") return focusPanel("foreign-list", target, "外邦诸国");
+  if (kind === "heir_lesson") return focusPanel("heir-list", target, "储位继承");
+  if (kind === "talent_recruit") return focusPanel("talent-list", target, "天下人才谱");
+  return false;
+}
+
+function focusTargetForStrategicAction(kind, target, mode) {
+  if (kind === "war_tactic") return strategicTargetForWar(target);
+  const [primary, secondary] = splitTarget(target);
+  if (kind === "city_develop" || kind === "governor_assign") return primary;
+  if (kind === "siege_command") return secondary || primary;
+  if (kind === "army_command" && ["march", "assault", "besiege"].includes(mode)) return secondary || primary;
+  return primary;
+}
+
+function focusPanel(panelID, targetID = "", label = "") {
+  const panel = document.getElementById(panelID);
+  if (!panel) return false;
+  clearModuleFocus();
+  panel.classList.add("module-focus");
+  const target = findFocusTarget(panel, targetID);
+  if (target) target.classList.add("module-focus-target");
+  const scrollTarget = target || panel;
+  if (typeof scrollTarget.scrollIntoView === "function") {
+    scrollTarget.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+  }
+  window.clearTimeout(state.focusTimer);
+  state.focusTimer = window.setTimeout(clearModuleFocus, 1800);
+  showToast(`已切到${label || focusPanelLabel(panelID)}。`);
+  return true;
+}
+
+function clearModuleFocus() {
+  document.querySelectorAll(".module-focus, .module-focus-target").forEach((node) => {
+    node.classList.remove("module-focus", "module-focus-target");
+  });
+}
+
+function findFocusTarget(panel, targetID = "") {
+  if (!targetID) return null;
+  const selectors = focusTargetSelectors(targetID).join(",");
+  if (!selectors) return null;
+  return panel.querySelector(selectors) || document.querySelector(selectors);
+}
+
+function focusTargetSelectors(targetID) {
+  const value = selectorValue(targetID);
+  return [
+    `[data-city-id="${value}"]`,
+    `[data-army-id="${value}"]`,
+    `[data-strategy-target="${value}"]`,
+    `[data-war-id="${value}"]`,
+    `[data-province-id="${value}"]`,
+    `[data-case-id="${value}"]`,
+    `[data-office-id="${value}"]`,
+    `[data-foreign-id="${value}"]`,
+    `[data-heir-id="${value}"]`,
+  ];
+}
+
+function focusPanelLabel(panelID) {
+  const labels = {
+    "strategy-map-panel": "战略地图",
+    "playdesk-panel": "御前操作台",
+    "event-hand-panel": "事件手牌",
+    "province-list": "四方省势",
+    "war-list": "军机外战",
+    "foreign-list": "外邦诸国",
+    "plot-list": "密谋暗线",
+    "case-list": "刑狱案卷",
+    "office-list": "官职任免",
+    "heir-list": "储位继承",
+    "harem-list": "后宫势力",
+    "strategy-list": "长期国策",
+    "faction-list": "朝堂派系",
+    "talent-list": "天下人才谱",
+  };
+  return labels[panelID] || "相关模块";
+}
+
+function strategicTargetForWar(warID = "") {
+  const map = {
+    "snow-ridge": "snow-ridge",
+    "western-oath": "jade-pass",
+    "river-bandits": "river-east",
+    "jade-pass": "jade-pass",
+    north: "snow-ridge",
+  };
+  return map[warID] || warID || "snow-ridge";
+}
+
+function hasStrategyCity(cityID) {
+  return hasCollectionItem("strategy.cities", cityID);
+}
+
+function hasCollectionItem(collectionPath, id) {
+  const list =
+    collectionPath === "strategy.cities"
+      ? state.game?.strategy?.cities
+      : state.game?.[collectionPath];
+  return Array.isArray(list) && list.some((item) => item.id === id);
+}
+
+function firstTargetPart(target = "") {
+  return splitTarget(target)[0];
+}
+
+function splitTarget(target = "") {
+  return String(target || "").split(":");
+}
+
+function escapeAttr(value = "") {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function selectorValue(value = "") {
+  return String(value ?? "").replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 }
 
 function renderExternalPanelsIfReady() {

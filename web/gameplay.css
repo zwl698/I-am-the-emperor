@@ -3,6 +3,30 @@
   z-index: 2;
 }
 
+.module-focus {
+  scroll-margin: 18px;
+  outline: 2px solid rgba(255, 221, 127, 0.82);
+  outline-offset: 5px;
+  border-radius: 8px;
+  animation: moduleFocusPulse 900ms ease both;
+}
+
+.module-focus > .event-hand,
+.module-focus > .strategy-map,
+.module-focus > .playdesk {
+  border-radius: 8px;
+  box-shadow: 0 0 0 3px rgba(255, 221, 127, 0.25), 0 20px 46px rgba(43, 10, 8, 0.24);
+}
+
+.module-focus-target {
+  position: relative;
+  z-index: 8;
+  outline: 3px solid rgba(255, 224, 131, 0.95);
+  outline-offset: 4px;
+  box-shadow: 0 0 0 6px rgba(184, 58, 45, 0.28), 0 0 28px rgba(255, 224, 131, 0.45);
+  animation: moduleFocusPulse 900ms ease both;
+}
+
 .event-hand {
   margin: 0 22px 16px;
   color: #fff7d7;
@@ -145,6 +169,18 @@
   }
 }
 
+@keyframes moduleFocusPulse {
+  0% {
+    filter: brightness(1);
+  }
+  45% {
+    filter: brightness(1.16);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
 @media (max-width: 1180px) {
   .event-hand-track {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -176,7 +212,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .event-hand-card,
-  .event-hand-card::before {
+  .event-hand-card::before,
+  .module-focus,
+  .module-focus-target {
     animation: none;
   }
 }

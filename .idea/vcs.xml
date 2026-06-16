@@ -2,5 +2,6 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/bizad_ai_yuanxi_skills_c" vcs="Git" />
   </component>
 </project>

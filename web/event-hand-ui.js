@@ -86,11 +86,62 @@
   function actionButton(action, game) {
     const disabled = !action?.target || (game.command ?? 0) <= 0;
     const attrs = disabled ? `disabled data-state-disabled="true"` : "";
+    const focusAttrs = actionFocusAttrs(action);
     return `
-      <button class="event-action" type="button" ${attrs} data-action-kind="${safeAttr(action?.kind)}" data-action-mode="${safeAttr(action?.mode)}" data-action-target="${safeAttr(action?.target)}" data-action-label="${safeAttr(action?.label)}">
+      <button class="event-action" type="button" ${attrs}${focusAttrs} data-action-kind="${safeAttr(action?.kind)}" data-action-mode="${safeAttr(action?.mode)}" data-action-target="${safeAttr(action?.target)}" data-action-label="${safeAttr(action?.label)}">
         ${safe(action?.label || "暂无行动")}
       </button>
     `;
+  }
+
+  function actionFocusAttrs(action) {
+    const panel = focusPanelForAction(action);
+    if (!panel) return "";
+    const target = focusTargetForAction(action);
+    const targetAttr = target ? ` data-focus-target="${safeAttr(target)}"` : "";
+    return ` data-focus-panel="${safeAttr(panel)}"${targetAttr}`;
+  }
+
+  function focusPanelForAction(action) {
+    switch (action?.kind) {
+      case "city_develop":
+      case "army_command":
+      case "siege_command":
+      case "governor_assign":
+      case "war_tactic":
+        return "strategy-map-panel";
+      case "trial_move":
+        return "case-list";
+      case "office_assign":
+        return "office-list";
+      case "envoy_mission":
+        return "foreign-list";
+      case "heir_lesson":
+        return "heir-list";
+      case "map_allocation":
+        return "province-list";
+      default:
+        return "";
+    }
+  }
+
+  function focusTargetForAction(action) {
+    const [primary, secondary] = String(action?.target || "").split(":");
+    if (action?.kind === "army_command" && ["march", "assault", "besiege"].includes(action?.mode)) return secondary || primary;
+    if (action?.kind === "siege_command") return secondary || primary;
+    if (action?.kind === "war_tactic") return strategicTargetForWar(primary);
+    return primary;
+  }
+
+  function strategicTargetForWar(warID) {
+    const map = {
+      "snow-ridge": "snow-ridge",
+      "western-oath": "jade-pass",
+      "river-bandits": "river-east",
+      "jade-pass": "jade-pass",
+      north: "snow-ridge",
+    };
+    return map[warID] || warID || "";
   }
 
   function mostThreateningWar(game) {

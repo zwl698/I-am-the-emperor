@@ -797,6 +797,10 @@ h1 {
   margin-top: 4px;
 }
 
+.flow-buttons {
+  margin-top: 2px;
+}
+
 .order-buttons button {
   display: grid;
   min-width: 30px;
@@ -810,6 +814,16 @@ h1 {
   cursor: pointer;
   font-size: 12px;
   font-weight: 900;
+}
+
+.order-buttons .module-jump {
+  width: auto;
+  min-width: 54px;
+  padding: 0 10px;
+  border-color: rgba(119, 69, 26, 0.28);
+  color: #622113;
+  background: linear-gradient(180deg, #ffde82, #e7aa3b);
+  box-shadow: 0 4px 0 rgba(119, 69, 26, 0.35);
 }
 
 .order-buttons button:hover {

@@ -76,6 +76,7 @@ assert.match(target.innerHTML, /data-action-mode="relief"/);
 assert.match(target.innerHTML, /data-action-kind="army_command"/);
 assert.match(target.innerHTML, /data-action-mode="assault"/);
 assert.match(target.innerHTML, /data-action-target="northern-banner:snow-ridge"/);
+assert.match(target.innerHTML, /data-focus-panel="strategy-map-panel"/);
 assert.match(target.innerHTML, /data-action-kind="heir_lesson"/);
 assert.match(target.innerHTML, /data-action-mode="study"/);
 

@@ -112,8 +112,9 @@
 
   function tacticButton(kind, target, label, value, title, disabled) {
     const attrs = disabled ? `disabled data-state-disabled="true"` : "";
+    const focusTarget = strategicTargetForWar(target);
     return `
-      <button class="tactic-cell" type="button" ${attrs} data-action-kind="war_tactic" data-action-mode="${safeAttr(kind)}" data-action-target="${safeAttr(target)}" data-action-label="${safeAttr(title)}" title="${safeAttr(title)}">
+      <button class="tactic-cell" type="button" ${attrs} data-focus-panel="strategy-map-panel" data-focus-target="${safeAttr(focusTarget)}" data-action-kind="war_tactic" data-action-mode="${safeAttr(kind)}" data-action-target="${safeAttr(target)}" data-action-label="${safeAttr(title)}" title="${safeAttr(title)}">
         <b>${safe(label)}</b><i style="height:${clamp(value)}%"></i><em>${clamp(value)}</em>
       </button>
     `;
@@ -121,7 +122,53 @@
 
   function actionButton(kind, mode, target, label, title, disabled) {
     const attrs = disabled ? `disabled data-state-disabled="true"` : "";
-    return `<button class="mini-order" type="button" ${attrs} data-action-kind="${safeAttr(kind)}" data-action-mode="${safeAttr(mode)}" data-action-target="${safeAttr(target)}" data-action-label="${safeAttr(title)}" title="${safeAttr(title)}">${safe(label)}</button>`;
+    return `<button class="mini-order" type="button" ${attrs}${actionFocusAttrs(kind, mode, target)} data-action-kind="${safeAttr(kind)}" data-action-mode="${safeAttr(mode)}" data-action-target="${safeAttr(target)}" data-action-label="${safeAttr(title)}" title="${safeAttr(title)}">${safe(label)}</button>`;
+  }
+
+  function actionFocusAttrs(kind, mode, target) {
+    const panel = focusPanelForAction(kind);
+    if (!panel) return "";
+    const focusTarget = focusTargetForAction(kind, mode, target);
+    const targetAttr = focusTarget ? ` data-focus-target="${safeAttr(focusTarget)}"` : "";
+    return ` data-focus-panel="${safeAttr(panel)}"${targetAttr}`;
+  }
+
+  function focusPanelForAction(kind) {
+    switch (kind) {
+      case "army_command":
+      case "city_develop":
+      case "siege_command":
+      case "governor_assign":
+        return "strategy-map-panel";
+      case "trial_move":
+        return "case-list";
+      case "office_assign":
+        return "office-list";
+      case "envoy_mission":
+        return "foreign-list";
+      case "heir_lesson":
+        return "heir-list";
+      default:
+        return "";
+    }
+  }
+
+  function focusTargetForAction(kind, mode, target) {
+    const [primary, secondary] = String(target || "").split(":");
+    if (kind === "army_command" && ["march", "assault", "besiege"].includes(mode)) return secondary || primary;
+    if (kind === "siege_command") return secondary || primary;
+    return primary;
+  }
+
+  function strategicTargetForWar(warID) {
+    const map = {
+      "snow-ridge": "snow-ridge",
+      "western-oath": "jade-pass",
+      "river-bandits": "river-east",
+      "jade-pass": "jade-pass",
+      north: "snow-ridge",
+    };
+    return map[warID] || warID || "";
   }
 
   function fitScore(minister, domain) {

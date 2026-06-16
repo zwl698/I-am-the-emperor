@@ -42,6 +42,7 @@ assert.match(target.innerHTML, /六部调度/);
 assert.match(target.innerHTML, /data-action-kind="army_command"/);
 assert.match(target.innerHTML, /data-action-mode="assault"/);
 assert.match(target.innerHTML, /data-action-target="northern-banner:snow-ridge"/);
+assert.match(target.innerHTML, /data-focus-panel="strategy-map-panel"/);
 assert.match(target.innerHTML, /data-action-kind="trial_move"/);
 assert.match(target.innerHTML, /data-action-mode="open_trial"/);
 assert.match(target.innerHTML, /data-action-kind="office_assign"/);

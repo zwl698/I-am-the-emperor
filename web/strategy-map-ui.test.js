@@ -56,6 +56,7 @@ assert.match(target.innerHTML, /北境/);
 assert.match(target.innerHTML, /雪岭/);
 assert.match(target.innerHTML, /strategy-road/);
 assert.match(target.innerHTML, /strategy-army/);
+assert.match(target.innerHTML, /data-army-id="northern-banner"/);
 assert.match(target.innerHTML, /data-action-kind="city_develop"/);
 assert.match(target.innerHTML, /data-action-mode="fortify"/);
 assert.match(target.innerHTML, /data-action-kind="army_command"/);

@@ -49,7 +49,7 @@
     const style = `left:${city.x}%;top:${city.y}%;--owner:${safeAttr(faction?.color || "#b74a38")}`;
     const disabled = (game.command ?? 0) <= 0 || city.ownerId !== "court" ? `disabled data-state-disabled="true"` : "";
     return `
-      <article class="strategy-city owner-${safeAttr(city.ownerId)} ${city.front ? "front" : ""}" style="${style}" data-city-id="${safeAttr(city.id)}">
+      <article class="strategy-city owner-${safeAttr(city.ownerId)} ${city.front ? "front" : ""}" style="${style}" data-city-id="${safeAttr(city.id)}" data-strategy-target="${safeAttr(city.id)}">
         <b>${safe(city.name)}</b>
         <small>兵${shortNumber(city.troops)} · 粮${city.grain} · 防${city.defense}</small>
         <em>${safe(faction?.name || city.ownerId)}</em>
@@ -67,7 +67,7 @@
     const action = armyPrimaryAction(army, strategy);
     const disabled = (game.command ?? 0) <= 0 || army.factionId !== "court" || !action.target ? `disabled data-state-disabled="true"` : "";
     return `
-      <button class="strategy-army owner-${safeAttr(army.factionId)}" type="button" ${disabled} style="${style}" data-action-kind="army_command" data-action-mode="${safeAttr(action.mode)}" data-action-target="${safeAttr(action.target)}" data-action-label="${safeAttr(action.label)}" title="${safeAttr(army.name)} · ${safeAttr(army.status)}">
+      <button class="strategy-army owner-${safeAttr(army.factionId)}" type="button" ${disabled} style="${style}" data-army-id="${safeAttr(army.id)}" data-strategy-target="${safeAttr(army.id)}" data-action-kind="army_command" data-action-mode="${safeAttr(action.mode)}" data-action-target="${safeAttr(action.target)}" data-action-label="${safeAttr(action.label)}" title="${safeAttr(army.name)} · ${safeAttr(army.status)}">
         <b>${safe(army.name.slice(0, 2))}</b>
         <small>${shortNumber(army.troops)}</small>
       </button>
