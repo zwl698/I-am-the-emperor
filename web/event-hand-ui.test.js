@@ -148,6 +148,66 @@ context.window.renderEventHand(
 assert.match(urgentArmyTarget.innerHTML, /data-action-mode="assault"/);
 assert.match(urgentArmyTarget.innerHTML, /data-action-target="northern-banner:snow-ridge"/);
 
+// 边境暂宁：战争事件牌但既无战局、也无可调动军团，仍须给出可执行入口（边防巡查），避免卡死
+const peacefulWarTarget = { innerHTML: "" };
+context.window.renderEventHand(
+  {
+    phase: "emperor",
+    command: 2,
+    eventHand: [
+      {
+        id: "war-peaceful",
+        title: "敌骑试探",
+        category: "对外战争",
+        domain: "military",
+        summary: "斥候回报边外有零星游骑，但未成战局。",
+        severity: 40,
+        urgency: 45,
+      },
+    ],
+    strategy: { cities: [], roads: [], armies: [] },
+    wars: [],
+    provinces: [{ id: "north", name: "北境", threat: 22, order: 60, front: true }],
+  },
+  peacefulWarTarget,
+);
+// 必须出现可执行行动，且按钮不能是被禁用的死按钮
+assert.match(peacefulWarTarget.innerHTML, /data-action-kind="map_allocation"/);
+assert.match(peacefulWarTarget.innerHTML, /data-action-target="north"/);
+assert.doesNotMatch(peacefulWarTarget.innerHTML, /data-state-disabled="true"/);
+
+// 御令耗尽：行动按钮退化为入面板软入口，仍可点击跳转，绝不卡死
+const noCommandTarget = { innerHTML: "" };
+context.window.renderEventHand(
+  {
+    phase: "emperor",
+    command: 0,
+    eventHand: [
+      {
+        id: "war-no-command",
+        title: "决战请命",
+        category: "对外战争",
+        domain: "military",
+        summary: "前线请准出塞。",
+        severity: 70,
+        urgency: 80,
+      },
+    ],
+    strategy: {
+      cities: [
+        { id: "north", name: "北境", ownerId: "court", front: true },
+        { id: "snow-ridge", name: "雪岭", ownerId: "beidi" },
+      ],
+      roads: [{ from: "north", to: "snow-ridge" }],
+      armies: [{ id: "northern-banner", name: "北府军", factionId: "court", location: "north", grain: 54, troops: 18000, morale: 66, training: 70 }],
+    },
+    wars: [{ id: "north", name: "雪岭攻防", threat: 77 }],
+  },
+  noCommandTarget,
+);
+assert.match(noCommandTarget.innerHTML, /data-focus-soft="true"/);
+assert.match(noCommandTarget.innerHTML, /data-focus-panel="strategy-map-panel"/);
+
 const lockedTarget = { innerHTML: "" };
 context.window.renderEventHand({ phase: "prince" }, lockedTarget);
 assert.match(lockedTarget.innerHTML, /登基后/);

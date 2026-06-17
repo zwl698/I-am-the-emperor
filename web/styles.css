@@ -44,6 +44,12 @@ p {
   padding: 18px 0 32px;
 }
 
+/* 进入正式游戏后隐藏开局界面与朝代选择，避免开局图与游戏面板堆叠造成视觉割裂 */
+body.game-active .landing,
+body.game-active .dynasty-section {
+  display: none;
+}
+
 .landing {
   position: relative;
   display: grid;
@@ -359,6 +365,57 @@ h1 {
   inset: 0;
   background: url("/assets/palace-hero.png") center / cover;
   filter: saturate(1.02);
+}
+
+/* ── 皇子阶段：事件手牌 / 战略地图 / 御前操作台尚未解锁，
+      隐藏这些锁定占位面板，避免它们叠在剧情漫画与场景文字上造成重叠 ── */
+body.phase-prince .event-hand-panel,
+body.phase-prince .strategy-map-panel,
+body.phase-prince .playdesk-panel {
+  display: none;
+}
+
+/* ── 皇帝阶段：御前是多面板并存的操作台，改用纵向流式布局，
+      避免漫画分镜(comic-strip)绝对定位压在事件手牌/战略地图上造成文字重叠 ── */
+body.phase-emperor .court-stage {
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  min-height: 0;
+}
+
+body.phase-emperor .scene-art {
+  position: relative;
+  inset: auto;
+  height: 240px;
+  flex: 0 0 auto;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+body.phase-emperor .comic-strip {
+  position: relative;
+  inset: auto;
+  top: auto;
+  right: auto;
+  left: auto;
+  z-index: 1;
+  margin: 14px 16px 0;
+  padding: 0;
+}
+
+body.phase-emperor .scene-content {
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+  padding: 18px clamp(18px, 3vw, 32px) 24px;
+}
+
+body.phase-emperor .event-hand-panel,
+body.phase-emperor .strategy-map-panel,
+body.phase-emperor .playdesk-panel {
+  position: relative;
+  z-index: 1;
+  margin-top: 14px;
 }
 
 .scene-art::after {

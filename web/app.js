@@ -269,6 +269,11 @@ async function resolveCrisis(choiceId) {
 function renderGame() {
   if (!state.game) return;
   els.board.classList.remove("is-empty");
+  // 进入正式游戏后隐藏开局界面（landing + 朝代选择），避免开局图与游戏面板堆叠造成的割裂感
+  document.body.classList.add("game-active");
+  // 标记当前阶段，供 CSS 区分皇子（剧情叠图）与皇帝（多面板流式）布局
+  document.body.classList.remove("phase-prince", "phase-emperor");
+  document.body.classList.add(state.game.phase === "emperor" ? "phase-emperor" : "phase-prince");
   renderIdentity();
   renderStats();
   renderScene();

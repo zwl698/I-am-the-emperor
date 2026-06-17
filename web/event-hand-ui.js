@@ -47,7 +47,15 @@
       const action = strategicWarAction(game);
       if (action.target) return action;
       const war = mostThreateningWar(game);
-      return { kind: "war_tactic", mode: (war?.threat || 0) >= 70 ? "campaign" : "mobilize", target: war?.id || "", label: (war?.threat || 0) >= 70 ? "开沙盘决战" : "拨粮整军" };
+      if (war?.id) {
+        return { kind: "war_tactic", mode: (war.threat || 0) >= 70 ? "campaign" : "mobilize", target: war.id, label: (war.threat || 0) >= 70 ? "开沙盘决战" : "拨粮整军" };
+      }
+      // 边境暂宁、无现成战局时，回退到练兵或边防巡查，保证战争牌始终有入口
+      const army = courtArmy(game);
+      if (army) return { kind: "army_command", mode: "train", target: army.id, label: "整军备战" };
+      const border = borderProvince(game);
+      if (border) return { kind: "map_allocation", mode: "garrison", target: border.id, label: "增戍边防" };
+      return { kind: "map_allocation", mode: "inspect", target: worstProvince(game)?.id || "", label: "巡阅边镇" };
     }
     if (category.includes("灾害") || domain === "domestic") {
       const city = worstStrategicCity(game);
@@ -84,11 +92,31 @@
   }
 
   function actionButton(action, game) {
-    const disabled = !action?.target || (game.command ?? 0) <= 0;
-    const attrs = disabled ? `disabled data-state-disabled="true"` : "";
+    const noTarget = !action?.target;
+    const noCommand = (game.command ?? 0) <= 0;
     const focusAttrs = actionFocusAttrs(action);
+    const panel = focusPanelForAction(action);
+
+    // 无可执行目标 / 御令耗尽：不再渲染成无法点击的死按钮，
+    // 而是退化为“入面板手动处置”的软入口，避免战争等事件卡死。
+    if (noTarget || noCommand) {
+      const hint = noCommand ? "御令已尽，下季再行" : "需在面板内手动处置";
+      if (panel) {
+        return `
+          <button class="event-action event-action-soft" type="button"${focusAttrs} data-focus-soft="true" title="${safeAttr(hint)}">
+            ${safe(action?.label || "查看局势")} · 入面板
+          </button>
+        `;
+      }
+      return `
+        <button class="event-action" type="button" disabled data-state-disabled="true" title="${safeAttr(hint)}">
+          ${safe(action?.label || "暂无行动")}
+        </button>
+      `;
+    }
+
     return `
-      <button class="event-action" type="button" ${attrs}${focusAttrs} data-action-kind="${safeAttr(action?.kind)}" data-action-mode="${safeAttr(action?.mode)}" data-action-target="${safeAttr(action?.target)}" data-action-label="${safeAttr(action?.label)}">
+      <button class="event-action" type="button"${focusAttrs} data-action-kind="${safeAttr(action?.kind)}" data-action-mode="${safeAttr(action?.mode)}" data-action-target="${safeAttr(action?.target)}" data-action-label="${safeAttr(action?.label)}">
         ${safe(action?.label || "暂无行动")}
       </button>
     `;
@@ -146,6 +174,20 @@
 
   function mostThreateningWar(game) {
     return (game.wars || []).slice().sort((a, b) => (b.threat || 0) - (a.threat || 0))[0];
+  }
+
+  function courtArmy(game) {
+    return (game.strategy?.armies || [])
+      .filter((army) => army.factionId === "court")
+      .slice()
+      .sort((a, b) => (b.troops || 0) - (a.troops || 0))[0];
+  }
+
+  function borderProvince(game) {
+    const provinces = (game.provinces || []).slice();
+    const front = provinces.filter((p) => p.front || p.border || (p.threat || 0) > 0);
+    const pool = front.length ? front : provinces;
+    return pool.sort((a, b) => (b.threat || 0) - (a.threat || 0))[0];
   }
 
   function strategicWarAction(game) {

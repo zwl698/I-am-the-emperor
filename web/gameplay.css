@@ -147,6 +147,18 @@
   cursor: not-allowed;
 }
 
+/* 软入口：无可直接执行的目标 / 御令耗尽时，仍可点击进入对应面板手动处置 */
+.event-action.event-action-soft {
+  background: linear-gradient(135deg, #5b4326, #3c2c19);
+  border-color: rgba(255, 230, 155, 0.35);
+  color: #f4e6c2;
+  box-shadow: 0 6px 14px rgba(30, 18, 8, 0.26);
+}
+
+.event-action.event-action-soft:hover {
+  filter: brightness(1.12);
+}
+
 @keyframes cardDeal {
   from {
     opacity: 0;
