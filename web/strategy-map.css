@@ -34,107 +34,271 @@
 
 .strategy-board {
   position: relative;
-  min-height: 430px;
+  min-height: 540px;
   overflow: hidden;
   border: 1px solid rgba(255, 226, 151, 0.32);
-  border-radius: 8px;
+  border-radius: 12px;
   background:
-    linear-gradient(90deg, rgba(255, 226, 151, 0.08) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(255, 226, 151, 0.08) 1px, transparent 1px),
-    radial-gradient(circle at 50% 45%, rgba(201, 142, 65, 0.3), transparent 38%),
-    linear-gradient(145deg, rgba(50, 32, 20, 0.9), rgba(20, 24, 21, 0.82));
-  background-size: 10% 10%, 10% 10%, auto, auto;
-  box-shadow: inset 0 0 40px rgba(20, 8, 5, 0.45), 0 16px 34px rgba(23, 9, 5, 0.28);
+    radial-gradient(circle at 50% 42%, rgba(201, 142, 65, 0.18), transparent 55%),
+    linear-gradient(145deg, rgba(46, 33, 19, 0.96), rgba(22, 24, 21, 0.92));
+  box-shadow: inset 0 0 60px rgba(20, 8, 5, 0.5), 0 16px 34px rgba(23, 9, 5, 0.28);
 }
 
-.strategy-road {
+/* 形象化地图底图 */
+.strategy-terrain {
   position: absolute;
-  height: 3px;
-  transform-origin: 0 50%;
-  background: rgba(255, 224, 151, 0.42);
-  box-shadow: 0 0 10px rgba(255, 224, 151, 0.18);
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
-.strategy-road.risk-high {
-  background: rgba(211, 75, 55, 0.62);
+.strategy-terrain .map-region-label {
+  fill: rgba(255, 238, 196, 0.32);
+  font-size: 3.4px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: rgba(28, 14, 8, 0.55);
+  stroke-width: 0.4px;
 }
 
-.strategy-road.risk-mid {
-  background: rgba(238, 170, 84, 0.54);
+.strategy-terrain .map-mountain {
+  fill: rgba(120, 92, 56, 0.5);
+  stroke: rgba(60, 42, 24, 0.6);
+  stroke-width: 0.3px;
 }
 
+.strategy-terrain .map-snow {
+  fill: rgba(206, 220, 234, 0.42);
+  stroke: rgba(150, 170, 196, 0.5);
+}
+
+.strategy-terrain .map-desert {
+  fill: rgba(196, 158, 92, 0.42);
+  stroke: rgba(150, 116, 62, 0.5);
+}
+
+.strategy-terrain .map-river {
+  fill: none;
+  stroke: rgba(96, 168, 198, 0.55);
+  stroke-width: 1.4px;
+  stroke-linecap: round;
+}
+
+.strategy-terrain .map-river-thin {
+  stroke-width: 0.9px;
+  stroke: rgba(96, 168, 198, 0.42);
+}
+
+.strategy-terrain .map-coast {
+  fill: none;
+  stroke: rgba(120, 196, 214, 0.4);
+  stroke-width: 0.6px;
+  stroke-dasharray: 1.6 1.2;
+}
+
+.strategy-terrain .map-road {
+  fill: none;
+  stroke: rgba(255, 224, 151, 0.45);
+  stroke-width: 0.7px;
+  stroke-linecap: round;
+  stroke-dasharray: 2 1.4;
+}
+
+.strategy-terrain .map-road.risk-mid {
+  stroke: rgba(238, 170, 84, 0.6);
+}
+
+.strategy-terrain .map-road.risk-high {
+  stroke: rgba(211, 75, 55, 0.7);
+}
+
+.strategy-board-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.strategy-legend {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  max-width: 60%;
+  justify-content: flex-end;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 226, 151, 0.22);
+  border-radius: 8px;
+  background: rgba(20, 11, 7, 0.55);
+  font-size: 0.66rem;
+  color: rgba(255, 245, 219, 0.86);
+}
+
+.strategy-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.strategy-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--owner);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--owner) 60%, transparent);
+}
+
+/* 城市以地图标记呈现：默认是小图钉，hover / 聚焦时展开信息卡，避免互相遮挡 */
 .strategy-city {
   position: absolute;
-  width: 96px;
-  min-height: 76px;
-  padding: 8px;
-  border: 1px solid color-mix(in srgb, var(--owner) 70%, #fff 30%);
-  border-radius: 8px;
-  background: linear-gradient(145deg, rgba(55, 24, 16, 0.9), rgba(18, 13, 10, 0.84));
-  box-shadow: 0 12px 24px rgba(12, 5, 3, 0.34);
+  width: 0;
+  height: 0;
   transform: translate(-50%, -50%);
 }
 
-.strategy-city.front {
-  outline: 2px solid rgba(255, 92, 61, 0.62);
+.strategy-city .city-marker {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+  border: 2px solid color-mix(in srgb, var(--owner) 70%, #fff 30%);
+  border-radius: 50% 50% 50% 4px;
+  background: radial-gradient(circle at 36% 30%, rgba(255, 236, 180, 0.4), transparent 46%),
+    linear-gradient(150deg, color-mix(in srgb, var(--owner) 78%, #1a0d08 22%), rgba(18, 12, 9, 0.92));
+  color: #fff6da;
+  font-weight: 900;
+  font-size: 0.8rem;
+  box-shadow: 0 6px 14px rgba(10, 4, 2, 0.45);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
-.strategy-city b,
-.strategy-city small,
-.strategy-city em {
+.strategy-city.front .city-marker {
+  border-color: rgba(255, 110, 78, 0.92);
+  box-shadow: 0 0 0 3px rgba(255, 92, 61, 0.28), 0 6px 14px rgba(10, 4, 2, 0.45);
+}
+
+.strategy-city.alert .city-marker {
+  animation: cityAlert 1.4s ease-in-out infinite;
+}
+
+@keyframes cityAlert {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(211, 75, 55, 0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(211, 75, 55, 0); }
+}
+
+.strategy-city:hover .city-marker,
+.strategy-city:focus-within .city-marker {
+  transform: translate(-50%, -50%) scale(1.12);
+}
+
+.strategy-city .city-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 118px;
+  padding: 8px 9px;
+  transform: translate(-50%, calc(-50% - 52px)) scale(0.96);
+  border: 1px solid color-mix(in srgb, var(--owner) 60%, #fff 40%);
+  border-radius: 8px;
+  background: linear-gradient(145deg, rgba(55, 24, 16, 0.97), rgba(18, 13, 10, 0.95));
+  box-shadow: 0 14px 28px rgba(8, 4, 2, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  z-index: 5;
+}
+
+.strategy-city:hover .city-card,
+.strategy-city:focus-within .city-card,
+.strategy-city.module-focus-target .city-card {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, calc(-50% - 52px)) scale(1);
+  z-index: 30;
+}
+
+.strategy-city .city-card b,
+.strategy-city .city-card small,
+.strategy-city .city-card em {
   display: block;
 }
 
-.strategy-city b {
+.strategy-city .city-card b {
   color: #fff5d6;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
-.strategy-city small {
-  color: rgba(255, 245, 219, 0.8);
+.strategy-city .city-card small {
+  color: rgba(255, 245, 219, 0.82);
   font-size: 0.72rem;
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
-.strategy-city em {
+.strategy-city .city-card em {
+  margin-bottom: 5px;
   color: var(--owner);
   font-size: 0.7rem;
   font-style: normal;
 }
 
-.strategy-city button {
-  margin-top: 5px;
-  padding: 4px 8px;
-  border: 1px solid rgba(255, 226, 151, 0.36);
+.strategy-city .city-card button {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 226, 151, 0.4);
   border-radius: 999px;
-  background: rgba(161, 48, 38, 0.85);
+  background: linear-gradient(135deg, #b7382e, #76231e);
   color: #fff7da;
   font-weight: 800;
   cursor: pointer;
 }
 
+.strategy-city .city-card button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 军团旗：地图上的小旗，可直接点击下令 */
 .strategy-army {
   position: absolute;
-  min-width: 54px;
-  padding: 6px 8px;
+  min-width: 50px;
+  padding: 4px 8px;
   border: 1px solid color-mix(in srgb, var(--owner) 70%, #fff 30%);
-  border-radius: 999px;
-  background: linear-gradient(135deg, rgba(26, 22, 16, 0.96), rgba(76, 35, 23, 0.9));
+  border-radius: 7px 7px 7px 2px;
+  background: linear-gradient(135deg, rgba(26, 22, 16, 0.97), color-mix(in srgb, var(--owner) 55%, #3a1c12 45%));
   color: #fff4c3;
-  box-shadow: 0 8px 18px rgba(8, 4, 2, 0.35);
+  box-shadow: 0 8px 16px rgba(8, 4, 2, 0.4);
   transform: translate(-50%, -50%);
   cursor: pointer;
+  z-index: 8;
+  transition: transform 0.12s ease;
+}
+
+.strategy-army:not(:disabled):hover {
+  transform: translate(-50%, -50%) scale(1.08);
+  z-index: 32;
 }
 
 .strategy-army b,
 .strategy-army small {
   display: block;
   line-height: 1.05;
+  font-size: 0.72rem;
+}
+
+.strategy-army b {
+  font-weight: 900;
 }
 
 .strategy-command-deck {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-top: 10px;
 }
@@ -155,6 +319,45 @@
   margin: 0 0 8px;
   color: rgba(255, 244, 216, 0.82);
   line-height: 1.42;
+}
+
+.strategy-command-hint {
+  font-size: 0.78rem;
+  color: rgba(255, 222, 168, 0.78) !important;
+}
+
+.strategy-army-card {
+  background: linear-gradient(145deg, rgba(70, 30, 18, 0.85), rgba(40, 22, 14, 0.8));
+}
+
+.strategy-army-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(255, 226, 151, 0.24);
+}
+
+.strategy-army-switch button {
+  padding: 5px 9px;
+  border: 1px solid rgba(255, 226, 151, 0.3);
+  border-radius: 8px;
+  background: rgba(34, 18, 12, 0.8);
+  color: #ffeec2;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.strategy-army-switch button.active {
+  border-color: rgba(255, 150, 90, 0.7);
+  background: linear-gradient(135deg, #b7382e, #76231e);
+}
+
+.strategy-army-switch button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .strategy-battle-card {
@@ -226,7 +429,6 @@
 }
 
 .strategy-actions button:disabled,
-.strategy-city button:disabled,
 .strategy-army:disabled {
   opacity: 0.48;
   cursor: not-allowed;
@@ -234,7 +436,7 @@
 
 @media (max-width: 1180px) {
   .strategy-board {
-    min-height: 380px;
+    min-height: 480px;
   }
 
   .strategy-command-deck {
@@ -248,10 +450,12 @@
   }
 
   .strategy-board {
-    min-height: 520px;
+    min-height: 560px;
   }
 
-  .strategy-city {
-    width: 86px;
+  .strategy-city .city-marker {
+    width: 26px;
+    height: 26px;
+    font-size: 0.72rem;
   }
 }

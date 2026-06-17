@@ -285,6 +285,17 @@
   gap: 9px;
 }
 
+.case-command-banner {
+  padding: 8px 10px;
+  border: 1px solid rgba(159, 47, 37, 0.4);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(159, 47, 37, 0.16), rgba(159, 47, 37, 0.08));
+  color: #7a2218;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .opinion-card,
 .case-row {
   position: relative;

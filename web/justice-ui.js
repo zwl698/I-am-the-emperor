@@ -41,8 +41,14 @@
       target.innerHTML = `<article class="strategy-empty">刑部案架暂空。</article>`;
       return;
     }
-    target.innerHTML = cases
-      .map((item) => {
+    const noCommand = (game.command ?? 0) <= 0;
+    const banner = noCommand
+      ? `<article class="case-command-banner">御令已尽，本季无法再开堂理案。推进一季后即可继续审、赦、禁、宣。</article>`
+      : "";
+    target.innerHTML =
+      banner +
+      cases
+        .map((item) => {
         const stateClass = item.resolved ? "resolved" : item.heat >= 75 ? "danger" : "open";
         return `
           <article class="case-row domain-${safeAttr(item.domain)} ${stateClass}">
