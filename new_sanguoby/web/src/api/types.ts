@@ -1,0 +1,84 @@
+export type CityState = 'normal' | 'famine';
+
+export type GameDate = {
+  year: number;
+  month: number;
+};
+
+export type Ruler = {
+  id: string;
+  name: string;
+  character: string;
+  color: string;
+};
+
+export type City = {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  ownerId: string;
+  state: CityState;
+  farmingLimit: number;
+  farming: number;
+  commerceLimit: number;
+  commerce: number;
+  peopleDevotion: number;
+  avoidCalamity: number;
+  populationLimit: number;
+  population: number;
+  money: number;
+  food: number;
+  garrison: number;
+};
+
+export type General = {
+  id: string;
+  name: string;
+  ownerId: string;
+  cityId: string;
+  level: number;
+  force: number;
+  intellect: number;
+  loyalty: number;
+  stamina: number;
+  soldiers: number;
+  armsType: string;
+};
+
+export type Route = {
+  from: string;
+  to: string;
+};
+
+export type GameSnapshot = {
+  scenarioId: string;
+  playerId: string;
+  date: GameDate;
+  rulers: Ruler[];
+  cities: City[];
+  generals: General[];
+  routes: Route[];
+  log: string[];
+};
+
+export type CreateGameRequest = {
+  scenarioId: string;
+  playerId: string;
+};
+
+export type LegacyResourceHeader = {
+  address: number;
+  length: number;
+  id: number;
+  itemCount: number;
+  itemLength: number;
+  key: number;
+  reserved: number;
+};
+
+export type LegacyResources = {
+  source: string;
+  count: number;
+  resources: LegacyResourceHeader[];
+};

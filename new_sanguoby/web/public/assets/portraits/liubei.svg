@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="anime noble ruler portrait">
+  <defs>
+    <radialGradient id="bg" cx="49%" cy="25%" r="72%">
+      <stop offset="0" stop-color="#e9ffd1"/>
+      <stop offset="0.52" stop-color="#256e55"/>
+      <stop offset="1" stop-color="#0e1712"/>
+    </radialGradient>
+    <linearGradient id="robe" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f2d878"/>
+      <stop offset="0.42" stop-color="#2e8a64"/>
+      <stop offset="1" stop-color="#10231b"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="42" fill="url(#bg)"/>
+  <path d="M48 436c64-102 133-153 207-153 78 0 149 51 209 153v76H48z" fill="#0e1a15" opacity="0.92"/>
+  <path d="M111 424c36-92 84-139 146-139s111 47 146 139v88H111z" fill="url(#robe)"/>
+  <path d="M174 344l-35 93 72-27 45 62 46-62 72 27-37-93z" fill="#f0cb70" opacity="0.9"/>
+  <path d="M151 172c8-78 51-127 105-127 59 0 102 51 108 127 7 103-36 177-108 177s-113-74-105-177z" fill="#f0c7a2"/>
+  <path d="M153 168c21-75 64-118 115-118 52 0 90 40 100 115-41-13-77-37-108-73-28 43-63 67-107 76z" fill="#2b2633"/>
+  <path d="M174 112c24-61 80-94 129-63 36 23 55 61 62 111-47-54-111-76-191-48z" fill="#362f40"/>
+  <path d="M187 215c26-13 51-12 75 3" stroke="#27523f" stroke-width="9" stroke-linecap="round"/>
+  <path d="M284 218c25-15 50-16 76-3" stroke="#27523f" stroke-width="9" stroke-linecap="round"/>
+  <path d="M205 241c17 10 32 10 46-1M303 240c14 12 29 12 46 1" stroke="#101810" stroke-width="6" stroke-linecap="round"/>
+  <path d="M255 238c-8 36-9 56-1 70" stroke="#a66c56" stroke-width="7" stroke-linecap="round"/>
+  <path d="M220 319c25 21 50 21 75 0" stroke="#8b4a45" stroke-width="8" stroke-linecap="round"/>
+  <path d="M164 91c37-38 70-57 99-57 37 0 70 22 99 67" fill="none" stroke="#f5d76d" stroke-width="11" stroke-linecap="round"/>
+  <path d="M251 36l18 34-35 1z" fill="#ffe78f"/>
+  <circle cx="164" cy="91" r="13" fill="#ffe48a"/>
+  <circle cx="362" cy="101" r="13" fill="#ffe48a"/>
+</svg>

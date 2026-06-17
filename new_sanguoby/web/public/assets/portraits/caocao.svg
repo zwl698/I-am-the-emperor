@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="anime warlord portrait">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="28%" r="70%">
+      <stop offset="0" stop-color="#ffd6a2"/>
+      <stop offset="0.52" stop-color="#7b2732"/>
+      <stop offset="1" stop-color="#160d13"/>
+    </radialGradient>
+    <linearGradient id="armor" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f1ca78"/>
+      <stop offset="0.4" stop-color="#743137"/>
+      <stop offset="1" stop-color="#20101b"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="42" fill="url(#bg)"/>
+  <path d="M42 424c77-94 147-141 215-141 77 0 149 52 215 141v88H42z" fill="#1b1118" opacity="0.88"/>
+  <path d="M104 422c33-92 89-138 153-138 67 0 123 47 154 138v90H104z" fill="url(#armor)"/>
+  <path d="M168 313l-42 86 83-18 47 70 49-70 83 18-45-86z" fill="#27131c"/>
+  <path d="M147 176c6-81 55-133 116-133 63 0 111 54 116 133 7 104-41 175-116 175-76 0-124-72-116-175z" fill="#f1c59a"/>
+  <path d="M157 161c31-89 137-136 210-48 18 22 35 60 30 96-43-18-76-47-99-92-29 51-76 83-141 96z" fill="#1b1625"/>
+  <path d="M154 116c30-87 99-104 146-81 64 31 95 88 86 154-21-62-75-103-152-112-42-5-63 11-80 39z" fill="#2b2138"/>
+  <path d="M187 213c28-17 55-17 83 0" stroke="#412029" stroke-width="9" stroke-linecap="round"/>
+  <path d="M285 213c28-17 56-17 83 0" stroke="#412029" stroke-width="9" stroke-linecap="round"/>
+  <path d="M205 237c17 12 33 12 48 0M302 237c16 12 32 12 48 0" stroke="#111" stroke-width="6" stroke-linecap="round"/>
+  <path d="M256 240c-7 32-9 52-3 66" stroke="#a96d58" stroke-width="8" stroke-linecap="round"/>
+  <path d="M222 315c23 22 47 23 72 0" stroke="#77313c" stroke-width="8" stroke-linecap="round"/>
+  <path d="M121 147c39-56 83-83 132-82 61 0 109 39 144 116" fill="none" stroke="#c99a45" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="121" cy="147" r="16" fill="#f3c96b"/>
+  <circle cx="397" cy="181" r="16" fill="#f3c96b"/>
+  <path d="M75 84c87 27 141 3 176-49 50 49 110 66 186 44" fill="none" stroke="#ffd37a" stroke-width="6" opacity="0.5"/>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="neutral city portrait">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="28%" r="72%">
+      <stop offset="0" stop-color="#f2e2bd"/>
+      <stop offset="0.52" stop-color="#776b59"/>
+      <stop offset="1" stop-color="#171513"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="42" fill="url(#bg)"/>
+  <path d="M62 440c64-88 128-132 194-132 69 0 134 44 194 132v72H62z" fill="#191714" opacity="0.86"/>
+  <path d="M160 365l-43 90h278l-43-90-95-48z" fill="#8d7d62"/>
+  <path d="M167 169c9-74 47-118 91-118s82 44 88 118c8 98-30 162-88 162s-99-64-91-162z" fill="#d8b990"/>
+  <path d="M166 172c30-74 88-104 154-63 19 12 33 32 41 62-39-9-74-27-105-54-27 31-57 50-90 55z" fill="#4d473d"/>
+  <path d="M188 226c46-27 93-27 139 0" stroke="#3a3028" stroke-width="12" stroke-linecap="round" opacity="0.76"/>
+  <path d="M222 312c22 16 46 16 70 0" stroke="#705041" stroke-width="8" stroke-linecap="round"/>
+  <path d="M118 145c50-55 94-82 132-82 52 0 99 30 140 90" fill="none" stroke="#d5b975" stroke-width="10" stroke-linecap="round" opacity="0.8"/>
+</svg>

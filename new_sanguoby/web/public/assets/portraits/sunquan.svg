@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="anime young ruler portrait">
+  <defs>
+    <radialGradient id="bg" cx="48%" cy="24%" r="74%">
+      <stop offset="0" stop-color="#d9f5ff"/>
+      <stop offset="0.52" stop-color="#2c6f9f"/>
+      <stop offset="1" stop-color="#101520"/>
+    </radialGradient>
+    <linearGradient id="armor" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#e8d483"/>
+      <stop offset="0.42" stop-color="#2d72a4"/>
+      <stop offset="1" stop-color="#151d2b"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="42" fill="url(#bg)"/>
+  <path d="M45 430c72-96 142-144 211-144 77 0 147 48 211 144v82H45z" fill="#101522" opacity="0.9"/>
+  <path d="M105 423c33-88 83-133 151-133 69 0 120 45 152 133v89H105z" fill="url(#armor)"/>
+  <path d="M171 339l-42 84 78-18 48 65 50-65 78 18-42-84z" fill="#d9b35e" opacity="0.88"/>
+  <path d="M149 176c7-76 50-124 106-124 60 0 104 50 109 124 7 104-38 175-109 175-72 0-114-71-106-175z" fill="#efc6a1"/>
+  <path d="M145 181c18-80 65-131 129-136 60 12 95 58 97 131-44-5-83-28-118-68-25 43-61 68-108 73z" fill="#172337"/>
+  <path d="M153 128c42-73 103-94 156-62 34 21 56 60 62 110-52-51-117-66-218-48z" fill="#23314b"/>
+  <path d="M187 216c25-16 50-16 75 0" stroke="#1d4162" stroke-width="9" stroke-linecap="round"/>
+  <path d="M286 216c26-16 51-16 76 0" stroke="#1d4162" stroke-width="9" stroke-linecap="round"/>
+  <path d="M205 241c17 11 31 11 44 0M305 241c14 11 29 11 45 0" stroke="#0b111c" stroke-width="6" stroke-linecap="round"/>
+  <path d="M256 238c-8 35-8 56 1 70" stroke="#a36b55" stroke-width="7" stroke-linecap="round"/>
+  <path d="M222 319c23 20 47 20 70 0" stroke="#70404a" stroke-width="8" stroke-linecap="round"/>
+  <path d="M154 103c37-38 71-57 102-57 38 0 73 23 105 69" fill="none" stroke="#e9d26f" stroke-width="11" stroke-linecap="round"/>
+  <path d="M249 45l24 31-38 4z" fill="#f7de78"/>
+  <circle cx="154" cy="103" r="13" fill="#f8dd75"/>
+  <circle cx="361" cy="115" r="13" fill="#f8dd75"/>
+  <path d="M91 158c39-12 69-30 90-56M423 164c-35-11-62-31-83-61" stroke="#dff5ff" stroke-width="6" stroke-linecap="round" opacity="0.36"/>
+</svg>

@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="anime styled Three Kingdoms campaign map">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f1db9a"/>
+      <stop offset="0.48" stop-color="#caa66b"/>
+      <stop offset="1" stop-color="#6b4930"/>
+    </linearGradient>
+    <radialGradient id="light" cx="42%" cy="35%" r="72%">
+      <stop offset="0" stop-color="#fff2bf" stop-opacity="0.72"/>
+      <stop offset="0.52" stop-color="#e2b76a" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#1b1615" stop-opacity="0.58"/>
+    </radialGradient>
+    <linearGradient id="river" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#1f5870"/>
+      <stop offset="0.5" stop-color="#6dc1c2"/>
+      <stop offset="1" stop-color="#214d76"/>
+    </linearGradient>
+    <filter id="paper">
+      <feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="4" seed="21"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.28"/>
+      </feComponentTransfer>
+      <feBlend mode="multiply" in2="SourceGraphic"/>
+    </filter>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="12" stdDeviation="13" flood-color="#23140e" flood-opacity="0.33"/>
+    </filter>
+    <pattern id="forest" width="38" height="38" patternUnits="userSpaceOnUse">
+      <path d="M19 5l13 25H6z" fill="#315b35" opacity="0.2"/>
+      <path d="M20 12l9 18H11z" fill="#6f8c4c" opacity="0.22"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <rect width="1600" height="900" fill="url(#light)"/>
+  <g filter="url(#paper)" opacity="0.42">
+    <rect width="1600" height="900" fill="#fff0c0"/>
+  </g>
+  <g opacity="0.28">
+    <path d="M80 126C260 50 430 95 580 170c172 87 339 35 475 10 198-36 343 12 458 102l-8 572H80z" fill="#f1d79c"/>
+    <path d="M0 640c178-80 285-8 420-48 103-31 185-130 344-90 127 32 182 120 331 87 183-41 319 20 505 101v210H0z" fill="#694831" opacity="0.24"/>
+  </g>
+  <path d="M32 629c120-58 190-50 267-19 118 46 178 19 263-42 87-63 174-82 296-33 120 49 171 144 316 137 147-8 259-90 393-52" fill="none" stroke="#173f5b" stroke-width="45" stroke-linecap="round" opacity="0.28"/>
+  <path d="M32 629c120-58 190-50 267-19 118 46 178 19 263-42 87-63 174-82 296-33 120 49 171 144 316 137 147-8 259-90 393-52" fill="none" stroke="url(#river)" stroke-width="24" stroke-linecap="round" opacity="0.72"/>
+  <path d="M512 80c50 92 96 148 159 211 87 87 96 165 54 242" fill="none" stroke="#2f6f82" stroke-width="13" stroke-linecap="round" opacity="0.52"/>
+  <path d="M1160 244c-84 49-141 113-155 194-15 88 25 149 100 195" fill="none" stroke="#2f6f82" stroke-width="12" stroke-linecap="round" opacity="0.4"/>
+  <g filter="url(#softShadow)" opacity="0.9">
+    <path d="M116 720l83-181 92 181z" fill="#455744"/>
+    <path d="M207 720l72-148 84 148z" fill="#65724f"/>
+    <path d="M305 744l89-178 96 178z" fill="#3d4b3c"/>
+    <path d="M1038 252l92-190 102 190z" fill="#56604b"/>
+    <path d="M1165 300l83-172 93 172z" fill="#39443d"/>
+    <path d="M1298 392l87-180 101 180z" fill="#606e52"/>
+    <path d="M145 214l82-147 86 147z" fill="#58684d"/>
+    <path d="M258 248l68-128 77 128z" fill="#465947"/>
+  </g>
+  <g fill="url(#forest)" opacity="0.75">
+    <path d="M84 265c97-51 196-41 278 6 15 88-68 156-195 142C76 403 42 333 84 265z"/>
+    <path d="M1087 334c97-64 215-42 273 51 5 74-65 127-166 123-103-5-162-76-107-174z"/>
+    <path d="M375 704c96-60 238-35 314 39-40 76-161 94-264 53-57-23-76-54-50-92z"/>
+  </g>
+  <g fill="none" stroke="#6d4226" stroke-linecap="round" stroke-dasharray="16 18" opacity="0.54">
+    <path d="M292 205c142 46 260 76 399 120 142 45 251 74 409 41 147-31 242 11 334 82"/>
+    <path d="M438 420c126 35 219 77 303 156 84 77 173 118 302 105 132-14 231-52 352 5"/>
+    <path d="M276 694c95-119 180-199 310-253 116-49 211-88 282-196"/>
+  </g>
+  <g filter="url(#softShadow)">
+    <g opacity="0.78">
+      <circle cx="420" cy="210" r="28" fill="#795032"/>
+      <circle cx="780" cy="408" r="34" fill="#895637"/>
+      <circle cx="1035" cy="655" r="29" fill="#725438"/>
+      <circle cx="1198" cy="312" r="26" fill="#6f4c35"/>
+      <circle cx="1325" cy="688" r="32" fill="#805134"/>
+    </g>
+    <g fill="#e6c077" opacity="0.92">
+      <path d="M390 210h60v42h-60zM401 186h38v24h-38z"/>
+      <path d="M743 408h74v49h-74zM755 376h50v32h-50z"/>
+      <path d="M1007 655h57v41h-57zM1017 629h38v26h-38z"/>
+      <path d="M1170 312h57v40h-57zM1182 288h34v24h-34z"/>
+      <path d="M1293 688h67v46h-67zM1307 660h41v28h-41z"/>
+    </g>
+  </g>
+  <path d="M0 0h1600v900H0z" fill="none" stroke="#2b1d16" stroke-width="34" opacity="0.32"/>
+  <path d="M32 30h1536v840H32z" fill="none" stroke="#f9e2a4" stroke-width="2" opacity="0.38"/>
+</svg>
