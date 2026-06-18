@@ -1,31 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="anime villain warlord portrait">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="detailed anime Dong Zhuo tyrant warlord portrait">
   <defs>
-    <radialGradient id="bg" cx="50%" cy="25%" r="74%">
-      <stop offset="0" stop-color="#ead3ff"/>
-      <stop offset="0.5" stop-color="#643c8c"/>
-      <stop offset="1" stop-color="#151020"/>
+    <radialGradient id="bg" cx="50%" cy="23%" r="78%">
+      <stop offset="0" stop-color="#ffd7a0"/>
+      <stop offset="0.38" stop-color="#6d2a56"/>
+      <stop offset="0.72" stop-color="#251322"/>
+      <stop offset="1" stop-color="#07060a"/>
     </radialGradient>
-    <linearGradient id="armor" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0" stop-color="#d6b66f"/>
-      <stop offset="0.42" stop-color="#6b438e"/>
-      <stop offset="1" stop-color="#1b1426"/>
+    <linearGradient id="skin" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f8c89d"/>
+      <stop offset="0.55" stop-color="#c97b66"/>
+      <stop offset="1" stop-color="#703f45"/>
     </linearGradient>
+    <linearGradient id="armor" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#e3b862"/>
+      <stop offset="0.34" stop-color="#6b2d5f"/>
+      <stop offset="0.72" stop-color="#251222"/>
+      <stop offset="1" stop-color="#07060a"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="15" flood-color="#040207" flood-opacity=".62"/>
+    </filter>
   </defs>
-  <rect width="512" height="512" rx="42" fill="url(#bg)"/>
-  <path d="M40 438c67-105 139-158 216-158 83 0 156 53 216 158v74H40z" fill="#130d1b" opacity="0.92"/>
-  <path d="M95 425c38-96 92-145 162-145 73 0 127 49 161 145v87H95z" fill="url(#armor)"/>
-  <path d="M155 338l-51 95 90-21 62 62 62-62 91 21-53-95z" fill="#26162e"/>
-  <path d="M145 171c8-82 54-135 113-135 65 0 111 55 119 135 9 111-39 186-119 186-78 0-123-75-113-186z" fill="#e5b993"/>
-  <path d="M143 164c28-92 87-143 154-121 47 15 78 59 87 130-55-11-98-38-130-82-29 43-66 68-111 73z" fill="#201a2d"/>
-  <path d="M139 114c43-83 113-104 176-63 39 25 62 70 69 124-59-60-139-80-245-61z" fill="#2f2740"/>
-  <path d="M180 215c29-19 59-18 88 3" stroke="#3d2744" stroke-width="10" stroke-linecap="round"/>
-  <path d="M287 218c31-21 61-22 91-3" stroke="#3d2744" stroke-width="10" stroke-linecap="round"/>
-  <path d="M202 243c18 12 35 12 51 0M309 243c16 12 33 12 51 0" stroke="#09070c" stroke-width="7" stroke-linecap="round"/>
-  <path d="M259 238c-8 39-9 61-2 78" stroke="#9d634f" stroke-width="8" stroke-linecap="round"/>
-  <path d="M221 327c24 20 51 20 78 0" stroke="#6a313c" stroke-width="9" stroke-linecap="round"/>
-  <path d="M124 118c46-51 91-77 135-77 49 0 93 29 133 86" fill="none" stroke="#d9b56a" stroke-width="13" stroke-linecap="round"/>
-  <path d="M255 40l27 43-54 0z" fill="#f3cc73"/>
-  <circle cx="124" cy="118" r="17" fill="#f1c66c"/>
-  <circle cx="392" cy="127" r="17" fill="#f1c66c"/>
-  <path d="M91 73c35 56 68 75 101 57M421 78c-33 57-65 76-98 58" stroke="#b697ff" stroke-width="7" stroke-linecap="round" opacity="0.36"/>
+  <rect width="512" height="512" rx="46" fill="url(#bg)"/>
+  <path d="M35 428c76-95 150-143 222-143 77 0 151 48 220 143v84H35z" fill="#08070c" opacity=".9"/>
+  <g filter="url(#soft)">
+    <path d="M91 435c24-92 80-151 166-151 84 0 140 59 164 151v77H91z" fill="url(#armor)"/>
+    <path d="M134 334l-50 92 95-22 78 78 78-78 95 22-50-92-65-32H199z" fill="#170d17"/>
+    <path d="M104 425l76-36 42 44-24 79H86zM410 425l-76-36-42 44 24 79h112z" fill="#3b152b"/>
+    <path d="M208 368h98l30 144H178z" fill="#8f6832"/>
+    <path d="M206 391h101M193 424h126M185 455h144" stroke="#1c0b12" stroke-width="8" stroke-linecap="round" opacity=".72"/>
+    <path d="M140 173c4-88 51-136 117-136 67 0 114 50 119 136 7 106-46 180-119 180-75 0-124-74-117-180z" fill="url(#skin)"/>
+    <path d="M142 170c29-84 84-128 141-119 57 9 100 60 101 134-45-18-83-49-113-93-29 49-72 82-129 101z" fill="#15101c"/>
+    <path d="M119 184c12-78 51-129 119-154 51-19 105-4 139 38 31 39 43 82 35 129-48-72-103-108-165-107-54 1-96 32-128 94z" fill="#251a30"/>
+    <path d="M172 196c32-22 68-20 105 4M292 199c36-25 73-25 111 1" fill="none" stroke="#3d2744" stroke-width="12" stroke-linecap="round"/>
+    <path d="M200 229c16-16 41-15 61 2-18 14-44 13-61-2zM314 229c18-17 45-17 64 0-18 15-46 15-64 0z" fill="#ffe6c0"/>
+    <circle cx="232" cy="226" r="7.5" fill="#100912"/>
+    <circle cx="347" cy="226" r="7.5" fill="#100912"/>
+    <circle cx="235" cy="223" r="2.5" fill="#ffd27b"/>
+    <circle cx="350" cy="223" r="2.5" fill="#ffd27b"/>
+    <path d="M200 229c18 14 44 14 62 0M313 229c19 14 47 14 66 0" fill="none" stroke="#08060a" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M258 236c-11 40-12 65-2 84" fill="none" stroke="#8a4a4d" stroke-width="9" stroke-linecap="round"/>
+    <path d="M214 329c29 22 59 22 90 0" fill="none" stroke="#5b2534" stroke-width="10" stroke-linecap="round"/>
+    <path d="M126 119c42-58 86-87 132-87 52 0 96 32 133 97" fill="none" stroke="#d9b56a" stroke-width="14" stroke-linecap="round"/>
+    <path d="M77 73c39 62 77 82 115 58M435 77c-38 63-75 83-112 58" fill="none" stroke="#c2a0ff" stroke-width="8" stroke-linecap="round" opacity=".42"/>
+    <path d="M112 128l44 14-27 40zM401 130l-43 14 27 40z" fill="#d8a95a"/>
+    <circle cx="157" cy="143" r="17" fill="#f0c56a"/>
+    <circle cx="356" cy="143" r="17" fill="#f0c56a"/>
+    <path d="M201 282c34 22 72 22 112 0" fill="none" stroke="#1a0c14" stroke-width="13" stroke-linecap="round" opacity=".5"/>
+  </g>
+  <path d="M70 456c57 22 119 33 187 33 70 0 133-11 188-33" fill="none" stroke="#dbc0ff" stroke-width="3" opacity=".18"/>
 </svg>

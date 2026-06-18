@@ -1,6 +1,5 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import type {City, GameSnapshot, General, Ruler} from '../api/types';
-import type {LegacyImageResource, LegacyInventorySummary} from '../game/legacyInventory';
 import {portraitForGeneral, portraitForRuler} from '../game/portraitRegistry';
 
 type HudProps = {
@@ -11,7 +10,6 @@ type HudProps = {
   onCommand: (commandId: string, generalId: string) => void;
   onBattle: (generalId: string, targetCityId: string) => void;
   busy: boolean;
-  legacySummary: LegacyInventorySummary;
 };
 
 // adjacentCities returns enemy/neutral cities reachable from cityId in one hop.
@@ -67,7 +65,7 @@ const COMMAND_GROUPS = {
 
 type CommandCategory = keyof typeof COMMAND_GROUPS | '状况';
 
-export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onCommand, onBattle, busy, legacySummary }: HudProps) {
+export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onCommand, onBattle, busy }: HudProps) {
   const [category, setCategory] = useState<CommandCategory>('内政');
   const [commandId, setCommandId] = useState(COMMAND_GROUPS['内政'][0].id);
   const [generalId, setGeneralId] = useState('');
@@ -78,10 +76,6 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
   const playerGenerals = generals.filter((general) => general.ownerId === snapshot.playerId);
   const player = rulerByID.get(snapshot.playerId);
   const ownerPortrait = portraitForRuler(owner);
-  const imageResources = legacySummary.imageResources.slice(0, 6);
-  const imageArchiveStatus = legacySummary.available
-    ? `${legacySummary.presentImageGroups}/${legacySummary.knownImageGroups}`
-    : '未连';
   const playable = selectedCity.ownerId === snapshot.playerId;
   const activeCommands = category === '状况' ? [] : COMMAND_GROUPS[category];
   const activeCommand = activeCommands.find((command) => command.id === commandId) ?? activeCommands[0];
@@ -135,26 +129,6 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
           </div>
         </section>
 
-        <section className="visual-archive">
-          <span className="section-label">图像档案</span>
-          <div className="visual-stage">
-            <img src="/assets/map/sanguo-campaign-map.png" alt="战略地图底图" className="map-preview" />
-            <div>
-              <strong>{imageArchiveStatus} 组</strong>
-              <span>{legacySummary.available ? `${legacySummary.imageResourceItems} 项旧图像` : '现代资产兜底'}</span>
-            </div>
-          </div>
-          {imageResources.length ? (
-            <div className="image-resource-grid">
-              {imageResources.map((resource) => (
-                <LegacyImageChip key={resource.id} resource={resource} />
-              ))}
-            </div>
-          ) : (
-            <p className="muted">旧图像资源未连通</p>
-          )}
-        </section>
-
         <section className="stats-grid">
           <Metric label="金" value={selectedCity.money} />
           <Metric label="粮" value={selectedCity.food} />
@@ -162,16 +136,6 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
           <Metric label="商" value={`${selectedCity.commerce}/${selectedCity.commerceLimit}`} />
           <Metric label="民忠" value={selectedCity.peopleDevotion} />
           <Metric label="防灾" value={selectedCity.avoidCalamity} />
-        </section>
-
-        <section>
-          <span className="section-label">旧档案</span>
-          <div className="legacy-strip">
-            <Metric label="资源" value={legacySummary.available ? legacySummary.totalResources : '未连'} />
-            <Metric label="城名" value={legacySummary.cityNames} />
-            <Metric label="武将" value={legacySummary.generalScenarios} />
-            <Metric label="战场" value={legacySummary.battleMaps} />
-          </div>
         </section>
 
         <section>
@@ -278,11 +242,72 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
         </section>
       </aside>
 
-      <footer className="event-log">
-        {snapshot.log.map((entry) => <span key={entry}>{entry}</span>)}
-      </footer>
+      <EventTicker entries={snapshot.log} />
     </>
   );
+}
+
+function EventTicker({ entries }: { entries: string[] }) {
+  const previousEntries = useRef<string[]>([]);
+  const [queue, setQueue] = useState<string[]>([]);
+  const [current, setCurrent] = useState('');
+  const [serial, setSerial] = useState(0);
+
+  useEffect(() => {
+    const additions = findNewLogEntries(entries, previousEntries.current);
+    previousEntries.current = entries;
+    if (additions.length) {
+      setQueue((items) => [...items, ...additions.reverse()]);
+    }
+  }, [entries]);
+
+  useEffect(() => {
+    if (current || !queue.length) {
+      return;
+    }
+    const [next, ...rest] = queue;
+    setCurrent(next);
+    setSerial((value) => value + 1);
+    setQueue(rest);
+  }, [current, queue]);
+
+  useEffect(() => {
+    if (!current) {
+      return;
+    }
+    const timer = window.setTimeout(() => setCurrent(''), 3200);
+    return () => window.clearTimeout(timer);
+  }, [current]);
+
+  return (
+    <footer className={`event-log ${current ? 'event-log--active' : ''}`} aria-live="polite">
+      <span className="event-log__label">战报</span>
+      {current ? (
+        <span key={serial} className="event-log__message">{current}</span>
+      ) : (
+        <span className="event-log__idle">静候军令</span>
+      )}
+    </footer>
+  );
+}
+
+function findNewLogEntries(current: string[], previous: string[]): string[] {
+  if (!current.length) {
+    return [];
+  }
+  if (!previous.length) {
+    return current.slice(0, 1);
+  }
+  const matchIndex = current.findIndex((_, index) => {
+    if (index + previous.length > current.length) {
+      return false;
+    }
+    return previous.every((entry, previousIndex) => current[index + previousIndex] === entry);
+  });
+  if (matchIndex > 0) {
+    return current.slice(0, matchIndex);
+  }
+  return matchIndex === 0 ? [] : current.slice(0, 1);
 }
 
 function Metric({ label, value }: { label: string; value: number | string }) {
@@ -306,16 +331,6 @@ function PortraitImage({ src, label, className }: { src: string; label: string; 
   return <img src={src} alt={label} className={className} decoding="async" onError={() => setFailed(true)} />;
 }
 
-function LegacyImageChip({ resource }: { resource: LegacyImageResource }) {
-  return (
-    <div className="image-resource-chip">
-      <span>{imageGroupName(resource.group)}</span>
-      <strong>{resource.label}</strong>
-      <em>{resource.itemCount}项</em>
-    </div>
-  );
-}
-
 function GeneralRow({ general }: { general: General }) {
   return (
     <div className="general-row">
@@ -329,19 +344,6 @@ function GeneralRow({ general }: { general: General }) {
       <span>兵 {general.soldiers}</span>
     </div>
   );
-}
-
-function imageGroupName(group: LegacyImageResource['group']): string {
-  switch (group) {
-    case 'battle':
-      return '战斗';
-    case 'campaign':
-      return '地图';
-    case 'portrait':
-      return '头像';
-    case 'ui':
-      return '界面';
-  }
 }
 
 function ownerLabel(owner?: Ruler): string {

@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import {advanceMonth, applyCommand, createGame, getCurrentGame, getLegacyResources, getScenarios, launchBattle} from '../api/client';
-import type {City, GameSnapshot, LegacyResources, RulerOption, ScenarioOption} from '../api/types';
-import {summarizeLegacyInventory} from '../game/legacyInventory';
+import {advanceMonth, applyCommand, createGame, getCurrentGame, getScenarios, launchBattle} from '../api/client';
+import type {City, GameSnapshot, RulerOption, ScenarioOption} from '../api/types';
 import {CampaignMap} from '../phaser/CampaignMap';
 import {Hud} from './Hud';
 import {StartScreen} from './StartScreen';
@@ -12,7 +11,6 @@ export function AppShell() {
   const [snapshot, setSnapshot] = useState<GameSnapshot | null>(null);
   const [scenarios, setScenarios] = useState<ScenarioOption[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<ScenarioOption | null>(null);
-  const [legacyResources, setLegacyResources] = useState<LegacyResources | null>(null);
   const [selectedCityId, setSelectedCityId] = useState('');
   const [mode, setMode] = useState<AppMode>('main');
   const [busy, setBusy] = useState(false);
@@ -22,13 +20,9 @@ export function AppShell() {
     setBusy(true);
     setError(null);
     try {
-      const [scenarioList, legacy] = await Promise.all([
-        getScenarios(),
-        getLegacyResources().catch(() => null),
-      ]);
+      const scenarioList = await getScenarios();
       setScenarios(scenarioList.scenarios);
       setSelectedScenario(scenarioList.scenarios[0] ?? null);
-      setLegacyResources(legacy);
     } catch (err) {
       setError(err instanceof Error ? err.message : '读取旧档案失败');
     } finally {
@@ -46,8 +40,6 @@ export function AppShell() {
     }
     return snapshot.cities.find((city) => city.id === selectedCityId) ?? snapshot.cities[0] ?? null;
   }, [selectedCityId, snapshot]);
-
-  const legacySummary = useMemo(() => summarizeLegacyInventory(legacyResources), [legacyResources]);
 
   const enterGame = useCallback((next: GameSnapshot, preferredCityId = '') => {
     const preferredCity = preferredCityId
@@ -172,7 +164,6 @@ export function AppShell() {
         onCommand={handleCommand}
         onBattle={handleBattle}
         busy={busy}
-        legacySummary={legacySummary}
       />
       {error ? <div role="alert" className="error-toast">{error}</div> : null}
     </main>

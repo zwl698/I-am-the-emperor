@@ -1,4 +1,5 @@
 import type { RulerOption, ScenarioOption } from '../api/types';
+import { portraitForRuler } from '../game/portraitRegistry';
 
 type StartMode = 'main' | 'period' | 'ruler' | 'about';
 
@@ -91,6 +92,7 @@ export function StartScreen({
                   onClick={() => onRulerSelected(ruler)}
                   disabled={busy}
                 >
+                  <img src={portraitForRuler(ruler)} alt={`${ruler.name}头像`} className="ruler-portrait" decoding="async" />
                   <span className="ruler-swatch" style={{ backgroundColor: ruler.color }} />
                   <strong>{ruler.name}</strong>
                   <em>{ruler.character} · {ruler.cityCount} 城</em>

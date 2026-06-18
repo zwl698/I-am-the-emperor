@@ -65,30 +65,25 @@ export class CampaignScene extends Phaser.Scene {
     background.setDepth(-10);
 
     const graphics = this.add.graphics();
-    graphics.fillStyle(0x160e0d, 0.16);
+    graphics.fillStyle(0x160e0d, 0.12);
     graphics.fillRect(0, 0, width, height);
 
-    graphics.lineStyle(1, 0xf5dc9a, 0.05);
-    for (let i = 1; i < 12; i++) {
-      const x = (width / 12) * i;
-      graphics.lineBetween(x, 0, x, height);
-    }
-    for (let i = 1; i < 9; i++) {
-      const y = (height / 9) * i;
-      graphics.lineBetween(0, y, width, y);
-    }
+    graphics.fillStyle(0x050303, 0.22);
+    graphics.fillCircle(-width * 0.08, height * 1.04, width * 0.62);
+    graphics.fillCircle(width * 1.05, -height * 0.12, width * 0.42);
 
-    graphics.lineStyle(28, 0x15100f, 0.22);
+    graphics.lineStyle(28, 0x15100f, 0.18);
     graphics.strokeRect(12, 12, width - 24, height - 24);
-    graphics.lineStyle(2, 0xffe3a4, 0.28);
+    graphics.lineStyle(2, 0xffe3a4, 0.22);
     graphics.strokeRect(28, 28, width - 56, height - 56);
   }
 
   private drawRoutes(width: number, height: number, snapshot: GameSnapshot) {
     const cityByID = new Map(snapshot.cities.map((city) => [city.id, city]));
+    const selectedCity = cityByID.get(this.selectedCityId);
     const graphics = this.add.graphics();
     const compact = snapshot.cities.length > 24 || width < 760;
-    graphics.lineStyle(compact ? 4 : 8, 0x25150e, compact ? 0.16 : 0.26);
+
     for (const route of snapshot.routes) {
       const from = cityByID.get(route.from);
       const to = cityByID.get(route.to);
@@ -97,17 +92,18 @@ export class CampaignScene extends Phaser.Scene {
       }
       const start = projectCity(from, { width, height });
       const end = projectCity(to, { width, height });
+      const relevant = selectedCity && (route.from === selectedCity.id || route.to === selectedCity.id);
+      graphics.lineStyle(
+        relevant ? (compact ? 5 : 8) : (compact ? 2 : 4),
+        0x25150e,
+        relevant ? 0.3 : 0.12,
+      );
       graphics.lineBetween(start.x, start.y, end.x, end.y);
-    }
-    graphics.lineStyle(compact ? 1.5 : 3, 0xf0c978, compact ? 0.42 : 0.68);
-    for (const route of snapshot.routes) {
-      const from = cityByID.get(route.from);
-      const to = cityByID.get(route.to);
-      if (!from || !to) {
-        continue;
-      }
-      const start = projectCity(from, { width, height });
-      const end = projectCity(to, { width, height });
+      graphics.lineStyle(
+        relevant ? (compact ? 2 : 3) : (compact ? 1 : 1.5),
+        relevant ? 0xffdc8a : 0xe3bd78,
+        relevant ? 0.58 : 0.18,
+      );
       graphics.lineBetween(start.x, start.y, end.x, end.y);
     }
   }
