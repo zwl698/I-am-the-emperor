@@ -1,5 +1,7 @@
 package legacyres
 
+import "fmt"
+
 // scenario.go assembles a complete, gameplay-ready snapshot of the legacy
 // 董卓 scenario (period 1) by combining decoded resources:
 //   - resource 57: city economy records (31 bytes each)
@@ -65,6 +67,7 @@ type ScenarioCity struct {
 	X               int
 	Y               int
 	Belong          int // ruler person index + 1; 0 = neutral
+	SatrapID        int
 	FarmingLimit    int
 	Farming         int
 	CommerceLimit   int
@@ -81,6 +84,7 @@ type ScenarioCity struct {
 type ScenarioPerson struct {
 	Index     int
 	Name      string
+	Level     int
 	Force     int
 	IQ        int
 	Devotion  int
@@ -93,6 +97,7 @@ type ScenarioPerson struct {
 
 // Scenario is a complete decoded scenario snapshot.
 type Scenario struct {
+	Period  int
 	Year    int
 	Cities  []ScenarioCity
 	Persons []ScenarioPerson
@@ -100,18 +105,26 @@ type Scenario struct {
 
 // LoadScenario decodes the period-1 (董卓) scenario into a gameplay-ready form.
 func (a *Archive) LoadScenario() (*Scenario, error) {
-	cities, cityNames, err := a.DecodeCitiesWithNames()
+	return a.LoadScenarioPeriod(1)
+}
+
+func (a *Archive) LoadScenarioPeriod(period uint16) (*Scenario, error) {
+	cities, cityNames, err := a.DecodeCitiesWithNamesForPeriod(period)
 	if err != nil {
 		return nil, err
 	}
-	persons, personNames, err := a.DecodePersonsWithNames()
+	persons, personNames, err := a.DecodePersonsWithNamesForPeriod(period)
 	if err != nil {
 		return nil, err
 	}
 
 	coords := CityCoords(len(cities))
+	year, err := a.DecodeScenarioYear(period)
+	if err != nil {
+		return nil, err
+	}
 
-	sc := &Scenario{Year: 189}
+	sc := &Scenario{Period: int(period), Year: year}
 	for i, c := range cities {
 		name := ""
 		if i < len(cityNames) {
@@ -123,6 +136,7 @@ func (a *Archive) LoadScenario() (*Scenario, error) {
 			X:               coords[i].X,
 			Y:               coords[i].Y,
 			Belong:          int(c.Belong),
+			SatrapID:        int(c.SatrapID),
 			FarmingLimit:    int(c.FarmingLimit),
 			Farming:         int(c.Farming),
 			CommerceLimit:   int(c.CommerceLimit),
@@ -144,6 +158,7 @@ func (a *Archive) LoadScenario() (*Scenario, error) {
 		sc.Persons = append(sc.Persons, ScenarioPerson{
 			Index:       int(p.Index),
 			Name:        name,
+			Level:       int(p.Level),
 			Force:       int(p.Force),
 			IQ:          int(p.IQ),
 			Devotion:    int(p.Devotion),
@@ -157,3 +172,18 @@ func (a *Archive) LoadScenario() (*Scenario, error) {
 	return sc, nil
 }
 
+func (a *Archive) DecodeScenarioYear(period uint16) (int, error) {
+	raw, err := a.Item(57, period)
+	if err != nil {
+		return 0, fmt.Errorf("scenario year resource: %w", err)
+	}
+	offset := CityMapCityCount() * CityStructSize
+	if len(raw) < offset+2 {
+		return 0, fmt.Errorf("%w: scenario year offset outside city resource", ErrShortBuffer)
+	}
+	return int(raw[offset]) | int(raw[offset+1])<<8, nil
+}
+
+func CityMapCityCount() int {
+	return 38
+}

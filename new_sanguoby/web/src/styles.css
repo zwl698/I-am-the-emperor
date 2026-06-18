@@ -62,6 +62,182 @@ button.primary {
   color: #fff5e2;
 }
 
+.start-screen {
+  background:
+    linear-gradient(90deg, rgba(11, 10, 8, 0.88) 0%, rgba(19, 13, 10, 0.58) 36%, rgba(19, 13, 10, 0.08) 78%),
+    url("/assets/map/sanguo-campaign-map.png") center / cover no-repeat;
+  color: #fff0c4;
+  min-height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.start-vignette {
+  background:
+    linear-gradient(0deg, rgba(8, 8, 8, 0.72), transparent 28%),
+    radial-gradient(circle at 72% 36%, transparent 0, rgba(8, 8, 8, 0.2) 52%, rgba(8, 8, 8, 0.72) 100%);
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.start-panel {
+  display: grid;
+  gap: 24px;
+  left: 56px;
+  max-height: calc(100vh - 72px);
+  overflow: auto;
+  position: absolute;
+  top: 36px;
+  width: min(470px, calc(100vw - 72px));
+  z-index: 2;
+}
+
+.game-title span,
+.game-title p,
+.menu-head,
+.period-card span,
+.period-card em,
+.ruler-card em {
+  color: #e6c987;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.game-title h1 {
+  color: #fff3c9;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 68px;
+  letter-spacing: 0;
+  line-height: 0.95;
+  margin: 8px 0 10px;
+  text-shadow: 0 5px 28px rgba(0, 0, 0, 0.82);
+}
+
+.game-title p {
+  font-size: 17px;
+  margin: 0;
+}
+
+.main-menu {
+  display: grid;
+  gap: 12px;
+  width: min(320px, 100%);
+}
+
+.menu-choice {
+  align-items: center;
+  background: linear-gradient(90deg, rgba(255, 239, 184, 0.94), rgba(214, 173, 91, 0.88));
+  border: 1px solid rgba(255, 243, 206, 0.62);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+  color: #2d1710;
+  display: flex;
+  font-size: 18px;
+  justify-content: flex-start;
+  min-height: 48px;
+  padding: 0 22px;
+  text-align: left;
+}
+
+.menu-choice.primary {
+  background: linear-gradient(90deg, #a92e25, #d89b44);
+  color: #fff8df;
+}
+
+.period-menu,
+.ruler-menu,
+.about-panel {
+  background: rgba(18, 13, 12, 0.78);
+  border: 1px solid rgba(240, 201, 120, 0.28);
+  backdrop-filter: blur(12px);
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.menu-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.menu-head button {
+  background: rgba(255, 244, 214, 0.12);
+  color: #f8e6ba;
+  min-height: 32px;
+}
+
+.menu-head strong {
+  color: #fff1c7;
+  font-size: 16px;
+}
+
+.period-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.period-card,
+.ruler-card {
+  align-items: center;
+  background: linear-gradient(90deg, rgba(255, 236, 177, 0.13), rgba(22, 15, 13, 0.72));
+  border: 1px solid rgba(240, 201, 120, 0.22);
+  color: #fff0c4;
+  display: grid;
+  justify-items: start;
+  min-height: 74px;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.period-card strong,
+.ruler-card strong {
+  color: #fff5d6;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.ruler-grid {
+  display: grid;
+  gap: 9px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: min(52vh, 520px);
+  overflow: auto;
+}
+
+.ruler-card {
+  grid-template-columns: 18px 1fr;
+  min-height: 66px;
+}
+
+.ruler-card strong,
+.ruler-card em {
+  grid-column: 2;
+}
+
+.ruler-swatch {
+  align-self: stretch;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  grid-row: 1 / span 2;
+  width: 10px;
+}
+
+.about-panel p,
+.start-error {
+  color: #f4dfac;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.start-error {
+  background: rgba(122, 31, 31, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 10px 12px;
+}
+
 .app-shell {
   min-height: 100vh;
   overflow: hidden;
@@ -190,6 +366,85 @@ button.primary {
   width: 92px;
 }
 
+.visual-archive {
+  display: grid;
+  gap: 10px;
+}
+
+.visual-stage {
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(47, 125, 87, 0.22), rgba(76, 134, 165, 0.14)),
+    rgba(255, 242, 198, 0.07);
+  border: 1px solid rgba(76, 134, 165, 0.3);
+  border-radius: 7px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 78px 1fr;
+  min-height: 74px;
+  padding: 8px;
+}
+
+.visual-stage strong {
+  color: #fff3ce;
+  display: block;
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.visual-stage span {
+  color: #bfe2d0;
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 4px;
+}
+
+.map-preview {
+  aspect-ratio: 16 / 9;
+  border: 1px solid rgba(255, 243, 206, 0.28);
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px rgba(32, 24, 17, 0.28);
+  height: 58px;
+  object-fit: cover;
+  width: 78px;
+}
+
+.image-resource-grid {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.image-resource-chip {
+  background: rgba(10, 20, 23, 0.3);
+  border: 1px solid rgba(240, 201, 120, 0.18);
+  border-radius: 6px;
+  min-width: 0;
+  padding: 7px;
+}
+
+.image-resource-chip span,
+.image-resource-chip em {
+  color: #9fc8c6;
+  display: block;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.image-resource-chip strong {
+  color: #fff0c4;
+  display: block;
+  font-size: 13px;
+  line-height: 1.15;
+  margin: 4px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .legacy-strip {
   display: grid;
   gap: 8px;
@@ -247,6 +502,10 @@ button.primary {
   font-weight: 700;
 }
 
+.general-row > span {
+  white-space: nowrap;
+}
+
 .general-avatar {
   aspect-ratio: 1;
   border: 1px solid rgba(240, 201, 120, 0.42);
@@ -255,13 +514,104 @@ button.primary {
   width: 40px;
 }
 
+.portrait-fallback {
+  align-items: center;
+  background:
+    radial-gradient(circle at 50% 25%, rgba(240, 201, 120, 0.34), transparent 46%),
+    linear-gradient(145deg, rgba(47, 125, 87, 0.5), rgba(75, 41, 35, 0.8));
+  color: #fff3ce;
+  display: grid;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-weight: 900;
+  justify-items: center;
+  line-height: 1;
+  place-items: center;
+}
+
+.owner-portrait.portrait-fallback {
+  font-size: 36px;
+}
+
+.general-avatar.portrait-fallback {
+  font-size: 18px;
+}
+
 .general-name {
   display: grid;
   gap: 2px;
   min-width: 0;
 }
 
+.general-name strong,
+.general-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .command-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.command-tabs {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 10px;
+}
+
+.command-tabs button,
+.order-list button,
+.executor-list button {
+  background: rgba(255, 242, 198, 0.08);
+  border: 1px solid rgba(240, 201, 120, 0.18);
+  color: #f7dfac;
+  min-height: 34px;
+  padding: 0 8px;
+}
+
+.command-tabs button.active,
+.order-list button.active,
+.executor-list button.active {
+  background: rgba(155, 47, 47, 0.7);
+  border-color: rgba(255, 235, 178, 0.52);
+  color: #fff7df;
+}
+
+.command-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.order-list {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.executor-list {
+  display: grid;
+  gap: 7px;
+}
+
+.executor-list button {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.executor-list span {
+  color: #d5bb86;
+  font-size: 12px;
+}
+
+.execute-order {
+  width: 100%;
+}
+
+.city-status {
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -323,6 +673,21 @@ button.primary {
 }
 
 @media (max-width: 760px) {
+  .start-panel {
+    left: 16px;
+    max-height: calc(100vh - 32px);
+    top: 16px;
+    width: calc(100vw - 32px);
+  }
+
+  .game-title h1 {
+    font-size: 44px;
+  }
+
+  .ruler-grid {
+    grid-template-columns: 1fr;
+  }
+
   .topbar {
     align-items: flex-start;
     left: 12px;
@@ -352,7 +717,7 @@ button.primary {
     bottom: 64px;
     display: block;
     left: 12px;
-    max-height: 38vh;
+    max-height: 42vh;
     padding: 12px;
     right: 12px;
     top: auto;
@@ -367,6 +732,27 @@ button.primary {
   .command-grid,
   .legacy-strip {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .command-tabs {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .order-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .image-resource-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .visual-stage {
+    grid-template-columns: 92px 1fr;
+  }
+
+  .map-preview {
+    height: 52px;
+    width: 92px;
   }
 
   .general-row {

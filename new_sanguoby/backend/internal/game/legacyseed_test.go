@@ -21,7 +21,7 @@ func legacyArchivePathForGame(t *testing.T) string {
 }
 
 func TestNewGameFromArchiveBuildsRealScenario(t *testing.T) {
-	state, err := NewGameFromArchive(legacyArchivePathForGame(t), "")
+	state, err := NewGameFromArchive(legacyArchivePathForGame(t), "period-1", "")
 	if err != nil {
 		t.Fatalf("NewGameFromArchive error = %v", err)
 	}
@@ -87,7 +87,7 @@ func TestNewGameFromArchiveBuildsRealScenario(t *testing.T) {
 }
 
 func TestNewGameFromArchiveAdvanceMonthWorks(t *testing.T) {
-	state, err := NewGameFromArchive(legacyArchivePathForGame(t), "")
+	state, err := NewGameFromArchive(legacyArchivePathForGame(t), "period-1", "")
 	if err != nil {
 		t.Fatalf("NewGameFromArchive error = %v", err)
 	}
@@ -99,3 +99,29 @@ func TestNewGameFromArchiveAdvanceMonthWorks(t *testing.T) {
 	}
 }
 
+func TestNewGameFromArchiveLoadsAllLegacyPeriods(t *testing.T) {
+	archivePath := legacyArchivePathForGame(t)
+	for _, tc := range []struct {
+		scenarioID string
+		wantYear   int
+	}{
+		{"period-1", 190},
+		{"period-2", 198},
+		{"period-3", 208},
+		{"period-4", 225},
+	} {
+		state, err := NewGameFromArchive(archivePath, tc.scenarioID, "")
+		if err != nil {
+			t.Fatalf("NewGameFromArchive(%s) error = %v", tc.scenarioID, err)
+		}
+		if state.ScenarioID != tc.scenarioID {
+			t.Errorf("scenario id = %q, want %q", state.ScenarioID, tc.scenarioID)
+		}
+		if state.Date.Year != tc.wantYear {
+			t.Errorf("%s year = %d, want %d", tc.scenarioID, state.Date.Year, tc.wantYear)
+		}
+		if len(state.Rulers) < 2 {
+			t.Errorf("%s rulers = %d, want several factions", tc.scenarioID, len(state.Rulers))
+		}
+	}
+}

@@ -62,9 +62,36 @@ export type GameSnapshot = {
   log: string[];
 };
 
+export type RulerOption = {
+  id: string;
+  name: string;
+  character: string;
+  color: string;
+  cityCount: number;
+};
+
+export type ScenarioOption = {
+  id: string;
+  period: number;
+  name: string;
+  year: number;
+  rulers: RulerOption[];
+  cityMax: number;
+};
+
+export type ScenarioList = {
+  scenarios: ScenarioOption[];
+};
+
 export type CreateGameRequest = {
   scenarioId: string;
   playerId: string;
+};
+
+export type CommandRequest = {
+  cityId: string;
+  generalId: string;
+  commandId: string;
 };
 
 export type LegacyResourceHeader = {

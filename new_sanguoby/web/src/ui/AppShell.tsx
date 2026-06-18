@@ -1,38 +1,44 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import {advanceMonth, createGame, getCurrentGame, getLegacyResources} from '../api/client';
-import type {City, GameSnapshot, LegacyResources} from '../api/types';
+import {advanceMonth, applyCommand, createGame, getCurrentGame, getLegacyResources, getScenarios} from '../api/client';
+import type {City, GameSnapshot, LegacyResources, RulerOption, ScenarioOption} from '../api/types';
 import {summarizeLegacyInventory} from '../game/legacyInventory';
 import {CampaignMap} from '../phaser/CampaignMap';
 import {Hud} from './Hud';
+import {StartScreen} from './StartScreen';
+
+type AppMode = 'main' | 'period' | 'ruler' | 'about' | 'game';
 
 export function AppShell() {
   const [snapshot, setSnapshot] = useState<GameSnapshot | null>(null);
+  const [scenarios, setScenarios] = useState<ScenarioOption[]>([]);
+  const [selectedScenario, setSelectedScenario] = useState<ScenarioOption | null>(null);
   const [legacyResources, setLegacyResources] = useState<LegacyResources | null>(null);
   const [selectedCityId, setSelectedCityId] = useState('');
+  const [mode, setMode] = useState<AppMode>('main');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadCurrent = useCallback(async () => {
+  const loadBootstrap = useCallback(async () => {
     setBusy(true);
     setError(null);
     try {
-      const [next, legacy] = await Promise.all([
-        getCurrentGame(),
+      const [scenarioList, legacy] = await Promise.all([
+        getScenarios(),
         getLegacyResources().catch(() => null),
       ]);
-      setSnapshot(next);
+      setScenarios(scenarioList.scenarios);
+      setSelectedScenario(scenarioList.scenarios[0] ?? null);
       setLegacyResources(legacy);
-      setSelectedCityId(next.cities.find((city) => city.ownerId === next.playerId)?.id ?? next.cities[0]?.id ?? '');
     } catch (err) {
-      setError(err instanceof Error ? err.message : '读取游戏状态失败');
+      setError(err instanceof Error ? err.message : '读取旧档案失败');
     } finally {
       setBusy(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadCurrent();
-  }, [loadCurrent]);
+    void loadBootstrap();
+  }, [loadBootstrap]);
 
   const selectedCity = useMemo<City | null>(() => {
     if (!snapshot) {
@@ -43,52 +49,109 @@ export function AppShell() {
 
   const legacySummary = useMemo(() => summarizeLegacyInventory(legacyResources), [legacyResources]);
 
-  const handleNewGame = useCallback(async () => {
+  const enterGame = useCallback((next: GameSnapshot, preferredCityId = '') => {
+    const preferredCity = preferredCityId
+      ? next.cities.find((city) => city.id === preferredCityId)
+      : null;
+    setSnapshot(next);
+    setSelectedCityId(preferredCity?.id ?? next.cities.find((city) => city.ownerId === next.playerId)?.id ?? next.cities[0]?.id ?? '');
+    setMode('game');
+  }, []);
+
+  const handleScenarioSelected = useCallback((scenario: ScenarioOption) => {
+    setSelectedScenario(scenario);
+    setMode('ruler');
+  }, []);
+
+  const handleRulerSelected = useCallback(async (ruler: RulerOption) => {
+    if (!selectedScenario) {
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      const next = await createGame({ scenarioId: 'dongzhuo', playerId: '' });
-      setSnapshot(next);
-      setSelectedCityId(
-        next.cities.find((city) => city.ownerId === next.playerId)?.id ?? next.cities[0]?.id ?? '',
-      );
+      enterGame(await createGame({ scenarioId: selectedScenario.id, playerId: ruler.id }));
     } catch (err) {
       setError(err instanceof Error ? err.message : '创建新游戏失败');
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [enterGame, selectedScenario]);
+
+  const handleContinue = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      enterGame(await getCurrentGame());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '读取战局失败');
+    } finally {
+      setBusy(false);
+    }
+  }, [enterGame]);
 
   const handleAdvanceMonth = useCallback(async () => {
     setBusy(true);
     setError(null);
     try {
-      setSnapshot(await advanceMonth());
+      enterGame(await advanceMonth(), selectedCity?.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : '推进月份失败');
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [enterGame, selectedCity]);
+
+  const handleCommand = useCallback(async (commandId: string, generalId: string) => {
+    if (!selectedCity) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      enterGame(await applyCommand({ cityId: selectedCity.id, generalId, commandId }), selectedCity.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '命令执行失败');
+    } finally {
+      setBusy(false);
+    }
+  }, [enterGame, selectedCity]);
+
+  if (mode !== 'game') {
+    return (
+      <StartScreen
+        mode={mode}
+        scenarios={scenarios}
+        selectedScenario={selectedScenario}
+        busy={busy}
+        error={error}
+        onModeChange={setMode}
+        onScenarioSelected={handleScenarioSelected}
+        onRulerSelected={handleRulerSelected}
+        onContinue={handleContinue}
+      />
+    );
+  }
 
   if (!snapshot || !selectedCity) {
     return (
       <main className="loading-screen">
         <h1>三国霸业</h1>
         <p>{error ?? '正在整军备战...'}</p>
-        {error ? <button type="button" onClick={loadCurrent}>重试</button> : null}
+        {error ? <button type="button" onClick={loadBootstrap}>重试</button> : null}
       </main>
     );
   }
 
   return (
     <main className="app-shell">
-      <CampaignMap snapshot={snapshot} onCitySelected={setSelectedCityId} />
+      <CampaignMap snapshot={snapshot} selectedCityId={selectedCity.id} onCitySelected={setSelectedCityId} />
       <Hud
         snapshot={snapshot}
         selectedCity={selectedCity}
-        onNewGame={handleNewGame}
-        onAdvanceMonth={handleAdvanceMonth}
+        onMainMenu={() => setMode('main')}
+        onEndStrategy={handleAdvanceMonth}
+        onCommand={handleCommand}
         busy={busy}
         legacySummary={legacySummary}
       />

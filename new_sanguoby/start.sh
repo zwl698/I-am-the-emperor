@@ -16,6 +16,10 @@
 #
 # 按 Ctrl-C 可同时停止前后端。
 
+if [ -z "${BASH_VERSION:-}" ]; then
+  exec /usr/bin/env bash "$0" "$@"
+fi
+
 set -euo pipefail
 
 # 切换到脚本所在目录 (new_sanguoby)
@@ -42,8 +46,13 @@ case "${1:-}" in
 esac
 
 PIDS=()
+CLEANED_UP=0
 
 cleanup() {
+  if [[ "$CLEANED_UP" -eq 1 ]]; then
+    return
+  fi
+  CLEANED_UP=1
   echo ""
   echo "[start] 正在停止服务..."
   for pid in "${PIDS[@]:-}"; do
@@ -58,6 +67,38 @@ cleanup() {
 trap cleanup INT TERM EXIT
 
 color() { printf "\033[%sm%s\033[0m" "$1" "$2"; }
+
+ensure_node_runtime() {
+  if command -v node >/dev/null 2>&1; then
+    return
+  fi
+
+  local candidates=(
+    "$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin"
+    "$HOME/.local/node/bin"
+    "/opt/homebrew/bin"
+    "/usr/local/bin"
+  )
+  local dir
+  for dir in "${candidates[@]}"; do
+    if [[ -x "$dir/node" ]]; then
+      export PATH="$dir:$PATH"
+      echo "$(color '35' '[frontend]') 已自动使用 Node: $dir/node"
+      return
+    fi
+  done
+
+  echo "$(color '31' '[frontend]') 未找到 node。请安装 Node.js，或将 node 所在目录加入 PATH 后重试。"
+  exit 1
+}
+
+ensure_frontend_tools() {
+  ensure_node_runtime
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "$(color '31' '[frontend]') 未找到 npm。请安装 npm，或将 npm 所在目录加入 PATH 后重试。"
+    exit 1
+  fi
+}
 
 # 检测端口是否被占用, 被占用则提示并退出, 避免 go run 静默失败。
 ensure_port_free() {
@@ -81,6 +122,7 @@ start_backend() {
 }
 
 start_frontend() {
+  ensure_frontend_tools
   if [[ ! -d "web/node_modules" ]]; then
     echo "$(color '35' '[frontend]') 未检测到 node_modules, 正在安装依赖..."
     (cd web && npm install)
@@ -98,4 +140,3 @@ start_frontend() {
 
 echo "[start] 服务已启动, 按 Ctrl-C 停止。"
 wait
-

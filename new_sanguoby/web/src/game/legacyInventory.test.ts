@@ -11,29 +11,39 @@ describe('summarizeLegacyInventory', () => {
         { address: 192843, length: 392, id: 58, itemCount: 43, itemLength: 10, key: 192, reserved: 0 },
         { address: 65536, length: 12013, id: 61, itemCount: 4, itemLength: 3000, key: 0, reserved: 0 },
         { address: 111412, length: 2914, id: 64, itemCount: 163, itemLength: 0, key: 192, reserved: 0 },
+        { address: 144000, length: 512, id: 5, itemCount: 6, itemLength: 80, key: 0, reserved: 0 },
+        { address: 150000, length: 1024, id: 48, itemCount: 200, itemLength: 0, key: 0, reserved: 0 },
         { address: 181588, length: 1052, id: 110, itemCount: 1, itemLength: 1040, key: 0, reserved: 0 },
         { address: 182640, length: 1052, id: 111, itemCount: 1, itemLength: 1040, key: 0, reserved: 0 },
       ],
     };
 
-    expect(summarizeLegacyInventory(inventory)).toEqual({
+    const summary = summarizeLegacyInventory(inventory);
+
+    expect(summary).toEqual(expect.objectContaining({
       available: true,
       totalResources: 87,
       cityNames: 43,
       generalScenarios: 4,
       variableStrings: 163,
       battleMaps: 2,
-    });
+      presentImageGroups: 4,
+      imageResourceItems: 208,
+    }));
+    expect(summary.imageResources.map((resource) => resource.label)).toEqual(['兵种', '头像一', '战场一', '战场二']);
   });
 
   it('returns an unavailable summary when the archive cannot be read', () => {
-    expect(summarizeLegacyInventory(null)).toEqual({
+    expect(summarizeLegacyInventory(null)).toEqual(expect.objectContaining({
       available: false,
       totalResources: 0,
       cityNames: 0,
       generalScenarios: 0,
       variableStrings: 0,
       battleMaps: 0,
-    });
+      presentImageGroups: 0,
+      imageResourceItems: 0,
+      imageResources: [],
+    }));
   });
 });

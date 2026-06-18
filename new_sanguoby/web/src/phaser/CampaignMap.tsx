@@ -5,10 +5,11 @@ import { CampaignScene } from './scenes/CampaignScene';
 
 type CampaignMapProps = {
   snapshot: GameSnapshot;
+  selectedCityId: string;
   onCitySelected: (cityId: string) => void;
 };
 
-export function CampaignMap({ snapshot, onCitySelected }: CampaignMapProps) {
+export function CampaignMap({ snapshot, selectedCityId, onCitySelected }: CampaignMapProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<CampaignScene | null>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
@@ -46,6 +47,10 @@ export function CampaignMap({ snapshot, onCitySelected }: CampaignMapProps) {
   useEffect(() => {
     sceneRef.current?.setSnapshot(snapshot);
   }, [snapshot]);
+
+  useEffect(() => {
+    sceneRef.current?.setSelectedCity(selectedCityId);
+  }, [selectedCityId]);
 
   return <div ref={hostRef} className="campaign-map" aria-label="战略地图" />;
 }

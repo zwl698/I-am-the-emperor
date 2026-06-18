@@ -49,9 +49,9 @@ var (
 //   25-30 reserved/queue indices
 
 type LegacyCity struct {
-	Index           uint8  // 城池索引 (0-based)
-	Belong          uint8  // 归属 (ruler index + 1; 0 = neutral)
-	SatrapID        uint8  // 太守索引
+	Index           uint8 // 城池索引 (0-based)
+	Belong          uint8 // 归属 (ruler index + 1; 0 = neutral)
+	SatrapID        uint8 // 太守索引
 	FarmingLimit    uint16
 	Farming         uint16
 	CommerceLimit   uint16
@@ -100,10 +100,14 @@ func DecodeCities(raw []byte, maxCities int) ([]*LegacyCity, error) {
 	return cities, nil
 }
 
-// DecodeCitiesWithNames decodes all scenario cities from resource 57 (period 1)
-// and pairs each with its name from resource 58.
+// DecodeCitiesWithNames decodes all scenario cities from resource 57 for the
+// requested period (1-4) and pairs each with its name from resource 58.
 func (a *Archive) DecodeCitiesWithNames() ([]*LegacyCity, []string, error) {
-	raw, err := a.Item(57, 1)
+	return a.DecodeCitiesWithNamesForPeriod(1)
+}
+
+func (a *Archive) DecodeCitiesWithNamesForPeriod(period uint16) ([]*LegacyCity, []string, error) {
+	raw, err := a.Item(57, period)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cities resource: %w", err)
 	}
@@ -148,16 +152,16 @@ func (a *Archive) DecodeCitiesWithNames() ([]*LegacyCity, []string, error) {
 //   14 Age       u8  年龄
 
 type LegacyPerson struct {
-	Index      uint8  // 武将索引 (0-based)
-	NameItem   uint8  // 名字资源项号 (1-based)
+	Index      uint8 // 武将索引 (0-based)
+	NameItem   uint8 // 名字资源项号 (1-based)
 	Level      uint8
-	Force      uint8 // 武力
-	IQ         uint8 // 智力
-	Devotion   uint8 // 忠诚
-	Character  uint8 // 性格 0-4
-	Experience uint8 // 经验
-	Thew       uint8 // 体力
-	ArmsType   uint8 // 兵种 0-5
+	Force      uint8    // 武力
+	IQ         uint8    // 智力
+	Devotion   uint8    // 忠诚
+	Character  uint8    // 性格 0-4
+	Experience uint8    // 经验
+	Thew       uint8    // 体力
+	ArmsType   uint8    // 兵种 0-5
 	Equip      [2]uint8 // 装备道具
 	Age        uint8    // 年龄
 }
@@ -198,10 +202,14 @@ func DecodePersons(raw []byte) ([]*LegacyPerson, error) {
 }
 
 // DecodePersonName reads a single general name from resource 62 (period 1).
-// Names are 8-byte GBK items, 1-based, with key=195 subtract decryption applied
-// by Archive.Item, then transcoded to UTF-8.
+// Names are 8-byte GBK items, 1-based, with key subtract decryption applied by
+// Archive.Item, then transcoded to UTF-8.
 func (a *Archive) DecodePersonName(nameItem uint8) (string, error) {
-	item, err := a.Item(62, uint16(nameItem))
+	return a.DecodePersonNameForPeriod(1, nameItem)
+}
+
+func (a *Archive) DecodePersonNameForPeriod(period uint16, nameItem uint8) (string, error) {
+	item, err := a.Item(personNameResourceID(period), uint16(nameItem))
 	if err != nil {
 		return "", err
 	}
@@ -209,9 +217,13 @@ func (a *Archive) DecodePersonName(nameItem uint8) (string, error) {
 }
 
 // DecodePersonsWithNames decodes all scenario persons from resource 61 item 1
-// and pairs each with its name from resource 62.
+// and pairs each with its period-appropriate name resource.
 func (a *Archive) DecodePersonsWithNames() ([]*LegacyPerson, []string, error) {
-	raw, err := a.Item(61, 1)
+	return a.DecodePersonsWithNamesForPeriod(1)
+}
+
+func (a *Archive) DecodePersonsWithNamesForPeriod(period uint16) ([]*LegacyPerson, []string, error) {
+	raw, err := a.Item(61, period)
 	if err != nil {
 		return nil, nil, fmt.Errorf("persons resource: %w", err)
 	}
@@ -221,7 +233,7 @@ func (a *Archive) DecodePersonsWithNames() ([]*LegacyPerson, []string, error) {
 	}
 	names := make([]string, len(persons))
 	for i, p := range persons {
-		name, nerr := a.DecodePersonName(p.NameItem)
+		name, nerr := a.DecodePersonNameForPeriod(period, p.NameItem)
 		if nerr != nil {
 			names[i] = ""
 			continue
@@ -229,6 +241,19 @@ func (a *Archive) DecodePersonsWithNames() ([]*LegacyPerson, []string, error) {
 		names[i] = name
 	}
 	return persons, names, nil
+}
+
+func personNameResourceID(period uint16) uint16 {
+	switch period {
+	case 2:
+		return 70
+	case 3:
+		return 71
+	case 4:
+		return 72
+	default:
+		return 62
+	}
 }
 
 // padTo right-pads (or truncates) a byte slice to length n with zeros.
@@ -326,4 +351,3 @@ var CityStateNames = map[uint8]string{
 	3: "水灾",
 	4: "暴动",
 }
-

@@ -21,12 +21,13 @@ var rulerColors = []string{
 //
 // If the archive cannot be loaded, an error is returned so the caller can fall
 // back to the authored seed.
-func NewGameFromArchive(archivePath, playerID string) (*GameState, error) {
+func NewGameFromArchive(archivePath, scenarioID, playerID string) (*GameState, error) {
 	archive, err := legacyres.Open(archivePath)
 	if err != nil {
 		return nil, fmt.Errorf("open legacy archive: %w", err)
 	}
-	scenario, err := archive.LoadScenario()
+	period := periodFromScenarioID(scenarioID)
+	scenario, err := archive.LoadScenarioPeriod(uint16(period))
 	if err != nil {
 		return nil, fmt.Errorf("load legacy scenario: %w", err)
 	}
@@ -118,25 +119,27 @@ func buildGameFromScenario(sc *legacyres.Scenario, playerID string) *GameState {
 		}
 	}
 
-	// 5. Place each ruler general in their capital. Other generals are placed in
-	//    their faction's capital as a faithful starting roster; persons without a
-	//    known faction are skipped (they appear later in the campaign).
-	generals := make([]General, 0, len(rulerIndices))
-	for _, idx := range rulerIndices {
-		if idx < 0 || idx >= len(sc.Persons) {
-			continue
+	// 5. Place city satraps where the legacy scenario names them, then ensure
+	//    every ruler exists in their capital. The compact resource does not keep
+	//    full person queues, but this restores the old flow: most owned cities
+	//    have a usable officer for player commands.
+	generals := make([]General, 0, len(rulerIndices)+len(sc.Cities))
+	usedPersons := map[int]bool{}
+	addGeneral := func(personIndex int, ownerID string, cityID string) {
+		if personIndex < 0 || personIndex >= len(sc.Persons) || usedPersons[personIndex] {
+			return
 		}
-		p := sc.Persons[idx]
-		cityID, ok := capitalByRuler[idx]
-		if !ok {
-			continue
+		p := sc.Persons[personIndex]
+		level := p.Level
+		if level <= 0 {
+			level = 1
 		}
 		generals = append(generals, General{
 			ID:        fmt.Sprintf("gen-%d", p.Index),
 			Name:      p.Name,
-			OwnerID:   rulerID[idx],
+			OwnerID:   ownerID,
 			CityID:    cityID,
-			Level:     1,
+			Level:     level,
 			Force:     p.Force,
 			Intellect: p.IQ,
 			Loyalty:   p.Devotion,
@@ -144,6 +147,24 @@ func buildGameFromScenario(sc *legacyres.Scenario, playerID string) *GameState {
 			Soldiers:  initialSoldiers(p.Force),
 			ArmsType:  p.ArmsType,
 		})
+		usedPersons[personIndex] = true
+	}
+
+	for _, c := range sc.Cities {
+		if c.Belong <= 0 {
+			continue
+		}
+		ownerID := rulerID[c.Belong-1]
+		cityID := cityIDByIndex[c.Index]
+		addGeneral(c.SatrapID, ownerID, cityID)
+	}
+
+	for _, idx := range rulerIndices {
+		cityID, ok := capitalByRuler[idx]
+		if !ok {
+			continue
+		}
+		addGeneral(idx, rulerID[idx], cityID)
 	}
 
 	// 6. Build routes between adjacent cities on the grid (4-neighbour).
@@ -164,7 +185,7 @@ func buildGameFromScenario(sc *legacyres.Scenario, playerID string) *GameState {
 	}
 
 	return &GameState{
-		ScenarioID: "dongzhuo-legacy",
+		ScenarioID: fmt.Sprintf("period-%d", sc.Period),
 		PlayerID:   resolvedPlayer,
 		Date:       Date{Year: sc.Year, Month: 1},
 		Rulers:     rulers,
@@ -172,6 +193,19 @@ func buildGameFromScenario(sc *legacyres.Scenario, playerID string) *GameState {
 		Generals:   generals,
 		Routes:     routes,
 		Log:        []string{fmt.Sprintf("%d年，群雄并起，董卓弄权。", sc.Year)},
+	}
+}
+
+func periodFromScenarioID(scenarioID string) int {
+	switch scenarioID {
+	case "period-2", "caocao-rise":
+		return 2
+	case "period-3", "chibi":
+		return 3
+	case "period-4", "three-kingdoms":
+		return 4
+	default:
+		return 1
 	}
 }
 
@@ -234,4 +268,3 @@ func buildGridRoutes(cities []legacyres.ScenarioCity, idByIndex map[int]string) 
 	}
 	return routes
 }
-

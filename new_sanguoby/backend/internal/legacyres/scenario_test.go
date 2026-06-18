@@ -61,3 +61,33 @@ func TestLoadScenarioAssemblesDongzhuo(t *testing.T) {
 	}
 }
 
+func TestLoadScenarioPeriodReadsLegacyYears(t *testing.T) {
+	archive, err := Open(decodeTestArchivePath(t))
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+
+	for _, tc := range []struct {
+		period   uint16
+		wantYear int
+	}{
+		{1, 190},
+		{2, 198},
+		{3, 208},
+		{4, 225},
+	} {
+		sc, err := archive.LoadScenarioPeriod(tc.period)
+		if err != nil {
+			t.Fatalf("LoadScenarioPeriod(%d) error = %v", tc.period, err)
+		}
+		if sc.Period != int(tc.period) {
+			t.Errorf("period = %d, want %d", sc.Period, tc.period)
+		}
+		if sc.Year != tc.wantYear {
+			t.Errorf("period %d year = %d, want %d", tc.period, sc.Year, tc.wantYear)
+		}
+		if len(sc.Cities) != 38 || len(sc.Persons) == 0 {
+			t.Errorf("period %d decoded cities=%d persons=%d", tc.period, len(sc.Cities), len(sc.Persons))
+		}
+	}
+}

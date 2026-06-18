@@ -63,6 +63,51 @@ func TestGameEndpointsCreateReadAndAdvance(t *testing.T) {
 	}
 }
 
+func TestCommandEndpointAppliesPlayerOrder(t *testing.T) {
+	handler := NewWithOptions(Options{LegacyArchivePath: ""})
+	createBody := bytes.NewBufferString(`{"scenarioId":"dongzhuo","playerId":"caocao"}`)
+	createReq := httptest.NewRequest(http.MethodPost, "/api/games", createBody)
+	createRec := httptest.NewRecorder()
+	handler.ServeHTTP(createRec, createReq)
+	if createRec.Code != http.StatusCreated {
+		t.Fatalf("create status = %d, want %d", createRec.Code, http.StatusCreated)
+	}
+
+	commandBody := bytes.NewBufferString(`{"cityId":"xuchang","generalId":"cao-cao","commandId":"assart"}`)
+	commandReq := httptest.NewRequest(http.MethodPost, "/api/games/current/command", commandBody)
+	commandRec := httptest.NewRecorder()
+	handler.ServeHTTP(commandRec, commandReq)
+
+	if commandRec.Code != http.StatusOK {
+		t.Fatalf("command status = %d, want %d; body: %s", commandRec.Code, http.StatusOK, commandRec.Body.String())
+	}
+}
+
+func TestScenariosEndpointListsLegacyPeriodsAndRulers(t *testing.T) {
+	handler := NewWithOptions(Options{LegacyArchivePath: legacyArchivePath(t)})
+	req := httptest.NewRequest(http.MethodGet, "/api/scenarios", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	var body scenarioListBody
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("decode scenarios response: %v", err)
+	}
+	if len(body.Scenarios) != 4 {
+		t.Fatalf("scenarios = %d, want 4", len(body.Scenarios))
+	}
+	if body.Scenarios[0].ID != "period-1" || body.Scenarios[0].Year != 190 {
+		t.Fatalf("first scenario = %#v, want period-1 year 190", body.Scenarios[0])
+	}
+	if len(body.Scenarios[0].Rulers) == 0 {
+		t.Fatal("period-1 has no selectable rulers")
+	}
+}
+
 func TestLegacyResourcesEndpointListsArchive(t *testing.T) {
 	handler := NewWithOptions(Options{LegacyArchivePath: legacyArchivePath(t)})
 	req := httptest.NewRequest(http.MethodGet, "/api/legacy/resources", nil)
@@ -116,6 +161,17 @@ type legacyResourcesBody struct {
 		ItemCount  uint16 `json:"itemCount"`
 		ItemLength uint16 `json:"itemLength"`
 	} `json:"resources"`
+}
+
+type scenarioListBody struct {
+	Scenarios []struct {
+		ID     string `json:"id"`
+		Year   int    `json:"year"`
+		Rulers []struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"rulers"`
+	} `json:"scenarios"`
 }
 
 func (b legacyResourcesBody) hasResource(id, itemCount, itemLength uint16) bool {

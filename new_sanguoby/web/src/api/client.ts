@@ -1,4 +1,4 @@
-import type { CreateGameRequest, GameSnapshot, LegacyResources } from './types';
+import type { CommandRequest, CreateGameRequest, GameSnapshot, LegacyResources, ScenarioList } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 
@@ -9,8 +9,19 @@ export async function createGame(request: CreateGameRequest): Promise<GameSnapsh
   });
 }
 
+export async function getScenarios(): Promise<ScenarioList> {
+  return requestJSON('/api/scenarios');
+}
+
 export async function getCurrentGame(): Promise<GameSnapshot> {
   return requestJSON('/api/games/current');
+}
+
+export async function applyCommand(request: CommandRequest): Promise<GameSnapshot> {
+  return requestJSON('/api/games/current/command', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
 }
 
 export async function advanceMonth(): Promise<GameSnapshot> {
