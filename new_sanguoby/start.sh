@@ -94,10 +94,38 @@ ensure_node_runtime() {
 
 ensure_frontend_tools() {
   ensure_node_runtime
+  if ! command -v npm >/dev/null 2>&1 && [[ -x "$HOME/.local/bin/npm" ]]; then
+    export PATH="$HOME/.local/bin:$PATH"
+  fi
   if ! command -v npm >/dev/null 2>&1; then
     echo "$(color '31' '[frontend]') 未找到 npm。请安装 npm，或将 npm 所在目录加入 PATH 后重试。"
     exit 1
   fi
+}
+
+ensure_go_runtime() {
+  if command -v go >/dev/null 2>&1 && go list encoding/binary >/dev/null 2>&1; then
+    return
+  fi
+
+  local candidates=(
+    "$HOME/go/go1.26.1/bin"
+    "$HOME/sdk/go1.26.1/bin"
+    "/opt/homebrew/opt/go@1.26/bin"
+    "/opt/homebrew/opt/go/bin"
+    "/usr/local/go/bin"
+  )
+  local dir
+  for dir in "${candidates[@]}"; do
+    if [[ -x "$dir/go" ]] && "$dir/go" list encoding/binary >/dev/null 2>&1; then
+      export PATH="$dir:$PATH"
+      echo "$(color '36' '[backend]') 已自动使用 Go: $dir/go"
+      return
+    fi
+  done
+
+  echo "$(color '31' '[backend]') 未找到可用 Go。请安装 Go，或将可用 go 所在目录加入 PATH 后重试。"
+  exit 1
 }
 
 # 检测端口是否被占用, 被占用则提示并退出, 避免 go run 静默失败。
@@ -111,6 +139,7 @@ ensure_port_free() {
 }
 
 start_backend() {
+  ensure_go_runtime
   echo "$(color '36' '[backend]') 启动 Go 服务于 http://$BACKEND_HOST:$BACKEND_PORT"
   echo "$(color '36' '[backend]') 档案路径: $LEGACY_ARCHIVE_PATH"
   if [[ ! -f "$LEGACY_ARCHIVE_PATH" ]]; then

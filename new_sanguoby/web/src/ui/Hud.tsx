@@ -1,6 +1,7 @@
 import {useEffect, useRef, useState} from 'react';
 import type {City, GameSnapshot, General, Ruler} from '../api/types';
 import {portraitForGeneral, portraitForRuler} from '../game/portraitRegistry';
+import { PortraitImage } from './PortraitImage';
 
 type HudProps = {
   snapshot: GameSnapshot;
@@ -117,7 +118,12 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
       <aside className="status-rail">
         <section>
           <div className="city-hero">
-            <PortraitImage src={ownerPortrait} label={`${ownerLabel(owner)}头像`} className="owner-portrait" />
+            <PortraitImage
+              src={ownerPortrait}
+              alt={`${ownerLabel(owner)}头像`}
+              className="owner-portrait"
+              fallbackLabel={ownerLabel(owner)}
+            />
             <div>
               <span className="section-label">所选城池</span>
               <h2>{selectedCity.name}</h2>
@@ -248,12 +254,16 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
 }
 
 function EventTicker({ entries }: { entries: string[] }) {
-  const previousEntries = useRef<string[]>([]);
+  const previousEntries = useRef<string[] | null>(null);
   const [queue, setQueue] = useState<string[]>([]);
   const [current, setCurrent] = useState('');
   const [serial, setSerial] = useState(0);
 
   useEffect(() => {
+    if (previousEntries.current === null) {
+      previousEntries.current = entries;
+      return;
+    }
     const additions = findNewLogEntries(entries, previousEntries.current);
     previousEntries.current = entries;
     if (additions.length) {
@@ -319,22 +329,15 @@ function Metric({ label, value }: { label: string; value: number | string }) {
   );
 }
 
-function PortraitImage({ src, label, className }: { src: string; label: string; className: string }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) {
-    return (
-      <span className={`${className} portrait-fallback`} role="img" aria-label={label}>
-        {label.trim().slice(0, 1) || '将'}
-      </span>
-    );
-  }
-  return <img src={src} alt={label} className={className} decoding="async" onError={() => setFailed(true)} />;
-}
-
 function GeneralRow({ general }: { general: General }) {
   return (
     <div className="general-row">
-      <PortraitImage src={portraitForGeneral(general)} label={`${general.name}头像`} className="general-avatar" />
+      <PortraitImage
+        src={portraitForGeneral(general)}
+        alt={`${general.name}头像`}
+        className="general-avatar"
+        fallbackLabel={general.name}
+      />
       <div className="general-name">
         <strong>{general.name}</strong>
         <span>{general.armsType} · Lv.{general.level}</span>

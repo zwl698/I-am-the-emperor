@@ -1,5 +1,6 @@
 import type { RulerOption, ScenarioOption } from '../api/types';
 import { portraitForRuler } from '../game/portraitRegistry';
+import { PortraitImage } from './PortraitImage';
 
 type StartMode = 'main' | 'period' | 'ruler' | 'about';
 
@@ -29,7 +30,7 @@ export function StartScreen({
   return (
     <main className="start-screen">
       <div className="start-vignette" />
-      <section className="start-panel">
+      <section className={`start-panel start-panel--${mode}`}>
         <div className="game-title">
           <span>步步高经典复刻</span>
           <h1>三国霸业</h1>
@@ -92,7 +93,12 @@ export function StartScreen({
                   onClick={() => onRulerSelected(ruler)}
                   disabled={busy}
                 >
-                  <img src={portraitForRuler(ruler)} alt={`${ruler.name}头像`} className="ruler-portrait" decoding="async" />
+                  <PortraitImage
+                    src={portraitForRuler(ruler)}
+                    alt={`${ruler.name}头像`}
+                    className="ruler-portrait"
+                    fallbackLabel={ruler.name}
+                  />
                   <span className="ruler-swatch" style={{ backgroundColor: ruler.color }} />
                   <strong>{ruler.name}</strong>
                   <em>{ruler.character} · {ruler.cityCount} 城</em>

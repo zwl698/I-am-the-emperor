@@ -9,6 +9,8 @@ const (
 // "策略结束": rival warlords act, then the calendar/economy is settled, then the
 // victory state is evaluated. This is the entry point used by the server.
 func (s *GameState) EndStrategyPhase() {
+	currentDate := formatDate(s.Date)
+	s.prependLog(currentDate + " 策略结束，诸侯开始行动。")
 	captures := s.RunEnemyTurns()
 	s.AdvanceMonth()
 	if captures > 0 {
@@ -48,7 +50,7 @@ func (s *GameState) AdvanceMonth() {
 		s.consumeMonthlyFood(city)
 	}
 
-	s.prependLog(formatDate(s.Date) + " 政令已结算。")
+	s.prependLog(formatDate(s.Date) + " 政令已结算，诸将体力恢复。")
 }
 
 // evaluateVictory checks whether the campaign has reached an end state and logs

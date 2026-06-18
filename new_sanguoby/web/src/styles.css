@@ -93,6 +93,10 @@ button.primary {
   z-index: 2;
 }
 
+.start-panel--ruler {
+  width: min(940px, calc(100vw - 72px));
+}
+
 .game-title span,
 .game-title p,
 .menu-head,
@@ -200,22 +204,51 @@ button.primary {
 
 .ruler-grid {
   display: grid;
-  gap: 9px;
+  gap: 12px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  max-height: min(52vh, 520px);
+  max-height: min(62vh, 640px);
   overflow: auto;
 }
 
 .ruler-card {
-  column-gap: 10px;
-  grid-template-columns: 54px 8px 1fr;
-  min-height: 76px;
+  column-gap: 14px;
+  grid-template-columns: 86px 10px 1fr;
+  min-height: 108px;
+  overflow: hidden;
+  padding: 12px 16px;
   position: relative;
+}
+
+.ruler-card::after {
+  background:
+    radial-gradient(circle at 24% 18%, rgba(255, 241, 191, 0.18), transparent 34%),
+    linear-gradient(90deg, rgba(255, 240, 189, 0.1), transparent 54%);
+  content: "";
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 140ms ease;
+}
+
+.ruler-card:hover::after {
+  opacity: 1;
 }
 
 .ruler-card strong,
 .ruler-card em {
   grid-column: 3;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.ruler-card strong {
+  font-size: 30px;
+}
+
+.ruler-card em {
+  font-size: 15px;
 }
 
 .ruler-portrait {
@@ -225,7 +258,9 @@ button.primary {
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.3);
   grid-row: 1 / span 2;
   object-fit: cover;
-  width: 54px;
+  position: relative;
+  width: 86px;
+  z-index: 1;
 }
 
 .ruler-swatch {
@@ -233,7 +268,9 @@ button.primary {
   border: 1px solid rgba(255, 240, 197, 0.72);
   border-radius: 999px;
   grid-row: 1 / span 2;
-  width: 8px;
+  position: relative;
+  width: 10px;
+  z-index: 1;
 }
 
 .about-panel p,
@@ -561,6 +598,10 @@ button.primary {
   font-size: 18px;
 }
 
+.ruler-portrait.portrait-fallback {
+  font-size: 30px;
+}
+
 .general-name {
   display: grid;
   gap: 2px;
@@ -804,6 +845,19 @@ button.primary {
 
   .ruler-grid {
     grid-template-columns: 1fr;
+  }
+
+  .ruler-card {
+    grid-template-columns: 72px 9px 1fr;
+    min-height: 94px;
+  }
+
+  .ruler-card strong {
+    font-size: 26px;
+  }
+
+  .ruler-portrait {
+    width: 72px;
   }
 
   .topbar {

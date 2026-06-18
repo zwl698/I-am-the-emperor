@@ -4,10 +4,10 @@ import type { General, Ruler } from '../api/types';
 
 describe('portraitRegistry', () => {
   it('returns faction portraits for known rulers', () => {
-    expect(portraitForRuler('caocao')).toBe('/assets/portraits/caocao.svg');
-    expect(portraitForRuler('liubei')).toBe('/assets/portraits/liubei.svg');
-    expect(portraitForRuler('sunquan')).toBe('/assets/portraits/sunquan.svg');
-    expect(portraitForRuler('dongzhuo')).toBe('/assets/portraits/dongzhuo.svg');
+    expect(portraitForRuler('caocao')).toBe('/assets/portraits/generated/caocao.webp');
+    expect(portraitForRuler('liubei')).toBe('/assets/portraits/generated/liubei.webp');
+    expect(portraitForRuler('sunquan')).toBe('/assets/portraits/generated/sunquan.webp');
+    expect(portraitForRuler('dongzhuo')).toBe('/assets/portraits/generated/dongzhuo.webp');
   });
 
   it('matches legacy ruler records by Chinese name when ids are generated', () => {
@@ -18,10 +18,10 @@ describe('portraitRegistry', () => {
       color: '#9b2f2f',
     };
 
-    expect(portraitForRuler(ruler)).toBe('/assets/portraits/dongzhuo.svg');
+    expect(portraitForRuler(ruler)).toBe('/assets/portraits/generated/dongzhuo.webp');
   });
 
-  it('falls back to the owner portrait for generals without unique art', () => {
+  it('returns generated portraits for known generals', () => {
     const general: General = {
       id: 'xiahou-dun',
       name: '夏侯惇',
@@ -36,6 +36,6 @@ describe('portraitRegistry', () => {
       armsType: '步兵',
     };
 
-    expect(portraitForGeneral(general)).toBe('/assets/portraits/caocao.svg');
+    expect(portraitForGeneral(general)).toBe('/assets/portraits/generated/xiahou-dun.webp');
   });
 });
