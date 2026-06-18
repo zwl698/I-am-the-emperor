@@ -33,6 +33,17 @@ type commandRequest struct {
 	CommandID string `json:"commandId"`
 }
 
+type battleRequest struct {
+	CityID       string `json:"cityId"`
+	GeneralID    string `json:"generalId"`
+	TargetCityID string `json:"targetCityId"`
+}
+
+type battleResponse struct {
+	Outcome  *game.BattleOutcome `json:"outcome"`
+	Snapshot *game.GameState     `json:"snapshot"`
+}
+
 func New() http.Handler {
 	return NewWithOptions(Options{})
 }
@@ -79,6 +90,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/games", s.handleCreateGame)
 	s.mux.HandleFunc("GET /api/games/current", s.handleCurrentGame)
 	s.mux.HandleFunc("POST /api/games/current/command", s.handleCommand)
+	s.mux.HandleFunc("POST /api/games/current/battle", s.handleBattle)
 	s.mux.HandleFunc("POST /api/games/current/advance-month", s.handleAdvanceMonth)
 	s.mux.HandleFunc("GET /api/legacy/resources", s.handleLegacyResources)
 }
@@ -151,7 +163,7 @@ func (s *Server) handleCurrentGame(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleAdvanceMonth(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
-	s.current.AdvanceMonth()
+	s.current.EndStrategyPhase()
 	snapshot := s.current
 	s.mu.Unlock()
 
@@ -175,6 +187,25 @@ func (s *Server) handleCommand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, snapshot)
+}
+
+func (s *Server) handleBattle(w http.ResponseWriter, r *http.Request) {
+	var req battleRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON request")
+		return
+	}
+
+	s.mu.Lock()
+	outcome, err := s.current.ApplyBattle(req.CityID, req.GeneralID, req.TargetCityID)
+	snapshot := s.current
+	s.mu.Unlock()
+
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, battleResponse{Outcome: outcome, Snapshot: snapshot})
 }
 
 func (s *Server) handleLegacyResources(w http.ResponseWriter, r *http.Request) {

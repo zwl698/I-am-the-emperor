@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import {advanceMonth, applyCommand, createGame, getCurrentGame, getLegacyResources, getScenarios} from '../api/client';
+import {advanceMonth, applyCommand, createGame, getCurrentGame, getLegacyResources, getScenarios, launchBattle} from '../api/client';
 import type {City, GameSnapshot, LegacyResources, RulerOption, ScenarioOption} from '../api/types';
 import {summarizeLegacyInventory} from '../game/legacyInventory';
 import {CampaignMap} from '../phaser/CampaignMap';
@@ -117,6 +117,24 @@ export function AppShell() {
     }
   }, [enterGame, selectedCity]);
 
+  const handleBattle = useCallback(async (generalId: string, targetCityId: string) => {
+    if (!selectedCity) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await launchBattle({ cityId: selectedCity.id, generalId, targetCityId });
+      // On capture the general moves into the conquered city; follow the action there.
+      const followCityId = result.outcome.captured ? result.outcome.targetCityId : selectedCity.id;
+      enterGame(result.snapshot, followCityId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '出征失败');
+    } finally {
+      setBusy(false);
+    }
+  }, [enterGame, selectedCity]);
+
   if (mode !== 'game') {
     return (
       <StartScreen
@@ -152,6 +170,7 @@ export function AppShell() {
         onMainMenu={() => setMode('main')}
         onEndStrategy={handleAdvanceMonth}
         onCommand={handleCommand}
+        onBattle={handleBattle}
         busy={busy}
         legacySummary={legacySummary}
       />

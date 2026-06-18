@@ -128,7 +128,8 @@ func (s *GameState) ApplyCommand(cityID, generalID, commandID string) error {
 		city.PeopleDevotion = maxInt(0, city.PeopleDevotion-8)
 		s.prependLog(fmt.Sprintf("%s 掠夺 %s，粮食 +%d，民忠下降。", general.Name, city.Name, gain))
 	case "battle":
-		s.prependLog(fmt.Sprintf("%s 从 %s 整军待发。", general.Name, city.Name))
+		// 出征需要选择目标城池, 由独立的 ApplyBattle 处理; 此处仅作整军提示。
+		s.prependLog(fmt.Sprintf("%s 从 %s 整军待发，请选择进攻目标。", general.Name, city.Name))
 	default:
 		return fmt.Errorf("%w: command %s", ErrInvalidCommand, commandID)
 	}

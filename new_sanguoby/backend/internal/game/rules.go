@@ -5,6 +5,21 @@ const (
 	staminaRenew     = 4
 )
 
+// EndStrategyPhase runs the full end-of-turn sequence triggered by the player's
+// "策略结束": rival warlords act, then the calendar/economy is settled, then the
+// victory state is evaluated. This is the entry point used by the server.
+func (s *GameState) EndStrategyPhase() {
+	captures := s.RunEnemyTurns()
+	s.AdvanceMonth()
+	if captures > 0 {
+		s.prependLog(formatDate(s.Date) + " 各路诸侯征战不休。")
+	}
+	s.evaluateVictory()
+}
+
+// AdvanceMonth settles the calendar and city economy for one month. It is kept
+// free of AI/victory side effects so it can be reasoned about (and tested) as a
+// pure economic step; the full turn flow lives in EndStrategyPhase.
 func (s *GameState) AdvanceMonth() {
 	s.Date.Month++
 	if s.Date.Month > 12 {
@@ -33,9 +48,30 @@ func (s *GameState) AdvanceMonth() {
 		s.consumeMonthlyFood(city)
 	}
 
-	s.Log = append([]string{formatDate(s.Date) + " 政令已结算。"}, s.Log...)
-	if len(s.Log) > 8 {
-		s.Log = s.Log[:8]
+	s.prependLog(formatDate(s.Date) + " 政令已结算。")
+}
+
+// evaluateVictory checks whether the campaign has reached an end state and logs
+// the result. The legacy game ends when one ruler holds every owned city.
+func (s *GameState) evaluateVictory() {
+	owners := map[string]bool{}
+	playerCities := 0
+	for i := range s.Cities {
+		owner := s.Cities[i].OwnerID
+		if owner == "" || owner == "neutral" {
+			continue
+		}
+		owners[owner] = true
+		if owner == s.PlayerID {
+			playerCities++
+		}
+	}
+
+	switch {
+	case playerCities == 0:
+		s.prependLog("大势已去，主公基业尽失！")
+	case len(owners) == 1 && owners[s.PlayerID]:
+		s.prependLog("天下归一，主公成就霸业！")
 	}
 }
 

@@ -150,6 +150,18 @@ func buildGameFromScenario(sc *legacyres.Scenario, playerID string) *GameState {
 		usedPersons[personIndex] = true
 	}
 
+	// Place each ruler in their own capital FIRST, so the ruling officer is
+	// always available for player commands (otherwise a ruler whose person index
+	// happens to also be a city satrap could be consumed before being seated).
+	for _, idx := range rulerIndices {
+		cityID, ok := capitalByRuler[idx]
+		if !ok {
+			continue
+		}
+		addGeneral(idx, rulerID[idx], cityID)
+	}
+
+	// Then seat each city's named satrap as an additional officer where possible.
 	for _, c := range sc.Cities {
 		if c.Belong <= 0 {
 			continue
@@ -159,12 +171,45 @@ func buildGameFromScenario(sc *legacyres.Scenario, playerID string) *GameState {
 		addGeneral(c.SatrapID, ownerID, cityID)
 	}
 
+	// Safety net: guarantee every ruler has at least one general in their capital
+	// even if their person record was unusable, so the faction is always playable.
+	rulerHasGeneral := map[string]bool{}
+	for _, g := range generals {
+		rulerHasGeneral[g.OwnerID] = true
+	}
 	for _, idx := range rulerIndices {
+		ownerID := rulerID[idx]
+		if rulerHasGeneral[ownerID] {
+			continue
+		}
 		cityID, ok := capitalByRuler[idx]
 		if !ok {
 			continue
 		}
-		addGeneral(idx, rulerID[idx], cityID)
+		name := "无名将"
+		force, iq, devotion, level := 60, 60, 100, 1
+		arms := "步兵"
+		if idx >= 0 && idx < len(sc.Persons) {
+			p := sc.Persons[idx]
+			name, force, iq, devotion, arms = p.Name, p.Force, p.IQ, p.Devotion, p.ArmsType
+			if p.Level > 0 {
+				level = p.Level
+			}
+		}
+		generals = append(generals, General{
+			ID:        fmt.Sprintf("ruler-gen-%d", idx),
+			Name:      name,
+			OwnerID:   ownerID,
+			CityID:    cityID,
+			Level:     level,
+			Force:     force,
+			Intellect: iq,
+			Loyalty:   devotion,
+			Stamina:   100,
+			Soldiers:  initialSoldiers(force),
+			ArmsType:  arms,
+		})
+		rulerHasGeneral[ownerID] = true
 	}
 
 	// 6. Build routes between adjacent cities on the grid (4-neighbour).

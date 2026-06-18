@@ -611,6 +611,41 @@ button.primary {
   width: 100%;
 }
 
+.battle-targets {
+  display: grid;
+  gap: 8px;
+}
+
+.target-list {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.target-list button {
+  align-items: flex-start;
+  background: rgba(255, 242, 198, 0.08);
+  border: 1px solid rgba(240, 201, 120, 0.18);
+  color: #f7dfac;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 40px;
+  padding: 5px 8px;
+  text-align: left;
+}
+
+.target-list button.active {
+  background: rgba(155, 47, 47, 0.7);
+  border-color: rgba(255, 235, 178, 0.52);
+  color: #fff7df;
+}
+
+.target-list span {
+  color: #d5bb86;
+  font-size: 11px;
+}
+
 .city-status {
   display: grid;
   gap: 8px;

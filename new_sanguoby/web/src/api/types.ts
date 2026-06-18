@@ -94,6 +94,28 @@ export type CommandRequest = {
   commandId: string;
 };
 
+export type BattleRequest = {
+  cityId: string;
+  generalId: string;
+  targetCityId: string;
+};
+
+export type BattleOutcome = {
+  won: boolean;
+  fromCityId: string;
+  targetCityId: string;
+  generalId: string;
+  attackerLosses: number;
+  defenderLosses: number;
+  captured: boolean;
+  message: string;
+};
+
+export type BattleResponse = {
+  outcome: BattleOutcome;
+  snapshot: GameSnapshot;
+};
+
 export type LegacyResourceHeader = {
   address: number;
   length: number;

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import type { City, GameSnapshot, General, Ruler } from '../api/types';
-import type { LegacyImageResource, LegacyInventorySummary } from '../game/legacyInventory';
-import { portraitForGeneral, portraitForRuler } from '../game/portraitRegistry';
+import {useEffect, useState} from 'react';
+import type {City, GameSnapshot, General, Ruler} from '../api/types';
+import type {LegacyImageResource, LegacyInventorySummary} from '../game/legacyInventory';
+import {portraitForGeneral, portraitForRuler} from '../game/portraitRegistry';
 
 type HudProps = {
   snapshot: GameSnapshot;
@@ -9,9 +9,36 @@ type HudProps = {
   onMainMenu: () => void;
   onEndStrategy: () => void;
   onCommand: (commandId: string, generalId: string) => void;
+  onBattle: (generalId: string, targetCityId: string) => void;
   busy: boolean;
   legacySummary: LegacyInventorySummary;
 };
+
+// adjacentCities returns enemy/neutral cities reachable from cityId in one hop.
+function adjacentEnemyCities(snapshot: GameSnapshot, cityId: string): City[] {
+  const cityByID = new Map(snapshot.cities.map((city) => [city.id, city]));
+  const neighbours: City[] = [];
+  const seen = new Set<string>();
+  for (const route of snapshot.routes) {
+    let otherId = '';
+    if (route.from === cityId) {
+      otherId = route.to;
+    } else if (route.to === cityId) {
+      otherId = route.from;
+    } else {
+      continue;
+    }
+    if (!otherId || seen.has(otherId)) {
+      continue;
+    }
+    seen.add(otherId);
+    const other = cityByID.get(otherId);
+    if (other && other.ownerId !== snapshot.playerId) {
+      neighbours.push(other);
+    }
+  }
+  return neighbours;
+}
 
 const COMMAND_GROUPS = {
   '内政': [
@@ -40,10 +67,11 @@ const COMMAND_GROUPS = {
 
 type CommandCategory = keyof typeof COMMAND_GROUPS | '状况';
 
-export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onCommand, busy, legacySummary }: HudProps) {
+export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onCommand, onBattle, busy, legacySummary }: HudProps) {
   const [category, setCategory] = useState<CommandCategory>('内政');
   const [commandId, setCommandId] = useState(COMMAND_GROUPS['内政'][0].id);
   const [generalId, setGeneralId] = useState('');
+  const [targetCityId, setTargetCityId] = useState('');
   const rulerByID = new Map(snapshot.rulers.map((ruler) => [ruler.id, ruler]));
   const owner = rulerByID.get(selectedCity.ownerId);
   const generals = snapshot.generals.filter((general) => general.cityId === selectedCity.id);
@@ -58,6 +86,9 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
   const activeCommands = category === '状况' ? [] : COMMAND_GROUPS[category];
   const activeCommand = activeCommands.find((command) => command.id === commandId) ?? activeCommands[0];
   const selectedGeneral = playerGenerals.find((general) => general.id === generalId) ?? playerGenerals[0];
+  const isBattle = activeCommand?.id === 'battle';
+  const battleTargets = isBattle ? adjacentEnemyCities(snapshot, selectedCity.id) : [];
+  const selectedTarget = battleTargets.find((city) => city.id === targetCityId) ?? battleTargets[0];
 
   useEffect(() => {
     const firstGeneral = playerGenerals[0]?.id ?? '';
@@ -71,6 +102,10 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
     const firstCommand = COMMAND_GROUPS[category][0]?.id ?? '';
     setCommandId(firstCommand);
   }, [category]);
+
+  useEffect(() => {
+    setTargetCityId(adjacentEnemyCities(snapshot, selectedCity.id)[0]?.id ?? '');
+  }, [selectedCity.id, commandId, snapshot]);
 
   return (
     <>
@@ -196,14 +231,47 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
                   </button>
                 )) : <p className="muted">此城暂无可行动武将</p>}
               </div>
-              <button
-                type="button"
-                className="primary execute-order"
-                disabled={busy || !playable || !selectedGeneral || !activeCommand}
-                onClick={() => selectedGeneral && activeCommand && onCommand(activeCommand.id, selectedGeneral.id)}
-              >
-                执行{activeCommand?.name ?? '命令'}
-              </button>
+              {isBattle ? (
+                <div className="battle-targets">
+                  <span className="section-label">进攻目标</span>
+                  {battleTargets.length ? (
+                    <>
+                      <div className="target-list">
+                        {battleTargets.map((target) => (
+                          <button
+                            type="button"
+                            className={selectedTarget?.id === target.id ? 'active' : ''}
+                            key={target.id}
+                            onClick={() => setTargetCityId(target.id)}
+                          >
+                            {target.name}
+                            <span>{ownerLabel(rulerByID.get(target.ownerId))}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        className="primary execute-order"
+                        disabled={busy || !playable || !selectedGeneral || !selectedTarget}
+                        onClick={() => selectedGeneral && selectedTarget && onBattle(selectedGeneral.id, selectedTarget.id)}
+                      >
+                        进攻{selectedTarget?.name ?? ''}
+                      </button>
+                    </>
+                  ) : (
+                    <p className="muted">无相邻敌方城池可进攻</p>
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="primary execute-order"
+                  disabled={busy || !playable || !selectedGeneral || !activeCommand}
+                  onClick={() => selectedGeneral && activeCommand && onCommand(activeCommand.id, selectedGeneral.id)}
+                >
+                  执行{activeCommand?.name ?? '命令'}
+                </button>
+              )}
               {!playable ? <p className="muted">只能向己方城池下达命令</p> : null}
             </div>
           )}
