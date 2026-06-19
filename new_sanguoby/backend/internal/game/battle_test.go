@@ -71,17 +71,20 @@ func TestApplyBattleCaptureOnWin(t *testing.T) {
 	if !outcome.Won || !outcome.Captured {
 		t.Fatalf("expected win+capture, got %+v", outcome)
 	}
+	if len(outcome.CapturedGenerals) != 1 || outcome.CapturedGenerals[0] != "敌将" {
+		t.Fatalf("captured generals = %v, want [敌将]", outcome.CapturedGenerals)
+	}
 	if got := s.findCity("c2").OwnerID; got != "p1" {
 		t.Errorf("city c2 owner = %q, want p1", got)
 	}
 	if g := s.findGeneral("g1"); g.CityID != "c2" {
 		t.Errorf("general g1 city = %q, want c2 (moved in)", g.CityID)
 	}
-	if g := s.findGeneral("g2"); g.Soldiers != 0 {
-		t.Errorf("defender g2 soldiers = %d, want 0 after rout", g.Soldiers)
+	if g := s.findGeneral("g2"); g.Soldiers != 0 || g.OwnerID != "p1" || !g.Captive {
+		t.Errorf("defender g2 = %+v, want captured by p1 with 0 soldiers", g)
 	}
-	if g := s.findGeneral("g1"); g.Stamina != 80 {
-		t.Errorf("attacker stamina = %d, want 80", g.Stamina)
+	if g := s.findGeneral("g1"); g.Stamina != 96 {
+		t.Errorf("attacker stamina = %d, want 96", g.Stamina)
 	}
 }
 
@@ -122,7 +125,7 @@ func TestApplyBattleRejectsOwnCity(t *testing.T) {
 
 func TestApplyBattleRejectsExhaustedGeneral(t *testing.T) {
 	s := newBattleTestState()
-	s.findGeneral("g1").Stamina = 5
+	s.findGeneral("g1").Stamina = 3
 	if _, err := s.ApplyBattle("c1", "g1", "c2"); err == nil {
 		t.Fatal("expected stamina error, got nil")
 	}

@@ -94,14 +94,17 @@ export function AppShell() {
     }
   }, [enterGame, selectedCity]);
 
-  const handleCommand = useCallback(async (commandId: string, generalId: string) => {
+  const handleCommand = useCallback(async (commandId: string, generalId: string, targetCityId?: string, targetGeneralId?: string) => {
     if (!selectedCity) {
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      enterGame(await applyCommand({ cityId: selectedCity.id, generalId, commandId }), selectedCity.id);
+      enterGame(
+        await applyCommand({ cityId: selectedCity.id, generalId, commandId, targetCityId, targetGeneralId }),
+        commandId === 'move' && targetCityId ? targetCityId : selectedCity.id,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : '命令执行失败');
     } finally {

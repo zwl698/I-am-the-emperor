@@ -10,6 +10,7 @@
 # 环境变量 (可选):
 #   HOST                 后端监听地址 (默认 127.0.0.1)
 #   PORT                 后端监听端口 (默认 8642)
+#   FRONTEND_PORT        前端监听端口 (默认 5173)
 #   LEGACY_ARCHIVE_PATH  legacy 档案路径 (默认 ../sanguobaye_c-master/src/dat.lib.orig)
 #
 # 前端启动后会自动在浏览器打开 (见 web/vite.config.ts 的 server.open)。
@@ -28,6 +29,7 @@ cd "$ROOT_DIR"
 
 BACKEND_HOST="${HOST:-127.0.0.1}"
 BACKEND_PORT="${PORT:-8642}"
+FRONTEND_PORT="${FRONTEND_PORT:-5173}"
 # 默认指向同级 sanguobaye_c-master 的原始档案 (从 new_sanguoby 运行时为上一级目录)
 DEFAULT_ARCHIVE="$ROOT_DIR/../sanguobaye_c-master/src/dat.lib.orig"
 LEGACY_ARCHIVE_PATH="${LEGACY_ARCHIVE_PATH:-$DEFAULT_ARCHIVE}"
@@ -156,13 +158,15 @@ start_frontend() {
     echo "$(color '35' '[frontend]') 未检测到 node_modules, 正在安装依赖..."
     (cd web && npm install)
   fi
-  echo "$(color '35' '[frontend]') 启动 Vite 开发服务器于 http://127.0.0.1:5173"
+  export FRONTEND_PORT
+  export VITE_PROXY_TARGET="${VITE_PROXY_TARGET:-http://$BACKEND_HOST:$BACKEND_PORT}"
+  echo "$(color '35' '[frontend]') 启动 Vite 开发服务器于 http://127.0.0.1:$FRONTEND_PORT"
   (cd web && npm run dev) 2>&1 | sed "s/^/$(color '35' '[frontend] ')/" &
   PIDS+=("$!")
 }
 
 [[ "$RUN_BACKEND" -eq 1 ]] && ensure_port_free "$BACKEND_PORT" "backend"
-[[ "$RUN_FRONTEND" -eq 1 ]] && ensure_port_free 5173 "frontend"
+[[ "$RUN_FRONTEND" -eq 1 ]] && ensure_port_free "$FRONTEND_PORT" "frontend"
 
 [[ "$RUN_BACKEND" -eq 1 ]] && start_backend
 [[ "$RUN_FRONTEND" -eq 1 ]] && start_frontend

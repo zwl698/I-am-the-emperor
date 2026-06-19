@@ -83,6 +83,36 @@ func TestCommandEndpointAppliesPlayerOrder(t *testing.T) {
 	}
 }
 
+func TestCommandEndpointAppliesTargetedMove(t *testing.T) {
+	handler := NewWithOptions(Options{LegacyArchivePath: ""})
+	createBody := bytes.NewBufferString(`{"scenarioId":"dongzhuo","playerId":"caocao"}`)
+	createReq := httptest.NewRequest(http.MethodPost, "/api/games", createBody)
+	createRec := httptest.NewRecorder()
+	handler.ServeHTTP(createRec, createReq)
+	if createRec.Code != http.StatusCreated {
+		t.Fatalf("create status = %d, want %d", createRec.Code, http.StatusCreated)
+	}
+
+	commandBody := bytes.NewBufferString(`{"cityId":"xuchang","generalId":"cao-cao","commandId":"move","targetCityId":"chenliu"}`)
+	commandReq := httptest.NewRequest(http.MethodPost, "/api/games/current/command", commandBody)
+	commandRec := httptest.NewRecorder()
+	handler.ServeHTTP(commandRec, commandReq)
+
+	if commandRec.Code != http.StatusOK {
+		t.Fatalf("command status = %d, want %d; body: %s", commandRec.Code, http.StatusOK, commandRec.Body.String())
+	}
+	var body commandSnapshot
+	if err := json.NewDecoder(commandRec.Body).Decode(&body); err != nil {
+		t.Fatalf("decode command response: %v", err)
+	}
+	for _, general := range body.Generals {
+		if general.ID == "cao-cao" && general.CityID == "chenliu" {
+			return
+		}
+	}
+	t.Fatalf("cao-cao was not moved to chenliu: %#v", body.Generals)
+}
+
 func TestScenariosEndpointListsLegacyPeriodsAndRulers(t *testing.T) {
 	handler := NewWithOptions(Options{LegacyArchivePath: legacyArchivePath(t)})
 	req := httptest.NewRequest(http.MethodGet, "/api/scenarios", nil)
@@ -152,6 +182,13 @@ type snapshot struct {
 		Year  int `json:"year"`
 		Month int `json:"month"`
 	} `json:"date"`
+}
+
+type commandSnapshot struct {
+	Generals []struct {
+		ID     string `json:"id"`
+		CityID string `json:"cityId"`
+	} `json:"generals"`
 }
 
 type legacyResourcesBody struct {

@@ -28,9 +28,11 @@ type createGameRequest struct {
 }
 
 type commandRequest struct {
-	CityID    string `json:"cityId"`
-	GeneralID string `json:"generalId"`
-	CommandID string `json:"commandId"`
+	CityID          string `json:"cityId"`
+	GeneralID       string `json:"generalId"`
+	CommandID       string `json:"commandId"`
+	TargetCityID    string `json:"targetCityId,omitempty"`
+	TargetGeneralID string `json:"targetGeneralId,omitempty"`
 }
 
 type battleRequest struct {
@@ -178,7 +180,7 @@ func (s *Server) handleCommand(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.mu.Lock()
-	err := s.current.ApplyCommand(req.CityID, req.GeneralID, req.CommandID)
+	err := s.current.ApplyCommandDetailed(req.CityID, req.GeneralID, req.CommandID, req.TargetCityID, req.TargetGeneralID)
 	snapshot := s.current
 	s.mu.Unlock()
 

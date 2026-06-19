@@ -53,6 +53,7 @@ type General struct {
 	Stamina   int    `json:"stamina"`
 	Soldiers  int    `json:"soldiers"`
 	ArmsType  string `json:"armsType"`
+	Captive   bool   `json:"captive"`
 }
 
 type Route struct {

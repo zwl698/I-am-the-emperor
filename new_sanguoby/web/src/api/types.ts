@@ -44,6 +44,7 @@ export type General = {
   stamina: number;
   soldiers: number;
   armsType: string;
+  captive?: boolean;
 };
 
 export type Route = {
@@ -92,6 +93,8 @@ export type CommandRequest = {
   cityId: string;
   generalId: string;
   commandId: string;
+  targetCityId?: string;
+  targetGeneralId?: string;
 };
 
 export type BattleRequest = {
@@ -108,6 +111,7 @@ export type BattleOutcome = {
   attackerLosses: number;
   defenderLosses: number;
   captured: boolean;
+  capturedGenerals?: string[];
   message: string;
 };
 

@@ -80,7 +80,7 @@ func (s *GameState) evaluateVictory() {
 func (s *GameState) consumeMonthlyFood(city *City) {
 	totalSoldiers := city.Garrison
 	for i := range s.Generals {
-		if s.Generals[i].CityID == city.ID {
+		if s.Generals[i].CityID == city.ID && !s.Generals[i].Captive {
 			totalSoldiers += s.Generals[i].Soldiers
 		}
 	}
@@ -97,7 +97,7 @@ func (s *GameState) consumeMonthlyFood(city *City) {
 	city.Food = 0
 	city.State = CityStateFamine
 	for i := range s.Generals {
-		if s.Generals[i].CityID == city.ID {
+		if s.Generals[i].CityID == city.ID && !s.Generals[i].Captive {
 			s.Generals[i].Soldiers /= 2
 		}
 	}

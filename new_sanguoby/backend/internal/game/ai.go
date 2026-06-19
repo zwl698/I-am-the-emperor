@@ -39,7 +39,7 @@ func (s *GameState) runRulerTurn(rulerID string) int {
 	generalIDs := make([]string, 0)
 	for i := range s.Generals {
 		g := &s.Generals[i]
-		if g.OwnerID == rulerID && g.Stamina >= battleStaminaCost && g.Soldiers > 0 {
+		if g.OwnerID == rulerID && !g.Captive && g.Stamina >= battleStaminaCost && g.Soldiers > 0 {
 			generalIDs = append(generalIDs, g.ID)
 		}
 	}
@@ -47,7 +47,7 @@ func (s *GameState) runRulerTurn(rulerID string) int {
 
 	for _, gid := range generalIDs {
 		general := s.findGeneral(gid)
-		if general == nil || general.Stamina < battleStaminaCost || general.Soldiers <= 0 {
+		if general == nil || general.Captive || general.Stamina < battleStaminaCost || general.Soldiers <= 0 {
 			continue
 		}
 		from := s.findCity(general.CityID)
@@ -104,7 +104,7 @@ func (s *GameState) pickAttackTarget(rulerID string, from *City, general *Genera
 // aiDevelopCity invests an AI general's action into the home city's economy,
 // reusing the same growth shape as the player's 内政 commands.
 func (s *GameState) aiDevelopCity(general *General, city *City) {
-	general.Stamina = maxInt(0, general.Stamina-8)
+	general.Stamina = maxInt(0, general.Stamina-4)
 	gain := 10 + general.Intellect/2 + general.Level*2
 
 	switch {

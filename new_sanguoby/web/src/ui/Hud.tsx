@@ -8,13 +8,21 @@ type HudProps = {
   selectedCity: City;
   onMainMenu: () => void;
   onEndStrategy: () => void;
-  onCommand: (commandId: string, generalId: string) => void;
+  onCommand: (commandId: string, generalId: string, targetCityId?: string, targetGeneralId?: string) => void;
   onBattle: (generalId: string, targetCityId: string) => void;
   busy: boolean;
 };
 
 // adjacentCities returns enemy/neutral cities reachable from cityId in one hop.
 function adjacentEnemyCities(snapshot: GameSnapshot, cityId: string): City[] {
+  return adjacentCities(snapshot, cityId).filter((city) => city.ownerId !== snapshot.playerId);
+}
+
+function adjacentFriendlyCities(snapshot: GameSnapshot, cityId: string): City[] {
+  return adjacentCities(snapshot, cityId).filter((city) => city.ownerId === snapshot.playerId);
+}
+
+function adjacentCities(snapshot: GameSnapshot, cityId: string): City[] {
   const cityByID = new Map(snapshot.cities.map((city) => [city.id, city]));
   const neighbours: City[] = [];
   const seen = new Set<string>();
@@ -32,7 +40,7 @@ function adjacentEnemyCities(snapshot: GameSnapshot, cityId: string): City[] {
     }
     seen.add(otherId);
     const other = cityByID.get(otherId);
-    if (other && other.ownerId !== snapshot.playerId) {
+    if (other) {
       neighbours.push(other);
     }
   }
@@ -47,6 +55,14 @@ const COMMAND_GROUPS = {
     { id: 'govern', name: '治理' },
     { id: 'inspect', name: '出巡' },
     { id: 'surrender', name: '招降' },
+    { id: 'kill', name: '处斩' },
+    { id: 'banish', name: '流放' },
+    { id: 'largess', name: '赏赐' },
+    { id: 'confiscate', name: '没收' },
+    { id: 'exchange', name: '交易' },
+    { id: 'treat', name: '宴请' },
+    { id: 'transportation', name: '输送' },
+    { id: 'move', name: '移动' },
   ],
   '外交': [
     { id: 'alienate', name: '离间' },
@@ -71,10 +87,12 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
   const [commandId, setCommandId] = useState(COMMAND_GROUPS['内政'][0].id);
   const [generalId, setGeneralId] = useState('');
   const [targetCityId, setTargetCityId] = useState('');
+  const [targetGeneralId, setTargetGeneralId] = useState('');
   const rulerByID = new Map(snapshot.rulers.map((ruler) => [ruler.id, ruler]));
   const owner = rulerByID.get(selectedCity.ownerId);
   const generals = snapshot.generals.filter((general) => general.cityId === selectedCity.id);
-  const playerGenerals = generals.filter((general) => general.ownerId === snapshot.playerId);
+  const playerGenerals = generals.filter((general) => general.ownerId === snapshot.playerId && !general.captive);
+  const captives = generals.filter((general) => general.ownerId === snapshot.playerId && general.captive);
   const player = rulerByID.get(snapshot.playerId);
   const ownerPortrait = portraitForRuler(owner);
   const playable = selectedCity.ownerId === snapshot.playerId;
@@ -82,13 +100,22 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
   const activeCommand = activeCommands.find((command) => command.id === commandId) ?? activeCommands[0];
   const selectedGeneral = playerGenerals.find((general) => general.id === generalId) ?? playerGenerals[0];
   const isBattle = activeCommand?.id === 'battle';
+  const needsFriendlyTarget = activeCommand?.id === 'move' || activeCommand?.id === 'transportation';
+  const needsCaptiveTarget = activeCommand?.id === 'kill';
+  const needsGeneralTarget = Boolean(activeCommand && ['kill', 'banish', 'largess', 'confiscate', 'treat'].includes(activeCommand.id));
   const battleTargets = isBattle ? adjacentEnemyCities(snapshot, selectedCity.id) : [];
-  const selectedTarget = battleTargets.find((city) => city.id === targetCityId) ?? battleTargets[0];
+  const friendlyTargets = needsFriendlyTarget ? adjacentFriendlyCities(snapshot, selectedCity.id) : [];
+  const commandTargets = isBattle ? battleTargets : needsFriendlyTarget ? friendlyTargets : [];
+  const selectedTarget = commandTargets.find((city) => city.id === targetCityId) ?? commandTargets[0];
+  const generalTargets = activeCommand
+    ? targetGeneralsForCommand(activeCommand.id, playerGenerals, captives, selectedGeneral?.id)
+    : [];
+  const selectedTargetGeneral = generalTargets.find((general) => general.id === targetGeneralId) ?? generalTargets[0];
 
   useEffect(() => {
     const firstGeneral = playerGenerals[0]?.id ?? '';
     setGeneralId(firstGeneral);
-  }, [selectedCity.id, snapshot.playerId]);
+  }, [selectedCity.id, snapshot.playerId, snapshot.generals]);
 
   useEffect(() => {
     if (category === '状况') {
@@ -99,8 +126,25 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
   }, [category]);
 
   useEffect(() => {
-    setTargetCityId(adjacentEnemyCities(snapshot, selectedCity.id)[0]?.id ?? '');
+    if (commandId === 'battle') {
+      setTargetCityId(adjacentEnemyCities(snapshot, selectedCity.id)[0]?.id ?? '');
+      return;
+    }
+    if (commandId === 'move' || commandId === 'transportation') {
+      setTargetCityId(adjacentFriendlyCities(snapshot, selectedCity.id)[0]?.id ?? '');
+      return;
+    }
+    setTargetCityId('');
   }, [selectedCity.id, commandId, snapshot]);
+
+  useEffect(() => {
+    if (!needsGeneralTarget || !activeCommand) {
+      setTargetGeneralId('');
+      return;
+    }
+    const firstTarget = targetGeneralsForCommand(activeCommand.id, playerGenerals, captives, selectedGeneral?.id)[0]?.id ?? '';
+    setTargetGeneralId(firstTarget);
+  }, [activeCommand, captives, needsGeneralTarget, playerGenerals, selectedCity.id, selectedGeneral?.id]);
 
   return (
     <>
@@ -201,13 +245,13 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
                   </button>
                 )) : <p className="muted">此城暂无可行动武将</p>}
               </div>
-              {isBattle ? (
+              {isBattle || needsFriendlyTarget ? (
                 <div className="battle-targets">
-                  <span className="section-label">进攻目标</span>
-                  {battleTargets.length ? (
+                  <span className="section-label">{isBattle ? '进攻目标' : '目标城池'}</span>
+                  {commandTargets.length ? (
                     <>
                       <div className="target-list">
-                        {battleTargets.map((target) => (
+                        {commandTargets.map((target) => (
                           <button
                             type="button"
                             className={selectedTarget?.id === target.id ? 'active' : ''}
@@ -223,13 +267,58 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
                         type="button"
                         className="primary execute-order"
                         disabled={busy || !playable || !selectedGeneral || !selectedTarget}
-                        onClick={() => selectedGeneral && selectedTarget && onBattle(selectedGeneral.id, selectedTarget.id)}
+                        onClick={() => {
+                          if (!selectedGeneral || !selectedTarget || !activeCommand) {
+                            return;
+                          }
+                          if (isBattle) {
+                            onBattle(selectedGeneral.id, selectedTarget.id);
+                          } else {
+                            onCommand(activeCommand.id, selectedGeneral.id, selectedTarget.id);
+                          }
+                        }}
                       >
-                        进攻{selectedTarget?.name ?? ''}
+                        {isBattle ? `进攻${selectedTarget?.name ?? ''}` : `${activeCommand?.name ?? '执行'}至${selectedTarget?.name ?? ''}`}
                       </button>
                     </>
                   ) : (
-                    <p className="muted">无相邻敌方城池可进攻</p>
+                    <p className="muted">{isBattle ? '无相邻敌方城池可进攻' : '无相邻己方城池可达'}</p>
+                  )}
+                </div>
+              ) : needsGeneralTarget ? (
+                <div className="battle-targets">
+                  <span className="section-label">{needsCaptiveTarget ? '处置俘虏' : '目标武将'}</span>
+                  {generalTargets.length ? (
+                    <>
+                      <div className="target-list target-list--generals">
+                        {generalTargets.map((target) => (
+                          <button
+                            type="button"
+                            className={selectedTargetGeneral?.id === target.id ? 'active' : ''}
+                            key={target.id}
+                            onClick={() => setTargetGeneralId(target.id)}
+                          >
+                            <strong>{target.name}</strong>
+                            <span>{target.captive ? '俘虏' : `${target.armsType} · 忠 ${target.loyalty}`}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        className="primary execute-order"
+                        disabled={busy || !playable || !selectedGeneral || !selectedTargetGeneral || !activeCommand}
+                        onClick={() => {
+                          if (!selectedGeneral || !selectedTargetGeneral || !activeCommand) {
+                            return;
+                          }
+                          onCommand(activeCommand.id, selectedGeneral.id, undefined, selectedTargetGeneral.id);
+                        }}
+                      >
+                        {activeCommand?.name ?? '执行'}{selectedTargetGeneral?.name ?? ''}
+                      </button>
+                    </>
+                  ) : (
+                    <p className="muted">{needsCaptiveTarget ? '此城暂无可处置俘虏' : '此城暂无可选目标武将'}</p>
                   )}
                 </div>
               ) : (
@@ -329,9 +418,24 @@ function Metric({ label, value }: { label: string; value: number | string }) {
   );
 }
 
+function targetGeneralsForCommand(commandId: string, playerGenerals: General[], captives: General[], executorId?: string): General[] {
+  switch (commandId) {
+    case 'kill':
+      return captives;
+    case 'banish':
+      return [...captives, ...playerGenerals.filter((general) => general.id !== executorId)];
+    case 'largess':
+    case 'confiscate':
+    case 'treat':
+      return playerGenerals;
+    default:
+      return [];
+  }
+}
+
 function GeneralRow({ general }: { general: General }) {
   return (
-    <div className="general-row">
+    <div className={`general-row${general.captive ? ' general-row--captive' : ''}`}>
       <PortraitImage
         src={portraitForGeneral(general)}
         alt={`${general.name}头像`}
@@ -340,11 +444,11 @@ function GeneralRow({ general }: { general: General }) {
       />
       <div className="general-name">
         <strong>{general.name}</strong>
-        <span>{general.armsType} · Lv.{general.level}</span>
+        <span>{general.captive ? '俘虏' : general.armsType} · Lv.{general.level}</span>
       </div>
       <span>武 {general.force}</span>
       <span>智 {general.intellect}</span>
-      <span>兵 {general.soldiers}</span>
+      <span>{general.captive ? '俘' : `兵 ${general.soldiers}`}</span>
     </div>
   );
 }

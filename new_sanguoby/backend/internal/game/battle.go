@@ -29,17 +29,18 @@ var (
 
 // BattleOutcome describes the result of one 出征 resolution for the API/UI.
 type BattleOutcome struct {
-	Won            bool   `json:"won"`
-	FromCityID     string `json:"fromCityId"`
-	TargetCityID   string `json:"targetCityId"`
-	GeneralID      string `json:"generalId"`
-	AttackerLosses int    `json:"attackerLosses"`
-	DefenderLosses int    `json:"defenderLosses"`
-	Captured       bool   `json:"captured"`
-	Message        string `json:"message"`
+	Won              bool     `json:"won"`
+	FromCityID       string   `json:"fromCityId"`
+	TargetCityID     string   `json:"targetCityId"`
+	GeneralID        string   `json:"generalId"`
+	AttackerLosses   int      `json:"attackerLosses"`
+	DefenderLosses   int      `json:"defenderLosses"`
+	Captured         bool     `json:"captured"`
+	CapturedGenerals []string `json:"capturedGenerals"`
+	Message          string   `json:"message"`
 }
 
-const battleStaminaCost = 20
+const battleStaminaCost = 4
 
 // battleRand is the source of randomness; overridable in tests.
 var defaultBattleRand = rand.Intn
@@ -77,7 +78,7 @@ func (s *GameState) isAdjacent(fromID, targetID string) bool {
 	return false
 }
 
-// cityTroops sums every soldier defending a city (garrison + stationed generals).
+// cityTroops sums every soldier defending a city (garrison + non-captive generals).
 func (s *GameState) cityTroops(cityID string) int {
 	city := s.findCity(cityID)
 	if city == nil {
@@ -85,7 +86,7 @@ func (s *GameState) cityTroops(cityID string) int {
 	}
 	total := city.Garrison
 	for i := range s.Generals {
-		if s.Generals[i].CityID == cityID {
+		if s.Generals[i].CityID == cityID && !s.Generals[i].Captive {
 			total += s.Generals[i].Soldiers
 		}
 	}
@@ -134,7 +135,7 @@ func (s *GameState) ApplyBattle(fromCityID, generalID, targetCityID string) (*Ba
 	}
 
 	general := s.findGeneral(generalID)
-	if general == nil || general.CityID != fromCityID || general.OwnerID != s.PlayerID {
+	if general == nil || general.CityID != fromCityID || general.OwnerID != s.PlayerID || general.Captive {
 		return nil, ErrGeneralNotReady
 	}
 	if general.Stamina < battleStaminaCost {
@@ -187,9 +188,15 @@ func (s *GameState) resolveAttack(from *City, general *General, target *City) *B
 		general.Soldiers -= attackerLoss
 		outcome.AttackerLosses = attackerLoss
 		outcome.DefenderLosses = s.routDefenders(target.ID)
-		s.captureCity(target, general)
+		outcome.CapturedGenerals = s.captureCity(target, general)
 		outcome.Captured = true
-		outcome.Message = fmt.Sprintf("%s 攻克 %s！", general.Name, target.Name)
+		if len(outcome.CapturedGenerals) == 1 {
+			outcome.Message = fmt.Sprintf("%s 攻克 %s，俘虏 %s！", general.Name, target.Name, outcome.CapturedGenerals[0])
+		} else if len(outcome.CapturedGenerals) > 1 {
+			outcome.Message = fmt.Sprintf("%s 攻克 %s，俘虏 %s 等 %d 将！", general.Name, target.Name, outcome.CapturedGenerals[0], len(outcome.CapturedGenerals))
+		} else {
+			outcome.Message = fmt.Sprintf("%s 攻克 %s！", general.Name, target.Name)
+		}
 	} else {
 		// Attacker is repelled with heavier losses; defender takes light losses.
 		attackerLoss := minInt(general.Soldiers, general.Soldiers*(40+randv/3)/100)
@@ -212,7 +219,7 @@ func (s *GameState) routDefenders(cityID string) int {
 		city.Garrison = 0
 	}
 	for i := range s.Generals {
-		if s.Generals[i].CityID == cityID {
+		if s.Generals[i].CityID == cityID && !s.Generals[i].Captive {
 			losses += s.Generals[i].Soldiers
 			s.Generals[i].Soldiers = 0
 		}
@@ -224,7 +231,7 @@ func (s *GameState) routDefenders(cityID string) int {
 func (s *GameState) lightDefenderLosses(cityID string, randv int) int {
 	losses := 0
 	for i := range s.Generals {
-		if s.Generals[i].CityID == cityID {
+		if s.Generals[i].CityID == cityID && !s.Generals[i].Captive {
 			loss := s.Generals[i].Soldiers * (5 + randv/10) / 100
 			s.Generals[i].Soldiers -= loss
 			losses += loss
@@ -234,14 +241,32 @@ func (s *GameState) lightDefenderLosses(cityID string, randv int) int {
 }
 
 // captureCity transfers a city to the attacker, moves the conquering general in,
-// and applies the social cost of conquest.
-func (s *GameState) captureCity(target *City, general *General) {
+// captures the defeated officers, and applies the social cost of conquest.
+func (s *GameState) captureCity(target *City, general *General) []string {
+	capturedGenerals := []string{}
 	target.OwnerID = general.OwnerID
 	general.CityID = target.ID
+	general.Captive = false
+	for i := range s.Generals {
+		defender := &s.Generals[i]
+		if defender.CityID != target.ID || defender.ID == general.ID || defender.OwnerID == general.OwnerID {
+			continue
+		}
+		defender.OwnerID = general.OwnerID
+		defender.Captive = true
+		defender.Soldiers = 0
+		defender.Stamina = 0
+		defender.Loyalty = minInt(defender.Loyalty, 45)
+		if defender.Loyalty <= 0 {
+			defender.Loyalty = 30
+		}
+		capturedGenerals = append(capturedGenerals, defender.Name)
+	}
 	// The conquered populace is shaken: devotion drops, calamity risk rises.
 	target.PeopleDevotion = maxInt(0, target.PeopleDevotion-20)
 	target.AvoidCalamity = maxInt(0, target.AvoidCalamity-10)
 	// Defending generals that survived (none after a rout) would defect; here the
 	// city's leaderless remnants surrender, leaving the garrison emptied.
 	target.Garrison = 0
+	return capturedGenerals
 }

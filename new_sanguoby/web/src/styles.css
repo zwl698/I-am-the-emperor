@@ -556,6 +556,21 @@ button.primary {
   font-size: 14px;
 }
 
+.general-row--captive {
+  background:
+    linear-gradient(90deg, rgba(143, 58, 54, 0.24), rgba(35, 30, 35, 0.22)),
+    rgba(13, 11, 14, 0.34);
+  border-color: rgba(229, 137, 93, 0.34);
+}
+
+.general-row--captive .general-avatar {
+  filter: saturate(0.78) brightness(0.88);
+}
+
+.general-row--captive .general-name span {
+  color: #e2aa7f;
+}
+
 .general-row span,
 .muted {
   color: #d4bd8c;
@@ -655,11 +670,17 @@ button.primary {
   display: grid;
   gap: 7px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-height: 166px;
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .executor-list {
   display: grid;
   gap: 7px;
+  max-height: 138px;
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .executor-list button {
@@ -710,6 +731,16 @@ button.primary {
 .target-list span {
   color: #d5bb86;
   font-size: 11px;
+}
+
+.target-list--generals button {
+  min-height: 46px;
+}
+
+.target-list--generals strong {
+  color: #fff0c4;
+  font-size: 13px;
+  line-height: 1.1;
 }
 
 .city-status {
@@ -912,6 +943,7 @@ button.primary {
 
   .order-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-height: 124px;
   }
 
   .image-resource-grid {
