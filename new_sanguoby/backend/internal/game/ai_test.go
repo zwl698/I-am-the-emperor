@@ -1,6 +1,9 @@
 package game
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // newAITestState builds a 3-city line: player p1 (c1) — enemy p2 (c2) — neutral (c3).
 func newAITestState() *GameState {
@@ -121,5 +124,12 @@ func TestEndStrategyPhaseRunsEnemyTurns(t *testing.T) {
 	}
 	if s.Date.Month != 2 {
 		t.Errorf("month = %d, want 2", s.Date.Month)
+	}
+	logText := strings.Join(s.Log, "\n")
+	if strings.Contains(logText, "各路诸侯征战不休") {
+		t.Fatalf("generic war report should not be logged: %v", s.Log)
+	}
+	if !strings.Contains(logText, "乙军 乙将 自 乙城 攻克 甲城") {
+		t.Fatalf("expected specific AI battle report, got %v", s.Log)
 	}
 }

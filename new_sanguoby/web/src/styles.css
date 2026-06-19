@@ -306,7 +306,7 @@ button.primary {
   justify-content: space-between;
   left: 22px;
   position: absolute;
-  right: 390px;
+  right: clamp(318px, 28vw, 390px);
   top: 18px;
   z-index: 5;
 }
@@ -348,7 +348,7 @@ button.primary {
   position: absolute;
   right: 18px;
   top: 18px;
-  width: 350px;
+  width: clamp(280px, 24vw, 350px);
   z-index: 6;
 }
 
@@ -421,6 +421,146 @@ button.primary {
     inset 0 0 0 1px rgba(255, 244, 214, 0.16);
   object-fit: cover;
   width: 112px;
+}
+
+@media (max-width: 1180px) {
+  .topbar {
+    left: 16px;
+    right: 16px;
+    top: 14px;
+  }
+
+  .topbar h1 {
+    font-size: 24px;
+  }
+
+  .topbar-actions button {
+    min-height: 34px;
+    padding: 0 12px;
+  }
+
+  .status-rail {
+    gap: 10px;
+    max-height: calc(100vh - 154px);
+    padding: 12px;
+    right: 14px;
+    top: 78px;
+    width: min(280px, calc(100vw - 36px));
+  }
+
+  .status-rail section {
+    padding-bottom: 10px;
+  }
+
+  .city-hero {
+    gap: 10px;
+    grid-template-columns: 58px 1fr;
+  }
+
+  .owner-portrait {
+    border-width: 1px;
+    width: 58px;
+  }
+
+  .status-rail h2 {
+    font-size: 23px;
+  }
+
+  .owner-line {
+    font-size: 12px;
+    margin-top: 6px;
+  }
+
+  .section-label {
+    margin-bottom: 6px;
+  }
+
+  .metric {
+    padding: 7px 8px;
+  }
+
+  .metric strong {
+    font-size: 16px;
+  }
+
+  .general-row {
+    gap: 7px;
+    grid-template-columns: 34px 1fr auto;
+    min-height: 48px;
+    padding: 7px;
+  }
+
+  .general-avatar {
+    width: 34px;
+  }
+
+  .general-row > span:nth-of-type(n+2) {
+    display: none;
+  }
+
+  .command-tabs {
+    gap: 5px;
+  }
+
+  .command-tabs button,
+  .order-list button,
+  .executor-list button {
+    font-size: 12px;
+    min-height: 32px;
+  }
+
+  .order-list {
+    gap: 6px;
+    max-height: 106px;
+  }
+
+  .executor-list {
+    gap: 6px;
+    max-height: 92px;
+  }
+}
+
+@media (max-width: 980px) {
+  .status-rail {
+    bottom: 72px;
+    display: block;
+    left: 12px;
+    max-height: 36vh;
+    padding: 12px;
+    right: 12px;
+    top: auto;
+    width: auto;
+  }
+
+  .status-rail section {
+    margin-bottom: 12px;
+  }
+
+  .city-hero {
+    grid-template-columns: 68px 1fr;
+  }
+
+  .owner-portrait {
+    width: 68px;
+  }
+
+  .stats-grid,
+  .command-grid,
+  .legacy-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .event-log {
+    bottom: 10px;
+    left: 12px;
+    max-width: calc(100vw - 24px);
+    right: 12px;
+  }
+
+  .event-log__message,
+  .event-log__idle {
+    max-width: calc(100vw - 112px);
+  }
 }
 
 .visual-archive {
@@ -749,6 +889,282 @@ button.primary {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.battle-report {
+  background:
+    linear-gradient(180deg, rgba(46, 27, 24, 0.94), rgba(15, 11, 13, 0.96)),
+    var(--panel-strong);
+  border: 1px solid rgba(240, 201, 120, 0.34);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 246, 211, 0.08);
+  color: #f6e9c6;
+  display: grid;
+  gap: 12px;
+  left: 22px;
+  max-height: min(52vh, 520px);
+  overflow: auto;
+  padding: 14px;
+  position: absolute;
+  bottom: 92px;
+  width: min(480px, calc(100vw - 468px));
+  z-index: 7;
+}
+
+.battle-report--won {
+  border-color: rgba(245, 202, 101, 0.48);
+}
+
+.battle-report--lost {
+  border-color: rgba(172, 92, 78, 0.52);
+}
+
+.battle-report__topline {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.battle-report__topline span,
+.battle-report__result,
+.battle-report__captives span,
+.battle-report__metrics span {
+  color: #e1bd6e;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.battle-report__topline button {
+  background: rgba(255, 242, 198, 0.08);
+  border: 1px solid rgba(240, 201, 120, 0.22);
+  color: #f8e7bc;
+  min-height: 30px;
+  padding: 0 12px;
+}
+
+.battle-report__hero {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 86px 1fr;
+}
+
+.battle-report__portrait {
+  aspect-ratio: 1;
+  border: 2px solid rgba(240, 201, 120, 0.55);
+  border-radius: 8px;
+  object-fit: cover;
+  width: 86px;
+}
+
+.battle-report__hero h2 {
+  color: #fff2c7;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 24px;
+  letter-spacing: 0;
+  line-height: 1.15;
+  margin: 5px 0 6px;
+}
+
+.battle-report__hero p {
+  color: #e8d3a6;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.battle-report__body {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(168px, 1fr) 1fr;
+}
+
+.battle-report__map {
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.18)),
+    url("/assets/map/sanguo-campaign-map.png") center / cover;
+  border: 1px solid rgba(240, 201, 120, 0.2);
+  box-shadow: inset 0 0 26px rgba(8, 6, 7, 0.42);
+  min-height: 138px;
+  overflow: hidden;
+  position: relative;
+}
+
+.battle-report__route {
+  background: linear-gradient(90deg, rgba(255, 232, 155, 0.2), rgba(255, 235, 178, 0.9));
+  box-shadow: 0 0 10px rgba(255, 216, 122, 0.34);
+  height: 3px;
+  position: absolute;
+  transform-origin: 0 50%;
+  z-index: 1;
+}
+
+.battle-report__node {
+  align-items: center;
+  border: 2px solid rgba(255, 241, 200, 0.95);
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.42), 0 0 16px rgba(255, 224, 140, 0.38);
+  color: #181014;
+  display: grid;
+  font-size: 11px;
+  font-weight: 1000;
+  height: 28px;
+  place-items: center;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  z-index: 2;
+}
+
+.battle-report__node--target {
+  height: 34px;
+  width: 34px;
+}
+
+.battle-report__sides {
+  display: grid;
+  gap: 8px;
+}
+
+.battle-report__side {
+  background: linear-gradient(180deg, rgba(255, 242, 198, 0.09), rgba(22, 15, 16, 0.52));
+  border: 1px solid rgba(240, 201, 120, 0.17);
+  display: grid;
+  gap: 4px;
+  min-height: 64px;
+  padding: 8px;
+}
+
+.battle-report__side div {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+}
+
+.battle-report__side div span {
+  border: 1px solid rgba(255, 240, 197, 0.78);
+  border-radius: 999px;
+  display: inline-block;
+  height: 11px;
+  width: 11px;
+}
+
+.battle-report__side strong {
+  color: #fff2c7;
+  font-size: 13px;
+}
+
+.battle-report__side p,
+.battle-report__side small {
+  color: #d8c195;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.battle-report__side small {
+  color: #f2ddb1;
+}
+
+.battle-report__metrics {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.battle-report__metrics div {
+  background: linear-gradient(180deg, rgba(255, 242, 198, 0.1), rgba(19, 16, 18, 0.58));
+  border: 1px solid rgba(240, 201, 120, 0.17);
+  display: grid;
+  gap: 3px;
+  min-height: 48px;
+  padding: 7px 8px;
+}
+
+.battle-report__metrics strong {
+  color: #fff4d0;
+  font-size: 18px;
+  line-height: 1.05;
+}
+
+.battle-report__captives {
+  align-items: center;
+  background: rgba(255, 242, 198, 0.07);
+  border: 1px solid rgba(240, 201, 120, 0.14);
+  display: flex;
+  gap: 10px;
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+.battle-report__captives strong {
+  color: #fff2c7;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+@media (max-width: 1180px) {
+  .battle-report {
+    left: 16px;
+    max-height: min(46vh, 480px);
+    width: min(390px, calc(100vw - 326px));
+  }
+
+  .battle-report__body {
+    grid-template-columns: 1fr;
+  }
+
+  .battle-report__map {
+    min-height: 120px;
+  }
+}
+
+@media (max-width: 980px) {
+  .battle-report {
+    bottom: auto;
+    left: 12px;
+    max-height: 32vh;
+    right: 12px;
+    top: 76px;
+    width: auto;
+  }
+
+  .battle-report__body {
+    grid-template-columns: minmax(150px, 1fr) 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .battle-report {
+    max-height: 30vh;
+    padding: 12px;
+    top: 74px;
+  }
+
+  .battle-report__hero {
+    grid-template-columns: 62px 1fr;
+  }
+
+  .battle-report__portrait {
+    width: 62px;
+  }
+
+  .battle-report__hero h2 {
+    font-size: 20px;
+  }
+
+  .battle-report__body {
+    grid-template-columns: 1fr;
+  }
+
+  .battle-report__map {
+    min-height: 92px;
+  }
+
+  .battle-report__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .event-log {
   align-items: center;
   background:
@@ -920,7 +1336,7 @@ button.primary {
     bottom: 64px;
     display: block;
     left: 12px;
-    max-height: 42vh;
+    max-height: 34vh;
     padding: 12px;
     right: 12px;
     top: auto;

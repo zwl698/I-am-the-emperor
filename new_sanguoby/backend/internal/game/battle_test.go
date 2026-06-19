@@ -71,8 +71,23 @@ func TestApplyBattleCaptureOnWin(t *testing.T) {
 	if !outcome.Won || !outcome.Captured {
 		t.Fatalf("expected win+capture, got %+v", outcome)
 	}
+	if outcome.FromCityName != "我城" || outcome.TargetCityName != "敌城" || outcome.GeneralName != "我将" {
+		t.Fatalf("battle labels = from %q target %q general %q", outcome.FromCityName, outcome.TargetCityName, outcome.GeneralName)
+	}
+	if outcome.AttackerRulerName != "甲" || outcome.DefenderRulerName != "乙" {
+		t.Fatalf("ruler labels = attacker %q defender %q", outcome.AttackerRulerName, outcome.DefenderRulerName)
+	}
+	if len(outcome.DefenderGenerals) != 1 || outcome.DefenderGenerals[0] != "敌将" {
+		t.Fatalf("defender generals = %v, want [敌将]", outcome.DefenderGenerals)
+	}
 	if len(outcome.CapturedGenerals) != 1 || outcome.CapturedGenerals[0] != "敌将" {
 		t.Fatalf("captured generals = %v, want [敌将]", outcome.CapturedGenerals)
+	}
+	if outcome.AttackPower <= 0 || outcome.DefensePower <= 0 {
+		t.Fatalf("battle power not populated: attack=%d defense=%d", outcome.AttackPower, outcome.DefensePower)
+	}
+	if outcome.Message == "" {
+		t.Fatal("expected detailed battle message")
 	}
 	if got := s.findCity("c2").OwnerID; got != "p1" {
 		t.Errorf("city c2 owner = %q, want p1", got)

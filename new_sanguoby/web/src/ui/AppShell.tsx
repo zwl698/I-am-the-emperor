@@ -1,7 +1,8 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {advanceMonth, applyCommand, createGame, getCurrentGame, getScenarios, launchBattle} from '../api/client';
-import type {City, GameSnapshot, RulerOption, ScenarioOption} from '../api/types';
+import type {BattleOutcome, City, GameSnapshot, RulerOption, ScenarioOption} from '../api/types';
 import {CampaignMap} from '../phaser/CampaignMap';
+import {BattleReport} from './BattleReport';
 import {Hud} from './Hud';
 import {StartScreen} from './StartScreen';
 
@@ -15,6 +16,7 @@ export function AppShell() {
   const [mode, setMode] = useState<AppMode>('main');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastBattle, setLastBattle] = useState<BattleOutcome | null>(null);
 
   const loadBootstrap = useCallback(async () => {
     setBusy(true);
@@ -51,6 +53,7 @@ export function AppShell() {
   }, []);
 
   const handleScenarioSelected = useCallback((scenario: ScenarioOption) => {
+    setLastBattle(null);
     setSelectedScenario(scenario);
     setMode('ruler');
   }, []);
@@ -61,6 +64,7 @@ export function AppShell() {
     }
     setBusy(true);
     setError(null);
+    setLastBattle(null);
     try {
       enterGame(await createGame({ scenarioId: selectedScenario.id, playerId: ruler.id }));
     } catch (err) {
@@ -73,6 +77,7 @@ export function AppShell() {
   const handleContinue = useCallback(async () => {
     setBusy(true);
     setError(null);
+    setLastBattle(null);
     try {
       enterGame(await getCurrentGame());
     } catch (err) {
@@ -85,6 +90,7 @@ export function AppShell() {
   const handleAdvanceMonth = useCallback(async () => {
     setBusy(true);
     setError(null);
+    setLastBattle(null);
     try {
       enterGame(await advanceMonth(), selectedCity?.id);
     } catch (err) {
@@ -100,6 +106,7 @@ export function AppShell() {
     }
     setBusy(true);
     setError(null);
+    setLastBattle(null);
     try {
       enterGame(
         await applyCommand({ cityId: selectedCity.id, generalId, commandId, targetCityId, targetGeneralId }),
@@ -118,11 +125,13 @@ export function AppShell() {
     }
     setBusy(true);
     setError(null);
+    setLastBattle(null);
     try {
       const result = await launchBattle({ cityId: selectedCity.id, generalId, targetCityId });
       // On capture the general moves into the conquered city; follow the action there.
       const followCityId = result.outcome.captured ? result.outcome.targetCityId : selectedCity.id;
       enterGame(result.snapshot, followCityId);
+      setLastBattle(result.outcome);
     } catch (err) {
       setError(err instanceof Error ? err.message : '出征失败');
     } finally {
@@ -162,12 +171,18 @@ export function AppShell() {
       <Hud
         snapshot={snapshot}
         selectedCity={selectedCity}
-        onMainMenu={() => setMode('main')}
+        onMainMenu={() => {
+          setLastBattle(null);
+          setMode('main');
+        }}
         onEndStrategy={handleAdvanceMonth}
         onCommand={handleCommand}
         onBattle={handleBattle}
         busy={busy}
       />
+      {lastBattle ? (
+        <BattleReport outcome={lastBattle} snapshot={snapshot} onClose={() => setLastBattle(null)} />
+      ) : null}
       {error ? <div role="alert" className="error-toast">{error}</div> : null}
     </main>
   );

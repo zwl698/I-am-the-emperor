@@ -106,8 +106,18 @@ export type BattleRequest = {
 export type BattleOutcome = {
   won: boolean;
   fromCityId: string;
+  fromCityName: string;
   targetCityId: string;
+  targetCityName: string;
   generalId: string;
+  generalName: string;
+  attackerRulerId: string;
+  attackerRulerName: string;
+  defenderRulerId: string;
+  defenderRulerName: string;
+  defenderGenerals?: string[];
+  attackPower: number;
+  defensePower: number;
   attackerLosses: number;
   defenderLosses: number;
   captured: boolean;

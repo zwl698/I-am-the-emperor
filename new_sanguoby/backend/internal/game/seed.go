@@ -13,10 +13,10 @@ func NewGame(scenarioID, playerID string) *GameState {
 		PlayerID:   playerID,
 		Date:       Date{Year: 190, Month: 1},
 		Rulers: []Ruler{
-			{ID: "caocao", Name: "曹操", Character: "大义", Color: "#9b2f2f"},
-			{ID: "liubei", Name: "刘备", Character: "仁德", Color: "#2f7d57"},
-			{ID: "sunquan", Name: "孙权", Character: "稳健", Color: "#2e6f9e"},
-			{ID: "dongzhuo", Name: "董卓", Character: "狂人", Color: "#7a4d9f"},
+			{ID: "caocao", Name: "曹操", Character: "大义", Color: "#11a36b"},
+			{ID: "liubei", Name: "刘备", Character: "仁德", Color: "#c64fbd"},
+			{ID: "sunquan", Name: "孙权", Character: "稳健", Color: "#d29322"},
+			{ID: "dongzhuo", Name: "董卓", Character: "狂人", Color: "#d93832"},
 			{ID: "neutral", Name: "空城", Character: "无", Color: "#7f7a68"},
 		},
 		Cities: []City{

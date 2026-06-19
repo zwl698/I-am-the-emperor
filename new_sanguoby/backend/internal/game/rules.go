@@ -11,11 +11,8 @@ const (
 func (s *GameState) EndStrategyPhase() {
 	currentDate := formatDate(s.Date)
 	s.prependLog(currentDate + " 策略结束，诸侯开始行动。")
-	captures := s.RunEnemyTurns()
+	s.RunEnemyTurns()
 	s.AdvanceMonth()
-	if captures > 0 {
-		s.prependLog(formatDate(s.Date) + " 各路诸侯征战不休。")
-	}
 	s.evaluateVictory()
 }
 

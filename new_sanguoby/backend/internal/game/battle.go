@@ -29,15 +29,25 @@ var (
 
 // BattleOutcome describes the result of one 出征 resolution for the API/UI.
 type BattleOutcome struct {
-	Won              bool     `json:"won"`
-	FromCityID       string   `json:"fromCityId"`
-	TargetCityID     string   `json:"targetCityId"`
-	GeneralID        string   `json:"generalId"`
-	AttackerLosses   int      `json:"attackerLosses"`
-	DefenderLosses   int      `json:"defenderLosses"`
-	Captured         bool     `json:"captured"`
-	CapturedGenerals []string `json:"capturedGenerals"`
-	Message          string   `json:"message"`
+	Won               bool     `json:"won"`
+	FromCityID        string   `json:"fromCityId"`
+	FromCityName      string   `json:"fromCityName"`
+	TargetCityID      string   `json:"targetCityId"`
+	TargetCityName    string   `json:"targetCityName"`
+	GeneralID         string   `json:"generalId"`
+	GeneralName       string   `json:"generalName"`
+	AttackerRulerID   string   `json:"attackerRulerId"`
+	AttackerRulerName string   `json:"attackerRulerName"`
+	DefenderRulerID   string   `json:"defenderRulerId"`
+	DefenderRulerName string   `json:"defenderRulerName"`
+	DefenderGenerals  []string `json:"defenderGenerals"`
+	AttackPower       int      `json:"attackPower"`
+	DefensePower      int      `json:"defensePower"`
+	AttackerLosses    int      `json:"attackerLosses"`
+	DefenderLosses    int      `json:"defenderLosses"`
+	Captured          bool     `json:"captured"`
+	CapturedGenerals  []string `json:"capturedGenerals"`
+	Message           string   `json:"message"`
 }
 
 const battleStaminaCost = 4
@@ -171,15 +181,27 @@ func (s *GameState) resolveAttack(from *City, general *General, target *City) *B
 	defendArms := s.cityTroops(target.ID)
 	// Defender morale bonus from city devotion (民心向背).
 	defendArms += defendArms * target.PeopleDevotion / 200
+	defenderRulerID := target.OwnerID
+	defenderGenerals := s.activeGeneralNamesInCity(target.ID)
 
 	randv := battleRand(101)
 	won := resolveBattleWon(attackArms, defendArms, from.Food, target.Food, randv)
 
 	outcome := &BattleOutcome{
-		FromCityID:   from.ID,
-		TargetCityID: target.ID,
-		GeneralID:    general.ID,
-		Won:          won,
+		FromCityID:        from.ID,
+		FromCityName:      from.Name,
+		TargetCityID:      target.ID,
+		TargetCityName:    target.Name,
+		GeneralID:         general.ID,
+		GeneralName:       general.Name,
+		AttackerRulerID:   general.OwnerID,
+		AttackerRulerName: s.rulerName(general.OwnerID),
+		DefenderRulerID:   defenderRulerID,
+		DefenderRulerName: s.rulerName(defenderRulerID),
+		DefenderGenerals:  defenderGenerals,
+		AttackPower:       attackArms,
+		DefensePower:      defendArms,
+		Won:               won,
 	}
 
 	if won {
@@ -190,24 +212,73 @@ func (s *GameState) resolveAttack(from *City, general *General, target *City) *B
 		outcome.DefenderLosses = s.routDefenders(target.ID)
 		outcome.CapturedGenerals = s.captureCity(target, general)
 		outcome.Captured = true
-		if len(outcome.CapturedGenerals) == 1 {
-			outcome.Message = fmt.Sprintf("%s 攻克 %s，俘虏 %s！", general.Name, target.Name, outcome.CapturedGenerals[0])
-		} else if len(outcome.CapturedGenerals) > 1 {
-			outcome.Message = fmt.Sprintf("%s 攻克 %s，俘虏 %s 等 %d 将！", general.Name, target.Name, outcome.CapturedGenerals[0], len(outcome.CapturedGenerals))
-		} else {
-			outcome.Message = fmt.Sprintf("%s 攻克 %s！", general.Name, target.Name)
-		}
+		outcome.Message = fmt.Sprintf("%s军 %s 自 %s 攻克 %s，损兵%d，歼敌%d%s。",
+			outcome.AttackerRulerName,
+			general.Name,
+			from.Name,
+			target.Name,
+			outcome.AttackerLosses,
+			outcome.DefenderLosses,
+			capturedSuffix(outcome.CapturedGenerals),
+		)
 	} else {
 		// Attacker is repelled with heavier losses; defender takes light losses.
 		attackerLoss := minInt(general.Soldiers, general.Soldiers*(40+randv/3)/100)
 		general.Soldiers -= attackerLoss
 		outcome.AttackerLosses = attackerLoss
 		outcome.DefenderLosses = s.lightDefenderLosses(target.ID, randv)
-		outcome.Message = fmt.Sprintf("%s 进攻 %s 失利，退回 %s。", general.Name, target.Name, from.Name)
+		outcome.Message = fmt.Sprintf("%s军 %s 自 %s 进攻 %s 失利，损兵%d，守军损%d。",
+			outcome.AttackerRulerName,
+			general.Name,
+			from.Name,
+			target.Name,
+			outcome.AttackerLosses,
+			outcome.DefenderLosses,
+		)
 	}
 
 	s.prependLog(outcome.Message)
 	return outcome
+}
+
+func (s *GameState) rulerName(ownerID string) string {
+	if ownerID == "" {
+		return "无主"
+	}
+	for _, ruler := range s.Rulers {
+		if ruler.ID == ownerID {
+			if ruler.Name != "" {
+				return ruler.Name
+			}
+			return ruler.ID
+		}
+	}
+	if ownerID == "neutral" {
+		return "空城"
+	}
+	return ownerID
+}
+
+func (s *GameState) activeGeneralNamesInCity(cityID string) []string {
+	names := make([]string, 0)
+	for i := range s.Generals {
+		general := &s.Generals[i]
+		if general.CityID == cityID && !general.Captive {
+			names = append(names, general.Name)
+		}
+	}
+	return names
+}
+
+func capturedSuffix(generals []string) string {
+	switch len(generals) {
+	case 0:
+		return ""
+	case 1:
+		return "，俘虏" + generals[0]
+	default:
+		return fmt.Sprintf("，俘虏%s等%d将", generals[0], len(generals))
+	}
 }
 
 // routDefenders wipes most of a routed city's defenders and returns the losses.

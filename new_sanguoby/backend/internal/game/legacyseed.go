@@ -9,10 +9,10 @@ import (
 
 // rulerColors assigns distinct campaign colors to rulers in a stable order.
 var rulerColors = []string{
-	"#9b2f2f", "#2f7d57", "#2e6f9e", "#7a4d9f", "#b07c2f",
-	"#3f8f8f", "#a8418a", "#557a2f", "#8a5a2f", "#4a5fae",
-	"#9e5b3a", "#3a8f5f", "#7f3f6f", "#5f7f3f", "#2f6f7f",
-	"#8f6f2f", "#6f2f8f", "#2f8f6f", "#8f2f4f", "#4f8f2f",
+	"#d93832", "#11a36b", "#336dff", "#9c54ff", "#d29322",
+	"#05aab8", "#d9498f", "#74a737", "#c7652d", "#5864ff",
+	"#c84f3f", "#2aa36f", "#c64fbd", "#6fad35", "#0089b8",
+	"#c8a42c", "#884bd6", "#1fa88d", "#d84a68", "#42a846",
 }
 
 // NewGameFromArchive builds a campaign GameState from the legacy dat.lib
