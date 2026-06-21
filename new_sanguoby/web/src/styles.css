@@ -111,11 +111,12 @@ button.primary {
 .game-title h1 {
   color: #fff3c9;
   font-family: "Noto Serif SC", "Songti SC", serif;
-  font-size: 68px;
+  font-size: 52px;
   letter-spacing: 0;
-  line-height: 0.95;
+  line-height: 1.02;
   margin: 8px 0 10px;
   text-shadow: 0 5px 28px rgba(0, 0, 0, 0.82);
+  text-rendering: geometricPrecision;
 }
 
 .game-title p {
@@ -296,7 +297,111 @@ button.primary {
 
 .campaign-map {
   height: 100vh;
+  position: relative;
   width: 100vw;
+}
+
+.campaign-map canvas {
+  display: block;
+}
+
+.campaign-map__labels {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+.map-city-label {
+  --city-owner-color: #8f8979;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  display: block;
+  height: 56px;
+  min-height: 0;
+  padding: 0;
+  pointer-events: auto;
+  position: absolute;
+  text-shadow: none;
+  transform: translate(-50%, -48%);
+  width: 78px;
+}
+
+.map-city-label:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  transform: translate(-50%, -48%);
+}
+
+.map-city-label:focus-visible {
+  outline: 2px solid rgba(255, 238, 176, 0.86);
+  outline-offset: -8px;
+}
+
+.map-city-label__owner,
+.map-city-label__name {
+  -webkit-font-smoothing: antialiased;
+  color: #fff5d2;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-weight: 900;
+  letter-spacing: 0;
+  position: absolute;
+  text-rendering: geometricPrecision;
+  white-space: nowrap;
+}
+
+.map-city-label__owner {
+  background: linear-gradient(180deg, rgba(255, 246, 210, 0.18), rgba(0, 0, 0, 0.1)), var(--city-owner-color);
+  border: 1px solid rgba(255, 238, 188, 0.92);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  font-size: 10px;
+  line-height: 16px;
+  min-width: 19px;
+  padding: 0 4px;
+  right: 9px;
+  text-shadow: 0 1px 2px #120705, 0 0 5px rgba(0, 0, 0, 0.78);
+  top: 0;
+}
+
+.map-city-label__name {
+  background: linear-gradient(180deg, rgba(35, 24, 15, 0.88), rgba(14, 9, 7, 0.84));
+  border: 1px solid rgba(255, 225, 166, 0.62);
+  border-radius: 4px;
+  bottom: 0;
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 241, 193, 0.12);
+  color: #fff1c4;
+  font-size: 12px;
+  left: 50%;
+  line-height: 1.08;
+  max-width: 76px;
+  overflow: hidden;
+  padding: 2px 5px 3px;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 0 #2c150d, 0 0 6px rgba(0, 0, 0, 0.88);
+  transform: translateX(-50%);
+}
+
+.map-city-label--selected {
+  height: 66px;
+  width: 92px;
+}
+
+.map-city-label--selected .map-city-label__owner {
+  font-size: 11px;
+  line-height: 18px;
+  min-width: 22px;
+  right: 12px;
+}
+
+.map-city-label--selected .map-city-label__name {
+  border-color: rgba(255, 238, 188, 0.9);
+  color: #fff8dc;
+  font-size: 14px;
+  max-width: 90px;
+  padding: 3px 8px 4px;
 }
 
 .topbar {
@@ -306,19 +411,26 @@ button.primary {
   justify-content: space-between;
   left: 22px;
   position: absolute;
-  right: clamp(318px, 28vw, 390px);
+  right: 22px;
   top: 18px;
   z-index: 5;
+}
+
+.topbar > div:first-child {
+  max-width: 540px;
+  min-width: 0;
 }
 
 .topbar h1 {
   color: #fff0c4;
   font-family: "Noto Serif SC", "Songti SC", serif;
-  font-size: 30px;
+  font-size: 26px;
   letter-spacing: 0;
   line-height: 1;
   margin: 0;
   text-shadow: 0 2px 14px rgba(26, 12, 8, 0.8);
+  text-rendering: geometricPrecision;
+  white-space: nowrap;
 }
 
 .topbar p {
@@ -329,11 +441,47 @@ button.primary {
 }
 
 .topbar-actions {
+  align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
+  justify-content: flex-end;
+}
+
+.music-toggle {
+  aspect-ratio: 1;
+  min-height: 0;
+  padding: 0;
+  width: 42px;
+}
+
+.music-toggle span {
+  display: block;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.music-toggle--on {
+  background: linear-gradient(180deg, #f0c978, #b9883d 54%, #6d3926);
+  border-color: rgba(255, 242, 194, 0.68);
+  box-shadow: 0 0 24px rgba(240, 201, 120, 0.26);
+  color: #24150f;
+  text-shadow: none;
+}
+
+.rail-toggle {
+  min-width: 128px;
+}
+
+.rail-toggle--open {
+  background: linear-gradient(180deg, rgba(240, 201, 120, 0.78), rgba(142, 49, 42, 0.92));
+  border-color: rgba(255, 242, 194, 0.58);
+  color: #fff7df;
 }
 
 .status-rail {
+  animation: railSlideIn 180ms ease both;
   background:
     linear-gradient(180deg, rgba(43, 26, 25, 0.88), rgba(16, 11, 13, 0.94)),
     var(--panel);
@@ -341,25 +489,36 @@ button.primary {
   backdrop-filter: blur(14px);
   box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 246, 211, 0.08);
   display: grid;
-  gap: 14px;
-  max-height: calc(100vh - 36px);
+  gap: 10px;
+  max-height: calc(100vh - 104px);
   overflow: auto;
-  padding: 18px;
+  padding: 14px;
   position: absolute;
   right: 18px;
-  top: 18px;
-  width: clamp(280px, 24vw, 350px);
+  top: 82px;
+  width: clamp(300px, 24vw, 390px);
   z-index: 6;
 }
 
 .status-rail section {
   border-bottom: 1px solid rgba(246, 208, 126, 0.12);
-  padding-bottom: 14px;
+  padding-bottom: 10px;
 }
 
 .status-rail section:last-child {
   border-bottom: 0;
   padding-bottom: 0;
+}
+
+@keyframes railSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .section-label {
@@ -374,7 +533,7 @@ button.primary {
 .status-rail h2 {
   color: #fff1c4;
   font-family: "Noto Serif SC", "Songti SC", serif;
-  font-size: 28px;
+  font-size: 24px;
   letter-spacing: 0;
   line-height: 1.08;
   margin: 0;
@@ -387,7 +546,7 @@ button.primary {
   font-size: 14px;
   font-weight: 700;
   gap: 8px;
-  margin: 10px 0 0;
+  margin: 6px 0 0;
 }
 
 .owner-line span {
@@ -401,15 +560,15 @@ button.primary {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
 }
 
 .city-hero {
   align-items: center;
   display: grid;
-  gap: 14px;
-  grid-template-columns: 112px 1fr;
+  gap: 10px;
+  grid-template-columns: 76px 1fr;
 }
 
 .owner-portrait {
@@ -420,7 +579,7 @@ button.primary {
     0 16px 34px rgba(0, 0, 0, 0.44),
     inset 0 0 0 1px rgba(255, 244, 214, 0.16);
   object-fit: cover;
-  width: 112px;
+  width: 76px;
 }
 
 @media (max-width: 1180px) {
@@ -557,6 +716,14 @@ button.primary {
     right: 12px;
   }
 
+  .campaign-report {
+    bottom: 74px;
+    left: 12px;
+    max-height: 32vh;
+    right: 12px;
+    width: auto;
+  }
+
   .event-log__message,
   .event-log__idle {
     max-width: calc(100vw - 112px);
@@ -654,27 +821,31 @@ button.primary {
     rgba(255, 242, 198, 0.06);
   border: 1px solid rgba(240, 201, 120, 0.18);
   border-radius: 6px;
-  padding: 9px 10px;
+  min-width: 0;
+  padding: 6px 7px;
 }
 
 .metric span {
   color: #d5bb86;
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
 }
 
 .metric strong {
   color: #fff3ce;
   display: block;
-  font-size: 18px;
+  font-size: 15px;
   line-height: 1.2;
-  margin-top: 4px;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .general-list {
   display: grid;
-  gap: 8px;
+  gap: 7px;
 }
 
 .general-row {
@@ -687,8 +858,8 @@ button.primary {
   display: grid;
   gap: 8px;
   grid-template-columns: 40px 1fr auto auto auto;
-  min-height: 58px;
-  padding: 8px 9px;
+  min-height: 50px;
+  padding: 7px 8px;
 }
 
 .general-row strong {
@@ -728,7 +899,7 @@ button.primary {
   border-radius: 6px;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
   object-fit: cover;
-  width: 40px;
+  width: 34px;
 }
 
 .portrait-fallback {
@@ -810,7 +981,7 @@ button.primary {
   display: grid;
   gap: 7px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  max-height: 166px;
+  max-height: 92px;
   overflow: auto;
   padding-right: 2px;
 }
@@ -834,8 +1005,133 @@ button.primary {
   font-size: 12px;
 }
 
+.command-preview {
+  background:
+    linear-gradient(135deg, rgba(238, 197, 111, 0.12), rgba(102, 39, 35, 0.18)),
+    rgba(18, 15, 16, 0.48);
+  border: 1px solid rgba(240, 201, 120, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 246, 211, 0.08);
+  display: grid;
+  gap: 5px;
+  padding: 7px;
+}
+
+.command-preview--blocked {
+  border-color: rgba(232, 121, 84, 0.42);
+}
+
+.command-preview__head,
+.command-preview__meta,
+.command-preview__chips {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.command-preview__head {
+  justify-content: space-between;
+}
+
+.command-preview__head span {
+  color: #e1bd6e;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.command-preview__head strong {
+  color: #fff2c7;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 16px;
+  line-height: 1.1;
+}
+
+.command-preview p {
+  color: rgba(246, 229, 188, 0.84);
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.command-preview > p:first-of-type {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-preview__chips span {
+  background: rgba(255, 234, 174, 0.11);
+  border: 1px solid rgba(240, 201, 120, 0.2);
+  color: #ffe6a5;
+  font-size: 12px;
+  font-weight: 800;
+  min-height: 22px;
+  padding: 2px 7px;
+}
+
+.command-preview__meta span {
+  color: #d9c090;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.command-preview__ready {
+  color: #a9e6bd !important;
+  font-weight: 900;
+}
+
+.command-preview__warning {
+  color: #f1aa82 !important;
+  font-weight: 900;
+}
+
 .execute-order {
+  box-shadow: 0 -10px 22px rgba(16, 11, 13, 0.46), inset 0 1px 0 rgba(255, 246, 211, 0.12);
+  bottom: 0;
+  position: sticky;
   width: 100%;
+  z-index: 3;
+}
+
+.battle-supplies {
+  background: linear-gradient(135deg, rgba(240, 201, 120, 0.1), rgba(47, 125, 87, 0.12));
+  border: 1px solid rgba(240, 201, 120, 0.18);
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+}
+
+.supply-input {
+  align-items: center;
+  display: grid;
+  gap: 7px;
+  grid-template-columns: 20px 1fr 64px 46px;
+}
+
+.supply-input span,
+.supply-input em {
+  color: #d8c092;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.supply-input input[type="range"] {
+  accent-color: #d69a47;
+  min-width: 0;
+}
+
+.supply-input input[type="number"] {
+  background: rgba(12, 9, 10, 0.72);
+  border: 1px solid rgba(240, 201, 120, 0.28);
+  color: #fff1c4;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  min-height: 28px;
+  min-width: 0;
+  padding: 0 6px;
+  width: 64px;
 }
 
 .battle-targets {
@@ -889,6 +1185,301 @@ button.primary {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.battlefield-overlay {
+  align-items: center;
+  background:
+    radial-gradient(circle at 50% 32%, rgba(255, 232, 166, 0.1), transparent 42%),
+    rgba(7, 5, 5, 0.78);
+  color: #f9e7bd;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 26px;
+  position: absolute;
+  z-index: 9;
+}
+
+.battlefield-shell {
+  background:
+    linear-gradient(180deg, rgba(42, 25, 22, 0.96), rgba(13, 10, 12, 0.98)),
+    var(--panel-strong);
+  border: 1px solid rgba(240, 201, 120, 0.38);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.68), inset 0 1px 0 rgba(255, 246, 211, 0.1);
+  display: grid;
+  gap: 14px;
+  max-height: calc(100vh - 52px);
+  overflow: auto;
+  padding: 16px;
+  width: min(1180px, 100%);
+}
+
+.battlefield-header {
+  align-items: center;
+  border-bottom: 1px solid rgba(240, 201, 120, 0.16);
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 12px;
+}
+
+.battlefield-header span,
+.battle-army-card span,
+.selected-unit-card span {
+  color: #e1bd6e;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.battlefield-header h2 {
+  color: #fff3ce;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 28px;
+  letter-spacing: 0;
+  line-height: 1.1;
+  margin: 4px 0 0;
+}
+
+.battlefield-layout {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 240px minmax(420px, 1fr) 260px;
+  min-height: 540px;
+}
+
+.battlefield-side {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.battle-army-card,
+.selected-unit-card,
+.battlefield-log {
+  background: linear-gradient(180deg, rgba(255, 242, 198, 0.08), rgba(15, 12, 13, 0.7));
+  border: 1px solid rgba(240, 201, 120, 0.2);
+  padding: 10px;
+}
+
+.battle-army-card > div,
+.selected-unit-card {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 54px 1fr;
+}
+
+.battle-army-card__portrait,
+.selected-unit-card__portrait {
+  aspect-ratio: 1;
+  border: 1px solid rgba(240, 201, 120, 0.56);
+  border-radius: 7px;
+  object-fit: cover;
+  width: 54px;
+}
+
+.battle-army-card strong,
+.selected-unit-card strong {
+  color: #fff2c7;
+  display: block;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 19px;
+  line-height: 1.08;
+  margin-top: 2px;
+}
+
+.battle-army-card p,
+.battle-army-card small,
+.selected-unit-card p,
+.battlefield-log p {
+  color: #d8c195;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.battle-army-card small {
+  display: block;
+  margin-top: 8px;
+}
+
+.battlefield-stage {
+  background:
+    linear-gradient(rgba(10, 8, 8, 0.08), rgba(10, 8, 8, 0.34)),
+    url("/assets/map/sanguo-campaign-map.png") center / cover;
+  border: 1px solid rgba(240, 201, 120, 0.24);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.34);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+  padding: 12px;
+}
+
+.battlefield-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.battlefield-status span {
+  background: rgba(19, 13, 12, 0.72);
+  border: 1px solid rgba(255, 232, 174, 0.22);
+  color: #ffe6a5;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 4px 8px;
+}
+
+.battlefield-grid {
+  align-self: stretch;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(9, minmax(36px, 1fr));
+  grid-template-rows: repeat(6, minmax(48px, 1fr));
+  min-height: 430px;
+}
+
+.battlefield-cell {
+  background: rgba(176, 143, 84, 0.18);
+  border: 1px solid rgba(255, 236, 186, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 246, 211, 0.08);
+  min-height: 0;
+  padding: 0;
+  position: relative;
+}
+
+.battlefield-cell--hill {
+  background: rgba(82, 69, 42, 0.42);
+}
+
+.battlefield-cell--forest {
+  background: rgba(40, 91, 57, 0.34);
+}
+
+.battlefield-cell--river {
+  background: rgba(52, 120, 145, 0.34);
+}
+
+.battlefield-cell--gate {
+  background: rgba(111, 61, 38, 0.52);
+  border-color: rgba(255, 220, 150, 0.38);
+}
+
+.battlefield-cell span {
+  --unit-color: #d69a47;
+  background:
+    radial-gradient(circle at 50% 22%, rgba(255, 255, 255, 0.2), transparent 36%),
+    var(--unit-color);
+  border: 2px solid rgba(255, 238, 195, 0.82);
+  border-radius: 999px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.48);
+  color: #150c08;
+  display: grid;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 18px;
+  font-weight: 1000;
+  height: 34px;
+  left: 50%;
+  line-height: 1;
+  place-items: center;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 34px;
+}
+
+.battlefield-cell--defender span {
+  border-color: rgba(255, 190, 190, 0.84);
+}
+
+.battlefield-cell--selected {
+  border-color: rgba(255, 242, 194, 0.9);
+  box-shadow: inset 0 0 0 2px rgba(255, 225, 139, 0.5), 0 0 18px rgba(240, 201, 120, 0.26);
+}
+
+.selected-unit-card {
+  min-height: 88px;
+}
+
+.selected-unit-card meter {
+  accent-color: #d69a47;
+  height: 8px;
+  width: 100%;
+}
+
+.battlefield-actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.battlefield-actions .primary {
+  grid-column: 1 / -1;
+}
+
+.battlefield-log {
+  display: grid;
+  gap: 7px;
+  max-height: 170px;
+  overflow: auto;
+}
+
+@media (max-width: 980px) {
+  .battlefield-overlay {
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .battlefield-shell {
+    max-height: calc(100vh - 24px);
+    padding: 12px;
+  }
+
+  .battlefield-layout {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .battlefield-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .battlefield-side--right {
+    grid-template-columns: 1fr;
+  }
+
+  .battlefield-grid {
+    min-height: 330px;
+  }
+}
+
+@media (max-width: 640px) {
+  .battlefield-header {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .battlefield-header h2 {
+    font-size: 22px;
+  }
+
+  .battlefield-side {
+    grid-template-columns: 1fr;
+  }
+
+  .battlefield-grid {
+    gap: 3px;
+    grid-template-rows: repeat(6, minmax(40px, 1fr));
+    min-height: 270px;
+  }
+
+  .battlefield-cell span {
+    font-size: 15px;
+    height: 28px;
+    width: 28px;
+  }
+}
+
 .battle-report {
   background:
     linear-gradient(180deg, rgba(46, 27, 24, 0.94), rgba(15, 11, 13, 0.96)),
@@ -899,7 +1490,7 @@ button.primary {
   display: grid;
   gap: 12px;
   left: 22px;
-  max-height: min(52vh, 520px);
+  max-height: min(66vh, 560px);
   overflow: auto;
   padding: 14px;
   position: absolute;
@@ -1105,7 +1696,7 @@ button.primary {
 @media (max-width: 1180px) {
   .battle-report {
     left: 16px;
-    max-height: min(46vh, 480px);
+    max-height: min(62vh, 500px);
     width: min(390px, calc(100vw - 326px));
   }
 
@@ -1122,7 +1713,7 @@ button.primary {
   .battle-report {
     bottom: auto;
     left: 12px;
-    max-height: 32vh;
+    max-height: 38vh;
     right: 12px;
     top: 76px;
     width: auto;
@@ -1135,7 +1726,7 @@ button.primary {
 
 @media (max-width: 760px) {
   .battle-report {
-    max-height: 30vh;
+    max-height: 36vh;
     padding: 12px;
     top: 74px;
   }
@@ -1163,6 +1754,58 @@ button.primary {
   .battle-report__metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+.campaign-report {
+  background:
+    linear-gradient(180deg, rgba(37, 19, 18, 0.94), rgba(17, 12, 14, 0.92)),
+    var(--panel-strong);
+  border: 1px solid rgba(255, 222, 154, 0.26);
+  bottom: 84px;
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 246, 211, 0.08);
+  color: #f7e6bf;
+  left: 22px;
+  max-height: min(38vh, 330px);
+  overflow: auto;
+  padding: 12px 14px;
+  position: absolute;
+  width: min(520px, calc(100vw - 560px));
+  z-index: 6;
+}
+
+.campaign-report__head {
+  align-items: center;
+  border-bottom: 1px solid rgba(240, 201, 120, 0.16);
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+}
+
+.campaign-report__head strong {
+  color: #e1bd6e;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 16px;
+}
+
+.campaign-report__head button {
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+.campaign-report ol {
+  display: grid;
+  gap: 7px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.campaign-report li {
+  color: #fff1c9;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .event-log {
@@ -1287,7 +1930,7 @@ button.primary {
   }
 
   .game-title h1 {
-    font-size: 44px;
+    font-size: 36px;
   }
 
   .ruler-grid {
@@ -1315,7 +1958,8 @@ button.primary {
   }
 
   .topbar h1 {
-    font-size: 22px;
+    font-size: 19px;
+    white-space: normal;
   }
 
   .topbar p {

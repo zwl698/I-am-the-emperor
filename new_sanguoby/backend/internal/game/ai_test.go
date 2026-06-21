@@ -36,7 +36,7 @@ func TestRunEnemyTurnsAttacksWeakerNeighbour(t *testing.T) {
 	// Remove the neutral city so the only target is the weak player city c1.
 	s.Cities = s.Cities[:2]
 	s.Routes = []Route{{From: "c1", To: "c2"}}
-	battleRand = func(int) int { return 0 } // force AI win
+	battleRand = func(int) int { return 100 } // force strong-side win
 	defer func() { battleRand = defaultBattleRand }()
 
 	captures := s.RunEnemyTurns()
@@ -65,11 +65,15 @@ func TestRunEnemyTurnsDevelopsWhenNoTarget(t *testing.T) {
 	if s.findCity("c2").Farming <= beforeFarming {
 		t.Errorf("AI should have developed c2 farming: before=%d after=%d", beforeFarming, s.findCity("c2").Farming)
 	}
+	logText := strings.Join(s.Log, "\n")
+	if !strings.Contains(logText, "诸侯行动：乙 令 乙将 在 乙城 开垦，农业 +") {
+		t.Fatalf("expected detailed AI development log, got %v", s.Log)
+	}
 }
 
 func TestRunEnemyTurnsSkipsPlayerAndNeutral(t *testing.T) {
 	s := newAITestState()
-	battleRand = func(int) int { return 0 }
+	battleRand = func(int) int { return 100 }
 	defer func() { battleRand = defaultBattleRand }()
 
 	playerGeneralStaminaBefore := s.findGeneral("g1").Stamina
@@ -114,7 +118,7 @@ func TestEndStrategyPhaseRunsEnemyTurns(t *testing.T) {
 	s := newAITestState()
 	s.Cities = s.Cities[:2]
 	s.Routes = []Route{{From: "c1", To: "c2"}}
-	battleRand = func(int) int { return 0 }
+	battleRand = func(int) int { return 100 }
 	defer func() { battleRand = defaultBattleRand }()
 
 	s.EndStrategyPhase()

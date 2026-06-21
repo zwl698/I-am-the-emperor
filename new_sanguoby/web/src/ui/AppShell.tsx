@@ -1,7 +1,9 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {advanceMonth, applyCommand, createGame, getCurrentGame, getScenarios, launchBattle} from '../api/client';
-import type {BattleOutcome, City, GameSnapshot, RulerOption, ScenarioOption} from '../api/types';
+import type {BattleOutcome, BattleRequest, City, GameSnapshot, RulerOption, ScenarioOption} from '../api/types';
+import {useStrategyMusicAutoStart} from '../audio/useStrategyMusic';
 import {CampaignMap} from '../phaser/CampaignMap';
+import {BattlefieldOverlay} from './BattlefieldOverlay';
 import {BattleReport} from './BattleReport';
 import {Hud} from './Hud';
 import {StartScreen} from './StartScreen';
@@ -9,6 +11,7 @@ import {StartScreen} from './StartScreen';
 type AppMode = 'main' | 'period' | 'ruler' | 'about' | 'game';
 
 export function AppShell() {
+  useStrategyMusicAutoStart();
   const [snapshot, setSnapshot] = useState<GameSnapshot | null>(null);
   const [scenarios, setScenarios] = useState<ScenarioOption[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<ScenarioOption | null>(null);
@@ -17,6 +20,7 @@ export function AppShell() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastBattle, setLastBattle] = useState<BattleOutcome | null>(null);
+  const [pendingBattle, setPendingBattle] = useState<BattleRequest | null>(null);
 
   const loadBootstrap = useCallback(async () => {
     setBusy(true);
@@ -54,6 +58,7 @@ export function AppShell() {
 
   const handleScenarioSelected = useCallback((scenario: ScenarioOption) => {
     setLastBattle(null);
+    setPendingBattle(null);
     setSelectedScenario(scenario);
     setMode('ruler');
   }, []);
@@ -65,6 +70,7 @@ export function AppShell() {
     setBusy(true);
     setError(null);
     setLastBattle(null);
+    setPendingBattle(null);
     try {
       enterGame(await createGame({ scenarioId: selectedScenario.id, playerId: ruler.id }));
     } catch (err) {
@@ -78,6 +84,7 @@ export function AppShell() {
     setBusy(true);
     setError(null);
     setLastBattle(null);
+    setPendingBattle(null);
     try {
       enterGame(await getCurrentGame());
     } catch (err) {
@@ -91,6 +98,7 @@ export function AppShell() {
     setBusy(true);
     setError(null);
     setLastBattle(null);
+    setPendingBattle(null);
     try {
       enterGame(await advanceMonth(), selectedCity?.id);
     } catch (err) {
@@ -107,6 +115,7 @@ export function AppShell() {
     setBusy(true);
     setError(null);
     setLastBattle(null);
+    setPendingBattle(null);
     try {
       enterGame(
         await applyCommand({ cityId: selectedCity.id, generalId, commandId, targetCityId, targetGeneralId }),
@@ -119,17 +128,23 @@ export function AppShell() {
     }
   }, [enterGame, selectedCity]);
 
-  const handleBattle = useCallback(async (generalId: string, targetCityId: string) => {
-    if (!selectedCity) {
+  const handleBattle = useCallback((request: BattleRequest) => {
+    setError(null);
+    setLastBattle(null);
+    setPendingBattle(request);
+  }, []);
+
+  const handleBattleResolve = useCallback(async (request: BattleRequest, fieldAdvantage: number, remainingFood: number) => {
+    if (!snapshot) {
       return;
     }
     setBusy(true);
     setError(null);
     setLastBattle(null);
     try {
-      const result = await launchBattle({ cityId: selectedCity.id, generalId, targetCityId });
-      // On capture the general moves into the conquered city; follow the action there.
-      const followCityId = result.outcome.captured ? result.outcome.targetCityId : selectedCity.id;
+      const result = await launchBattle({ ...request, fieldAdvantage, remainingFood });
+      const followCityId = result.outcome.captured ? result.outcome.targetCityId : request.cityId;
+      setPendingBattle(null);
       enterGame(result.snapshot, followCityId);
       setLastBattle(result.outcome);
     } catch (err) {
@@ -137,7 +152,7 @@ export function AppShell() {
     } finally {
       setBusy(false);
     }
-  }, [enterGame, selectedCity]);
+  }, [enterGame, snapshot]);
 
   if (mode !== 'game') {
     return (
@@ -158,7 +173,7 @@ export function AppShell() {
   if (!snapshot || !selectedCity) {
     return (
       <main className="loading-screen">
-        <h1>三国霸业</h1>
+        <h1>三国霸业2026重置版</h1>
         <p>{error ?? '正在整军备战...'}</p>
         {error ? <button type="button" onClick={loadBootstrap}>重试</button> : null}
       </main>
@@ -173,6 +188,7 @@ export function AppShell() {
         selectedCity={selectedCity}
         onMainMenu={() => {
           setLastBattle(null);
+          setPendingBattle(null);
           setMode('main');
         }}
         onEndStrategy={handleAdvanceMonth}
@@ -182,6 +198,15 @@ export function AppShell() {
       />
       {lastBattle ? (
         <BattleReport outcome={lastBattle} snapshot={snapshot} onClose={() => setLastBattle(null)} />
+      ) : null}
+      {pendingBattle ? (
+        <BattlefieldOverlay
+          snapshot={snapshot}
+          request={pendingBattle}
+          busy={busy}
+          onResolve={handleBattleResolve}
+          onCancel={() => setPendingBattle(null)}
+        />
       ) : null}
       {error ? <div role="alert" className="error-toast">{error}</div> : null}
     </main>

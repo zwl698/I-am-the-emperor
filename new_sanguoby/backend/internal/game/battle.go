@@ -24,6 +24,7 @@ var (
 	ErrBattleSameOwner    = fmt.Errorf("%w: cannot attack your own city", ErrInvalidCommand)
 	ErrBattleNotAdjacent  = fmt.Errorf("%w: target city is not adjacent", ErrInvalidCommand)
 	ErrBattleNoSoldiers   = fmt.Errorf("%w: general has no soldiers", ErrGeneralNotReady)
+	ErrBattleNoFood       = fmt.Errorf("%w: no provisions assigned", ErrInvalidCommand)
 	ErrBattleTargetNoCity = fmt.Errorf("%w: target city not found", ErrInvalidCommand)
 )
 
@@ -36,11 +37,17 @@ type BattleOutcome struct {
 	TargetCityName    string   `json:"targetCityName"`
 	GeneralID         string   `json:"generalId"`
 	GeneralName       string   `json:"generalName"`
+	GeneralIDs        []string `json:"generalIds"`
+	GeneralNames      []string `json:"generalNames"`
 	AttackerRulerID   string   `json:"attackerRulerId"`
 	AttackerRulerName string   `json:"attackerRulerName"`
 	DefenderRulerID   string   `json:"defenderRulerId"`
 	DefenderRulerName string   `json:"defenderRulerName"`
 	DefenderGenerals  []string `json:"defenderGenerals"`
+	Money             int      `json:"money"`
+	Food              int      `json:"food"`
+	RemainingFood     int      `json:"remainingFood"`
+	FieldAdvantage    int      `json:"fieldAdvantage"`
 	AttackPower       int      `json:"attackPower"`
 	DefensePower      int      `json:"defensePower"`
 	AttackerLosses    int      `json:"attackerLosses"`
@@ -51,6 +58,7 @@ type BattleOutcome struct {
 }
 
 const battleStaminaCost = 4
+const maxBattleGenerals = 10
 
 // battleRand is the source of randomness; overridable in tests.
 var defaultBattleRand = rand.Intn
@@ -104,7 +112,9 @@ func (s *GameState) cityTroops(cityID string) int {
 }
 
 // resolveBattleWon ports FgtCountWon: given strengths and provisions, returns
-// whether the attacker wins. randv is a 0..100 roll.
+// whether the attacker wins. randv is a 0..100 roll. The comparisons mirror
+// FgtCount.c exactly: legacy stores FGT_WON as 1 and FGT_LOSE as 2, so the
+// original `(randv < N) + 1` expressions mean "rolls below N lose".
 func resolveBattleWon(attackArms, defendArms, attackFood, defendFood, randv int) bool {
 	if attackArms == 0 {
 		return false
@@ -115,20 +125,20 @@ func resolveBattleWon(attackArms, defendArms, attackFood, defendFood, randv int)
 	if attackArms > defendArms {
 		switch {
 		case attackArms>>1 > defendArms:
-			return randv < 70
+			return randv >= 30
 		case attackFood > defendFood:
-			return randv < 60
+			return randv >= 40
 		default:
-			return randv < 40
+			return randv >= 60
 		}
 	}
 	switch {
 	case attackArms < defendArms>>1:
-		return randv < 2
+		return randv <= 2
 	case attackFood > defendFood:
-		return randv < 30
+		return randv <= 30
 	default:
-		return randv < 10
+		return randv <= 10
 	}
 }
 
@@ -166,7 +176,85 @@ func (s *GameState) ApplyBattle(fromCityID, generalID, targetCityID string) (*Ba
 		return nil, ErrBattleNotAdjacent
 	}
 
+	if target.OwnerID == "neutral" {
+		return s.occupyEmptyCity(from, []*General{general}, target, 0, from.Food, from.Food, 0), nil
+	}
 	return s.resolveAttack(from, general, target), nil
+}
+
+// ApplyBattlePlan launches the interactive player battle flow after the UI has
+// selected up to ten generals and assigned campaign supplies. The final
+// battlefield advantage comes from the tactical mini-map operation.
+func (s *GameState) ApplyBattlePlan(fromCityID string, generalIDs []string, targetCityID string, money, food, remainingFood, fieldAdvantage int) (*BattleOutcome, error) {
+	from := s.findCity(fromCityID)
+	if from == nil {
+		return nil, fmt.Errorf("%w: city %s", ErrInvalidCommand, fromCityID)
+	}
+	if from.OwnerID != s.PlayerID {
+		return nil, ErrCityNotPlayable
+	}
+	if len(generalIDs) == 0 {
+		return nil, ErrGeneralNotReady
+	}
+	if len(generalIDs) > maxBattleGenerals {
+		return nil, fmt.Errorf("%w: too many generals", ErrInvalidCommand)
+	}
+	if money < 0 || food < 0 {
+		return nil, fmt.Errorf("%w: negative battle supplies", ErrInvalidCommand)
+	}
+	if food <= 0 {
+		return nil, ErrBattleNoFood
+	}
+	if remainingFood < 0 || remainingFood > food {
+		return nil, fmt.Errorf("%w: invalid remaining food", ErrInvalidCommand)
+	}
+	if from.Money < money {
+		return nil, fmt.Errorf("%w: not enough money", ErrInvalidCommand)
+	}
+	if from.Food < food {
+		return nil, fmt.Errorf("%w: not enough food", ErrInvalidCommand)
+	}
+
+	target := s.findCity(targetCityID)
+	if target == nil {
+		return nil, ErrBattleTargetNoCity
+	}
+	if target.OwnerID == s.PlayerID {
+		return nil, ErrBattleSameOwner
+	}
+	if !s.isAdjacent(fromCityID, targetCityID) {
+		return nil, ErrBattleNotAdjacent
+	}
+
+	seen := map[string]bool{}
+	generals := make([]*General, 0, len(generalIDs))
+	for _, generalID := range generalIDs {
+		if seen[generalID] {
+			continue
+		}
+		seen[generalID] = true
+		general := s.findGeneral(generalID)
+		if general == nil || general.CityID != fromCityID || general.OwnerID != s.PlayerID || general.Captive {
+			return nil, ErrGeneralNotReady
+		}
+		if general.Stamina < battleStaminaCost {
+			return nil, ErrGeneralNotReady
+		}
+		if general.Soldiers <= 0 {
+			return nil, ErrBattleNoSoldiers
+		}
+		generals = append(generals, general)
+	}
+	if len(generals) == 0 {
+		return nil, ErrGeneralNotReady
+	}
+
+	from.Money -= money
+	from.Food -= food
+	if target.OwnerID == "neutral" {
+		return s.occupyEmptyCity(from, generals, target, money, food, remainingFood, fieldAdvantage), nil
+	}
+	return s.resolvePlannedAttack(from, generals, target, money, food, remainingFood, fieldAdvantage), nil
 }
 
 // resolveAttack performs the actual siege math and mutation for any attacker
@@ -194,11 +282,14 @@ func (s *GameState) resolveAttack(from *City, general *General, target *City) *B
 		TargetCityName:    target.Name,
 		GeneralID:         general.ID,
 		GeneralName:       general.Name,
+		GeneralIDs:        []string{general.ID},
+		GeneralNames:      []string{general.Name},
 		AttackerRulerID:   general.OwnerID,
 		AttackerRulerName: s.rulerName(general.OwnerID),
 		DefenderRulerID:   defenderRulerID,
 		DefenderRulerName: s.rulerName(defenderRulerID),
 		DefenderGenerals:  defenderGenerals,
+		Food:              from.Food,
 		AttackPower:       attackArms,
 		DefensePower:      defendArms,
 		Won:               won,
@@ -237,6 +328,136 @@ func (s *GameState) resolveAttack(from *City, general *General, target *City) *B
 		)
 	}
 
+	s.prependLog(outcome.Message)
+	return outcome
+}
+
+func (s *GameState) resolvePlannedAttack(from *City, generals []*General, target *City, money, food, remainingFood, fieldAdvantage int) *BattleOutcome {
+	for _, general := range generals {
+		general.Stamina -= battleStaminaCost
+	}
+
+	attackArms := plannedAttackPower(generals)
+	if money > 0 {
+		attackArms += minInt(money*4, maxInt(120, attackArms/3))
+	}
+	fieldAdvantage = clampInt(fieldAdvantage, -35, 45)
+	if fieldAdvantage != 0 {
+		attackArms += attackArms * fieldAdvantage / 100
+	}
+	attackArms = maxInt(0, attackArms)
+
+	defendArms := s.cityTroops(target.ID)
+	defendArms += defendArms * target.PeopleDevotion / 200
+	defenderRulerID := target.OwnerID
+	defenderGenerals := s.activeGeneralNamesInCity(target.ID)
+	generalIDs := battleGeneralIDs(generals)
+	generalNames := battleGeneralNames(generals)
+	lead := generals[0]
+
+	randv := battleRand(101)
+	won := resolveBattleWon(attackArms, defendArms, remainingFood, target.Food, randv)
+
+	outcome := &BattleOutcome{
+		FromCityID:        from.ID,
+		FromCityName:      from.Name,
+		TargetCityID:      target.ID,
+		TargetCityName:    target.Name,
+		GeneralID:         lead.ID,
+		GeneralName:       lead.Name,
+		GeneralIDs:        generalIDs,
+		GeneralNames:      generalNames,
+		AttackerRulerID:   lead.OwnerID,
+		AttackerRulerName: s.rulerName(lead.OwnerID),
+		DefenderRulerID:   defenderRulerID,
+		DefenderRulerName: s.rulerName(defenderRulerID),
+		DefenderGenerals:  defenderGenerals,
+		Money:             money,
+		Food:              food,
+		RemainingFood:     remainingFood,
+		FieldAdvantage:    fieldAdvantage,
+		AttackPower:       attackArms,
+		DefensePower:      defendArms,
+		Won:               won,
+	}
+
+	totalSoldiers := totalGeneralSoldiers(generals)
+	forceLabel := battleForceLabel(generalNames)
+	if won {
+		attackerLoss := minInt(totalSoldiers, totalSoldiers*(20+randv/4)/100)
+		outcome.AttackerLosses = applyGeneralLosses(generals, attackerLoss)
+		outcome.DefenderLosses = s.routDefenders(target.ID)
+		outcome.CapturedGenerals = s.captureCityWithAttackers(target, lead.OwnerID, generals)
+		outcome.Captured = true
+		outcome.Message = fmt.Sprintf("%s军 %s 自 %s 携金%d粮%d 攻克 %s，损兵%d，歼敌%d%s。",
+			outcome.AttackerRulerName,
+			forceLabel,
+			from.Name,
+			money,
+			food,
+			target.Name,
+			outcome.AttackerLosses,
+			outcome.DefenderLosses,
+			capturedSuffix(outcome.CapturedGenerals),
+		)
+	} else {
+		attackerLoss := minInt(totalSoldiers, totalSoldiers*(40+randv/3)/100)
+		outcome.AttackerLosses = applyGeneralLosses(generals, attackerLoss)
+		outcome.DefenderLosses = s.lightDefenderLosses(target.ID, randv)
+		outcome.Message = fmt.Sprintf("%s军 %s 自 %s 进攻 %s 失利，耗金%d粮%d，损兵%d，守军损%d。",
+			outcome.AttackerRulerName,
+			forceLabel,
+			from.Name,
+			target.Name,
+			money,
+			food,
+			outcome.AttackerLosses,
+			outcome.DefenderLosses,
+		)
+	}
+
+	applyBattleCityAftermath(target, remainingFood)
+	s.prependLog(outcome.Message)
+	return outcome
+}
+
+func (s *GameState) occupyEmptyCity(from *City, generals []*General, target *City, money, food, remainingFood, fieldAdvantage int) *BattleOutcome {
+	lead := generals[0]
+	for _, general := range generals {
+		general.CityID = target.ID
+		general.Captive = false
+	}
+	target.OwnerID = lead.OwnerID
+	generalIDs := battleGeneralIDs(generals)
+	generalNames := battleGeneralNames(generals)
+	fieldAdvantage = clampInt(fieldAdvantage, -35, 45)
+	outcome := &BattleOutcome{
+		Won:               true,
+		FromCityID:        from.ID,
+		FromCityName:      from.Name,
+		TargetCityID:      target.ID,
+		TargetCityName:    target.Name,
+		GeneralID:         lead.ID,
+		GeneralName:       lead.Name,
+		GeneralIDs:        generalIDs,
+		GeneralNames:      generalNames,
+		AttackerRulerID:   lead.OwnerID,
+		AttackerRulerName: s.rulerName(lead.OwnerID),
+		DefenderRulerID:   "neutral",
+		DefenderRulerName: s.rulerName("neutral"),
+		Money:             money,
+		Food:              food,
+		RemainingFood:     remainingFood,
+		FieldAdvantage:    fieldAdvantage,
+		AttackPower:       plannedAttackPower(generals),
+		Captured:          true,
+		Message: fmt.Sprintf("%s军 %s 自 %s 入驻空城 %s。",
+			s.rulerName(lead.OwnerID),
+			battleForceLabel(generalNames),
+			from.Name,
+			target.Name,
+		),
+	}
 	s.prependLog(outcome.Message)
 	return outcome
 }
@@ -281,6 +502,72 @@ func capturedSuffix(generals []string) string {
 	}
 }
 
+func plannedAttackPower(generals []*General) int {
+	total := 0
+	for _, general := range generals {
+		total += general.Soldiers + general.Soldiers*general.Force/200
+	}
+	return total
+}
+
+func totalGeneralSoldiers(generals []*General) int {
+	total := 0
+	for _, general := range generals {
+		total += general.Soldiers
+	}
+	return total
+}
+
+func applyGeneralLosses(generals []*General, requestedLoss int) int {
+	total := totalGeneralSoldiers(generals)
+	if total <= 0 || requestedLoss <= 0 {
+		return 0
+	}
+	remaining := minInt(total, requestedLoss)
+	applied := 0
+	for i, general := range generals {
+		loss := requestedLoss * general.Soldiers / total
+		if i == len(generals)-1 {
+			loss = remaining
+		}
+		loss = minInt(general.Soldiers, loss)
+		general.Soldiers -= loss
+		applied += loss
+		remaining -= loss
+		if remaining <= 0 {
+			break
+		}
+	}
+	return applied
+}
+
+func battleGeneralIDs(generals []*General) []string {
+	out := make([]string, 0, len(generals))
+	for _, general := range generals {
+		out = append(out, general.ID)
+	}
+	return out
+}
+
+func battleGeneralNames(generals []*General) []string {
+	out := make([]string, 0, len(generals))
+	for _, general := range generals {
+		out = append(out, general.Name)
+	}
+	return out
+}
+
+func battleForceLabel(names []string) string {
+	switch len(names) {
+	case 0:
+		return "无名军"
+	case 1:
+		return names[0]
+	default:
+		return fmt.Sprintf("%s等%d将", names[0], len(names))
+	}
+}
+
 // routDefenders wipes most of a routed city's defenders and returns the losses.
 func (s *GameState) routDefenders(cityID string) int {
 	city := s.findCity(cityID)
@@ -312,18 +599,26 @@ func (s *GameState) lightDefenderLosses(cityID string, randv int) int {
 }
 
 // captureCity transfers a city to the attacker, moves the conquering general in,
-// captures the defeated officers, and applies the social cost of conquest.
+// and captures the defeated officers.
 func (s *GameState) captureCity(target *City, general *General) []string {
+	return s.captureCityWithAttackers(target, general.OwnerID, []*General{general})
+}
+
+func (s *GameState) captureCityWithAttackers(target *City, ownerID string, attackers []*General) []string {
 	capturedGenerals := []string{}
-	target.OwnerID = general.OwnerID
-	general.CityID = target.ID
-	general.Captive = false
+	attackerIDs := map[string]bool{}
+	target.OwnerID = ownerID
+	for _, attacker := range attackers {
+		attackerIDs[attacker.ID] = true
+		attacker.CityID = target.ID
+		attacker.Captive = false
+	}
 	for i := range s.Generals {
 		defender := &s.Generals[i]
-		if defender.CityID != target.ID || defender.ID == general.ID || defender.OwnerID == general.OwnerID {
+		if defender.CityID != target.ID || attackerIDs[defender.ID] || defender.OwnerID == ownerID {
 			continue
 		}
-		defender.OwnerID = general.OwnerID
+		defender.OwnerID = ownerID
 		defender.Captive = true
 		defender.Soldiers = 0
 		defender.Stamina = 0
@@ -333,11 +628,20 @@ func (s *GameState) captureCity(target *City, general *General) []string {
 		}
 		capturedGenerals = append(capturedGenerals, defender.Name)
 	}
-	// The conquered populace is shaken: devotion drops, calamity risk rises.
-	target.PeopleDevotion = maxInt(0, target.PeopleDevotion-20)
-	target.AvoidCalamity = maxInt(0, target.AvoidCalamity-10)
 	// Defending generals that survived (none after a rout) would defect; here the
 	// city's leaderless remnants surrender, leaving the garrison emptied.
 	target.Garrison = 0
 	return capturedGenerals
+}
+
+func applyBattleCityAftermath(city *City, attackerRemainingFood int) {
+	city.Farming -= city.Farming / 20
+	city.Commerce -= city.Commerce / 20
+	city.Money -= city.Money / 20
+	city.PeopleDevotion -= city.PeopleDevotion / 10
+	city.Food = maxInt(0, city.Food+attackerRemainingFood)
+}
+
+func clampInt(value, minValue, maxValue int) int {
+	return maxInt(minValue, minInt(maxValue, value))
 }

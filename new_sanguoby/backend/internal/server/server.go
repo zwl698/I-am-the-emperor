@@ -36,9 +36,14 @@ type commandRequest struct {
 }
 
 type battleRequest struct {
-	CityID       string `json:"cityId"`
-	GeneralID    string `json:"generalId"`
-	TargetCityID string `json:"targetCityId"`
+	CityID         string   `json:"cityId"`
+	GeneralID      string   `json:"generalId,omitempty"`
+	GeneralIDs     []string `json:"generalIds,omitempty"`
+	TargetCityID   string   `json:"targetCityId"`
+	Money          int      `json:"money,omitempty"`
+	Food           int      `json:"food,omitempty"`
+	RemainingFood  *int     `json:"remainingFood,omitempty"`
+	FieldAdvantage int      `json:"fieldAdvantage,omitempty"`
 }
 
 type battleResponse struct {
@@ -199,7 +204,21 @@ func (s *Server) handleBattle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.mu.Lock()
-	outcome, err := s.current.ApplyBattle(req.CityID, req.GeneralID, req.TargetCityID)
+	generalIDs := req.GeneralIDs
+	if len(generalIDs) == 0 && req.GeneralID != "" {
+		generalIDs = []string{req.GeneralID}
+	}
+	var outcome *game.BattleOutcome
+	var err error
+	if len(req.GeneralIDs) > 0 || req.Money > 0 || req.Food > 0 || req.FieldAdvantage != 0 {
+		remainingFood := req.Food
+		if req.RemainingFood != nil {
+			remainingFood = *req.RemainingFood
+		}
+		outcome, err = s.current.ApplyBattlePlan(req.CityID, generalIDs, req.TargetCityID, req.Money, req.Food, remainingFood, req.FieldAdvantage)
+	} else {
+		outcome, err = s.current.ApplyBattle(req.CityID, req.GeneralID, req.TargetCityID)
+	}
 	snapshot := s.current
 	s.mu.Unlock()
 

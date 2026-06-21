@@ -3,6 +3,7 @@ package game
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 var (
@@ -218,7 +219,7 @@ func (s *GameState) ApplyCommandDetailed(cityID, generalID, commandID, targetCit
 		if len(enemyCities) == 0 {
 			s.prependLog(fmt.Sprintf("%s 侦察 %s 周边，未见敌踪。", general.Name, city.Name))
 		} else {
-			s.prependLog(fmt.Sprintf("%s 侦察得报：%s 附近有 %d 座敌城。", general.Name, city.Name, len(enemyCities)))
+			s.prependLog(fmt.Sprintf("%s 侦察得报：%s 周边有 %s。", general.Name, city.Name, s.scoutTargetSummary(enemyCities)))
 		}
 	case "alienate":
 		s.alienateEnemyGeneral(general, city)
@@ -312,8 +313,8 @@ func (s *GameState) findGeneral(id string) *General {
 
 func (s *GameState) prependLog(entry string) {
 	s.Log = append([]string{entry}, s.Log...)
-	if len(s.Log) > 8 {
-		s.Log = s.Log[:8]
+	if len(s.Log) > 80 {
+		s.Log = s.Log[:80]
 	}
 }
 
@@ -422,6 +423,14 @@ func (s *GameState) adjacentCitiesByOwner(cityID string, match func(ownerID stri
 		}
 	}
 	return cities
+}
+
+func (s *GameState) scoutTargetSummary(cities []*City) string {
+	summaries := make([]string, 0, len(cities))
+	for _, city := range cities {
+		summaries = append(summaries, fmt.Sprintf("%s(%s)", city.Name, s.rulerName(city.OwnerID)))
+	}
+	return strings.Join(summaries, "、")
 }
 
 func (s *GameState) exchangeCityResources(general *General, city *City) {

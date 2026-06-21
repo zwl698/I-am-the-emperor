@@ -2,6 +2,7 @@ package game
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -99,5 +100,18 @@ func TestApplyCommandRewardsSpecifiedGeneral(t *testing.T) {
 	}
 	if executor.Stamina != beforeStamina-4 {
 		t.Fatalf("executor stamina = %d, want %d", executor.Stamina, beforeStamina-4)
+	}
+}
+
+func TestReconnoitreReportsAdjacentEnemyNames(t *testing.T) {
+	state := newBattleTestState()
+	state.PlayerID = "p1"
+	state.CityByID("c1").Money = 100
+
+	if err := state.ApplyCommand("c1", "g1", "reconnoitre"); err != nil {
+		t.Fatalf("ApplyCommand reconnoitre error = %v", err)
+	}
+	if len(state.Log) == 0 || !strings.Contains(state.Log[0], "敌城(乙)") {
+		t.Fatalf("reconnoitre log = %v, want adjacent enemy city and ruler", state.Log)
 	}
 }

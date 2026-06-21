@@ -9,18 +9,18 @@ func TestResolveBattleWonMatchesLegacyModel(t *testing.T) {
 		randv                                          int
 		want                                           bool
 	}{
-		{"attacker double, roll 69 wins", 1000, 400, 0, 0, 69, true},
-		{"attacker double, roll 70 loses", 1000, 400, 0, 0, 70, false},
-		{"attacker more + more food, roll 59 wins", 600, 500, 100, 50, 59, true},
-		{"attacker more + more food, roll 60 loses", 600, 500, 100, 50, 60, false},
-		{"attacker more, less food, roll 39 wins", 600, 500, 10, 50, 39, true},
-		{"attacker more, less food, roll 40 loses", 600, 500, 10, 50, 40, false},
-		{"attacker far weaker, roll 1 wins", 100, 500, 0, 0, 1, true},
-		{"attacker far weaker, roll 2 loses", 100, 500, 0, 0, 2, false},
-		{"attacker weaker + more food, roll 29 wins", 400, 500, 100, 0, 29, true},
-		{"attacker weaker + more food, roll 30 loses", 400, 500, 100, 0, 30, false},
-		{"attacker weaker, less food, roll 9 wins", 400, 500, 0, 100, 9, true},
-		{"attacker weaker, less food, roll 10 loses", 400, 500, 0, 100, 10, false},
+		{"attacker double, roll 29 loses", 1000, 400, 0, 0, 29, false},
+		{"attacker double, roll 30 wins", 1000, 400, 0, 0, 30, true},
+		{"attacker more + more food, roll 39 loses", 600, 500, 100, 50, 39, false},
+		{"attacker more + more food, roll 40 wins", 600, 500, 100, 50, 40, true},
+		{"attacker more, less food, roll 59 loses", 600, 500, 10, 50, 59, false},
+		{"attacker more, less food, roll 60 wins", 600, 500, 10, 50, 60, true},
+		{"attacker far weaker, roll 2 wins", 100, 500, 0, 0, 2, true},
+		{"attacker far weaker, roll 3 loses", 100, 500, 0, 0, 3, false},
+		{"attacker weaker + more food, roll 30 wins", 400, 500, 100, 0, 30, true},
+		{"attacker weaker + more food, roll 31 loses", 400, 500, 100, 0, 31, false},
+		{"attacker weaker, less food, roll 10 wins", 400, 500, 0, 100, 10, true},
+		{"attacker weaker, less food, roll 11 loses", 400, 500, 0, 100, 11, false},
 		{"attacker zero arms always loses", 0, 500, 0, 0, 0, false},
 		{"defender zero arms always wins", 500, 0, 0, 0, 99, true},
 	}
@@ -61,7 +61,7 @@ func newBattleTestState() *GameState {
 
 func TestApplyBattleCaptureOnWin(t *testing.T) {
 	s := newBattleTestState()
-	battleRand = func(int) int { return 0 } // force a win roll
+	battleRand = func(int) int { return 100 } // force a strong-side win roll
 	defer func() { battleRand = defaultBattleRand }()
 
 	outcome, err := s.ApplyBattle("c1", "g1", "c2")
@@ -100,6 +100,78 @@ func TestApplyBattleCaptureOnWin(t *testing.T) {
 	}
 	if g := s.findGeneral("g1"); g.Stamina != 96 {
 		t.Errorf("attacker stamina = %d, want 96", g.Stamina)
+	}
+}
+
+func TestApplyBattlePlanConsumesSuppliesAndMovesSelectedGenerals(t *testing.T) {
+	s := newBattleTestState()
+	s.findCity("c1").Money = 300
+	s.findCity("c2").Farming = 100
+	s.findCity("c2").Commerce = 100
+	s.findCity("c2").Money = 100
+	s.Generals = append(s.Generals, General{ID: "g3", Name: "副将", OwnerID: "p1", CityID: "c1", Force: 70, Stamina: 100, Soldiers: 1000})
+	battleRand = func(int) int { return 100 }
+	defer func() { battleRand = defaultBattleRand }()
+
+	outcome, err := s.ApplyBattlePlan("c1", []string{"g1", "g3"}, "c2", 80, 120, 90, 20)
+	if err != nil {
+		t.Fatalf("ApplyBattlePlan error = %v", err)
+	}
+	if !outcome.Won || !outcome.Captured {
+		t.Fatalf("expected planned win+capture, got %+v", outcome)
+	}
+	if outcome.Money != 80 || outcome.Food != 120 || outcome.RemainingFood != 90 || outcome.FieldAdvantage != 20 {
+		t.Fatalf("planned resources not reflected: %+v", outcome)
+	}
+	if len(outcome.GeneralNames) != 2 || outcome.GeneralNames[0] != "我将" || outcome.GeneralNames[1] != "副将" {
+		t.Fatalf("general names = %v, want [我将 副将]", outcome.GeneralNames)
+	}
+	if city := s.findCity("c1"); city.Money != 220 || city.Food != 380 {
+		t.Fatalf("origin supplies = money %d food %d, want 220/380", city.Money, city.Food)
+	}
+	if city := s.findCity("c2"); city.Food != 190 || city.Farming != 95 || city.Commerce != 95 || city.Money != 95 || city.PeopleDevotion != 45 {
+		t.Fatalf("battlefield aftermath = food %d farming %d commerce %d money %d devotion %d, want 190/95/95/95/45",
+			city.Food, city.Farming, city.Commerce, city.Money, city.PeopleDevotion)
+	}
+	for _, id := range []string{"g1", "g3"} {
+		g := s.findGeneral(id)
+		if g.CityID != "c2" {
+			t.Errorf("general %s city = %q, want c2", id, g.CityID)
+		}
+		if g.Stamina != 96 {
+			t.Errorf("general %s stamina = %d, want 96", id, g.Stamina)
+		}
+	}
+}
+
+func TestApplyBattlePlanRejectsMissingFood(t *testing.T) {
+	s := newBattleTestState()
+	s.findCity("c1").Money = 300
+	if _, err := s.ApplyBattlePlan("c1", []string{"g1"}, "c2", 10, 0, 0, 0); err == nil {
+		t.Fatal("expected no-food error, got nil")
+	}
+}
+
+func TestApplyBattlePlanOccupiesEmptyCityWithoutCombatLoss(t *testing.T) {
+	s := newBattleTestState()
+	s.findCity("c1").Money = 300
+	s.findCity("c3").OwnerID = "neutral"
+	s.findCity("c3").PeopleDevotion = 30
+	s.Routes = append(s.Routes, Route{From: "c1", To: "c3"})
+	beforeSoldiers := s.findGeneral("g1").Soldiers
+
+	outcome, err := s.ApplyBattlePlan("c1", []string{"g1"}, "c3", 0, 80, 80, 10)
+	if err != nil {
+		t.Fatalf("ApplyBattlePlan empty city error = %v", err)
+	}
+	if !outcome.Won || !outcome.Captured || outcome.AttackerLosses != 0 || outcome.DefenderLosses != 0 {
+		t.Fatalf("expected peaceful empty-city occupation, got %+v", outcome)
+	}
+	if city := s.findCity("c3"); city.OwnerID != "p1" || city.Food != 100 || city.PeopleDevotion != 30 {
+		t.Fatalf("empty city = owner %q food %d devotion %d, want p1/100/30", city.OwnerID, city.Food, city.PeopleDevotion)
+	}
+	if g := s.findGeneral("g1"); g.CityID != "c3" || g.Soldiers != beforeSoldiers || g.Stamina != 100 {
+		t.Fatalf("attacker after empty occupation = %+v, want moved without loss/stamina cost", g)
 	}
 }
 

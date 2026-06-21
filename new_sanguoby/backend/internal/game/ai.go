@@ -1,6 +1,9 @@
 package game
 
-import "sort"
+import (
+	"fmt"
+	"sort"
+)
 
 // ai.go drives the non-player rulers each turn so the campaign feels alive,
 // mirroring the legacy "群雄逐鹿" loop where rival warlords develop their cities
@@ -34,6 +37,7 @@ func (s *GameState) RunEnemyTurns() int {
 // runRulerTurn acts for a single AI ruler and returns the number of captures.
 func (s *GameState) runRulerTurn(rulerID string) int {
 	captures := 0
+	rulerName := s.rulerName(rulerID)
 
 	// Collect this ruler's actionable generals in a stable order.
 	generalIDs := make([]string, 0)
@@ -44,7 +48,12 @@ func (s *GameState) runRulerTurn(rulerID string) int {
 		}
 	}
 	sort.Strings(generalIDs)
+	if len(generalIDs) == 0 {
+		s.prependLog(fmt.Sprintf("诸侯行动：%s 本月按兵不动，暂无可行动武将。", rulerName))
+		return 0
+	}
 
+	acted := 0
 	for _, gid := range generalIDs {
 		general := s.findGeneral(gid)
 		if general == nil || general.Captive || general.Stamina < battleStaminaCost || general.Soldiers <= 0 {
@@ -61,11 +70,16 @@ func (s *GameState) runRulerTurn(rulerID string) int {
 			if outcome.Captured {
 				captures++
 			}
+			acted++
 			continue
 		}
 
 		// No worthwhile attack: develop the home city instead.
-		s.aiDevelopCity(general, from)
+		s.prependLog(fmt.Sprintf("诸侯行动：%s %s", rulerName, s.aiDevelopCity(general, from)))
+		acted++
+	}
+	if acted == 0 {
+		s.prependLog(fmt.Sprintf("诸侯行动：%s 本月军令未动。", rulerName))
 	}
 	return captures
 }
@@ -103,23 +117,31 @@ func (s *GameState) pickAttackTarget(rulerID string, from *City, general *Genera
 
 // aiDevelopCity invests an AI general's action into the home city's economy,
 // reusing the same growth shape as the player's 内政 commands.
-func (s *GameState) aiDevelopCity(general *General, city *City) {
+func (s *GameState) aiDevelopCity(general *General, city *City) string {
 	general.Stamina = maxInt(0, general.Stamina-4)
 	gain := 10 + general.Intellect/2 + general.Level*2
 
 	switch {
 	case city.Farming < city.FarmingLimit:
+		before := city.Farming
 		city.Farming = minInt(city.FarmingLimit, city.Farming+gain)
+		return fmt.Sprintf("令 %s 在 %s 开垦，农业 +%d。", general.Name, city.Name, city.Farming-before)
 	case city.Commerce < city.CommerceLimit:
+		before := city.Commerce
 		city.Commerce = minInt(city.CommerceLimit, city.Commerce+gain)
+		return fmt.Sprintf("令 %s 在 %s 招商，商业 +%d。", general.Name, city.Name, city.Commerce-before)
 	case city.PeopleDevotion < 100:
+		before := city.PeopleDevotion
 		city.PeopleDevotion = minInt(100, city.PeopleDevotion+4+general.Intellect/12)
+		return fmt.Sprintf("令 %s 巡抚 %s，民忠 +%d。", general.Name, city.Name, city.PeopleDevotion-before)
 	default:
 		// Fully developed: reinforce the garrison from population.
 		if city.Population > 4000 {
 			recruits := 100 + general.Force*4
 			city.Population -= recruits * 2
 			city.Garrison += recruits
+			return fmt.Sprintf("令 %s 在 %s 募兵入城，后备 +%d。", general.Name, city.Name, recruits)
 		}
 	}
+	return fmt.Sprintf("令 %s 驻守 %s，城中暂不动员。", general.Name, city.Name)
 }

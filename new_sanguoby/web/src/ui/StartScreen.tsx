@@ -33,7 +33,7 @@ export function StartScreen({
       <section className={`start-panel start-panel--${mode}`}>
         <div className="game-title">
           <span>步步高经典复刻</span>
-          <h1>三国霸业</h1>
+          <h1>三国霸业2026重置版</h1>
           <p>新君登基，群雄并起</p>
         </div>
 

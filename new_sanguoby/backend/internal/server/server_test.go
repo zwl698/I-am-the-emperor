@@ -113,6 +113,45 @@ func TestCommandEndpointAppliesTargetedMove(t *testing.T) {
 	t.Fatalf("cao-cao was not moved to chenliu: %#v", body.Generals)
 }
 
+func TestBattleEndpointAppliesPlannedEmptyCityOccupation(t *testing.T) {
+	handler := NewWithOptions(Options{LegacyArchivePath: ""})
+	createBody := bytes.NewBufferString(`{"scenarioId":"dongzhuo","playerId":"caocao"}`)
+	createReq := httptest.NewRequest(http.MethodPost, "/api/games", createBody)
+	createRec := httptest.NewRecorder()
+	handler.ServeHTTP(createRec, createReq)
+	if createRec.Code != http.StatusCreated {
+		t.Fatalf("create status = %d, want %d", createRec.Code, http.StatusCreated)
+	}
+
+	battleBody := bytes.NewBufferString(`{"cityId":"xuchang","generalIds":["cao-cao"],"targetCityId":"jingzhou","money":25,"food":100,"remainingFood":75,"fieldAdvantage":12}`)
+	battleReq := httptest.NewRequest(http.MethodPost, "/api/games/current/battle", battleBody)
+	battleRec := httptest.NewRecorder()
+	handler.ServeHTTP(battleRec, battleReq)
+
+	if battleRec.Code != http.StatusOK {
+		t.Fatalf("battle status = %d, want %d; body: %s", battleRec.Code, http.StatusOK, battleRec.Body.String())
+	}
+	var body battleEndpointBody
+	if err := json.NewDecoder(battleRec.Body).Decode(&body); err != nil {
+		t.Fatalf("decode battle response: %v", err)
+	}
+	if !body.Outcome.Won || !body.Outcome.Captured || body.Outcome.TargetCityID != "jingzhou" || body.Outcome.RemainingFood != 75 {
+		t.Fatalf("planned empty-city outcome = %#v, want captured jingzhou with remainingFood 75", body.Outcome)
+	}
+	if body.Outcome.AttackerLosses != 0 || body.Outcome.DefenderLosses != 0 {
+		t.Fatalf("empty-city losses = attacker %d defender %d, want 0/0", body.Outcome.AttackerLosses, body.Outcome.DefenderLosses)
+	}
+	if city := findBattleCity(body.Snapshot.Cities, "xuchang"); city.OwnerID != "caocao" || city.Money != 975 || city.Food != 1100 {
+		t.Fatalf("origin city = %#v, want caocao money 975 food 1100", city)
+	}
+	if city := findBattleCity(body.Snapshot.Cities, "jingzhou"); city.OwnerID != "caocao" || city.Food != 1400 || city.PeopleDevotion != 72 {
+		t.Fatalf("target city = %#v, want caocao food 1400 devotion 72", city)
+	}
+	if general := findBattleGeneral(body.Snapshot.Generals, "cao-cao"); general.CityID != "jingzhou" || general.Stamina != 96 || general.Soldiers != 1000 {
+		t.Fatalf("attacker = %#v, want moved to jingzhou without loss/stamina cost", general)
+	}
+}
+
 func TestScenariosEndpointListsLegacyPeriodsAndRulers(t *testing.T) {
 	handler := NewWithOptions(Options{LegacyArchivePath: legacyArchivePath(t)})
 	req := httptest.NewRequest(http.MethodGet, "/api/scenarios", nil)
@@ -191,6 +230,35 @@ type commandSnapshot struct {
 	} `json:"generals"`
 }
 
+type battleEndpointBody struct {
+	Outcome struct {
+		Won            bool   `json:"won"`
+		TargetCityID   string `json:"targetCityId"`
+		Money          int    `json:"money"`
+		Food           int    `json:"food"`
+		RemainingFood  int    `json:"remainingFood"`
+		FieldAdvantage int    `json:"fieldAdvantage"`
+		AttackerLosses int    `json:"attackerLosses"`
+		DefenderLosses int    `json:"defenderLosses"`
+		Captured       bool   `json:"captured"`
+	} `json:"outcome"`
+	Snapshot struct {
+		Cities []struct {
+			ID             string `json:"id"`
+			OwnerID        string `json:"ownerId"`
+			Money          int    `json:"money"`
+			Food           int    `json:"food"`
+			PeopleDevotion int    `json:"peopleDevotion"`
+		} `json:"cities"`
+		Generals []struct {
+			ID       string `json:"id"`
+			CityID   string `json:"cityId"`
+			Stamina  int    `json:"stamina"`
+			Soldiers int    `json:"soldiers"`
+		} `json:"generals"`
+	} `json:"snapshot"`
+}
+
 type legacyResourcesBody struct {
 	Count     int `json:"count"`
 	Resources []struct {
@@ -218,6 +286,57 @@ func (b legacyResourcesBody) hasResource(id, itemCount, itemLength uint16) bool 
 		}
 	}
 	return false
+}
+
+func findBattleCity(cities []struct {
+	ID             string `json:"id"`
+	OwnerID        string `json:"ownerId"`
+	Money          int    `json:"money"`
+	Food           int    `json:"food"`
+	PeopleDevotion int    `json:"peopleDevotion"`
+}, id string) struct {
+	ID             string `json:"id"`
+	OwnerID        string `json:"ownerId"`
+	Money          int    `json:"money"`
+	Food           int    `json:"food"`
+	PeopleDevotion int    `json:"peopleDevotion"`
+} {
+	for _, city := range cities {
+		if city.ID == id {
+			return city
+		}
+	}
+	return struct {
+		ID             string `json:"id"`
+		OwnerID        string `json:"ownerId"`
+		Money          int    `json:"money"`
+		Food           int    `json:"food"`
+		PeopleDevotion int    `json:"peopleDevotion"`
+	}{}
+}
+
+func findBattleGeneral(generals []struct {
+	ID       string `json:"id"`
+	CityID   string `json:"cityId"`
+	Stamina  int    `json:"stamina"`
+	Soldiers int    `json:"soldiers"`
+}, id string) struct {
+	ID       string `json:"id"`
+	CityID   string `json:"cityId"`
+	Stamina  int    `json:"stamina"`
+	Soldiers int    `json:"soldiers"`
+} {
+	for _, general := range generals {
+		if general.ID == id {
+			return general
+		}
+	}
+	return struct {
+		ID       string `json:"id"`
+		CityID   string `json:"cityId"`
+		Stamina  int    `json:"stamina"`
+		Soldiers int    `json:"soldiers"`
+	}{}
 }
 
 func legacyArchivePath(t *testing.T) string {

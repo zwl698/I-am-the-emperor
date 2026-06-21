@@ -99,8 +99,13 @@ export type CommandRequest = {
 
 export type BattleRequest = {
   cityId: string;
-  generalId: string;
+  generalId?: string;
+  generalIds?: string[];
   targetCityId: string;
+  money?: number;
+  food?: number;
+  remainingFood?: number;
+  fieldAdvantage?: number;
 };
 
 export type BattleOutcome = {
@@ -111,11 +116,17 @@ export type BattleOutcome = {
   targetCityName: string;
   generalId: string;
   generalName: string;
+  generalIds: string[];
+  generalNames: string[];
   attackerRulerId: string;
   attackerRulerName: string;
   defenderRulerId: string;
   defenderRulerName: string;
   defenderGenerals?: string[];
+  money: number;
+  food: number;
+  remainingFood: number;
+  fieldAdvantage: number;
   attackPower: number;
   defensePower: number;
   attackerLosses: number;

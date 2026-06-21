@@ -1,6 +1,7 @@
 import {useEffect, useRef, useState} from 'react';
-import type {City, GameSnapshot, General, Ruler} from '../api/types';
+import type {BattleRequest, City, GameSnapshot, General, Ruler} from '../api/types';
 import {portraitForGeneral, portraitForRuler} from '../game/portraitRegistry';
+import {MusicToggle} from './MusicToggle';
 import { PortraitImage } from './PortraitImage';
 
 type HudProps = {
@@ -9,7 +10,7 @@ type HudProps = {
   onMainMenu: () => void;
   onEndStrategy: () => void;
   onCommand: (commandId: string, generalId: string, targetCityId?: string, targetGeneralId?: string) => void;
-  onBattle: (generalId: string, targetCityId: string) => void;
+  onBattle: (request: BattleRequest) => void;
   busy: boolean;
 };
 
@@ -81,6 +82,67 @@ const COMMAND_GROUPS = {
 };
 
 type CommandCategory = keyof typeof COMMAND_GROUPS | '状况';
+type ActiveCommand = (typeof COMMAND_GROUPS)[keyof typeof COMMAND_GROUPS][number];
+
+type CommandCost = {
+  stamina: number;
+  money?: number;
+  food?: number;
+};
+
+const COMMAND_COSTS: Record<string, CommandCost> = {
+  assart: { stamina: 4, money: 50 },
+  commerce: { stamina: 4, money: 50 },
+  search: { stamina: 4 },
+  govern: { stamina: 4, money: 50 },
+  inspect: { stamina: 4, money: 50 },
+  surrender: { stamina: 0, money: 100 },
+  kill: { stamina: 4 },
+  banish: { stamina: 4 },
+  largess: { stamina: 4, money: 100 },
+  confiscate: { stamina: 4 },
+  exchange: { stamina: 4 },
+  treat: { stamina: 0, money: 100 },
+  transportation: { stamina: 4 },
+  move: { stamina: 4 },
+  alienate: { stamina: 4, money: 50 },
+  canvass: { stamina: 4, money: 50 },
+  counterespionage: { stamina: 4, money: 50 },
+  realienate: { stamina: 4, money: 50 },
+  induce: { stamina: 4, money: 50 },
+  reconnoitre: { stamina: 4, money: 20 },
+  conscription: { stamina: 4, money: 1 },
+  distribute: { stamina: 4 },
+  depredate: { stamina: 4 },
+  battle: { stamina: 4 },
+};
+
+const COMMAND_EFFECTS: Record<string, string> = {
+  assart: '提升本城农业，受执行武将智力与等级影响。',
+  commerce: '提升本城商业，受执行武将智力与等级影响。',
+  search: '在本城搜寻财货，高智武将更容易有所获。',
+  govern: '提升民忠与防灾，稳住城池根基。',
+  inspect: '出巡安民，按武力少量提升民忠。',
+  surrender: '整顿归顺事务，消耗金钱换取全城安定。',
+  kill: '处置俘虏，民忠下降、防灾略升。',
+  banish: '放逐俘虏或本城武将，民忠小幅上升。',
+  largess: '赏赐本城武将，显著提升忠诚。',
+  confiscate: '没收武将财货，换取金钱但损忠诚与民心。',
+  exchange: '调换本城金粮储备，缓解资源失衡。',
+  treat: '宴请武将，恢复体力并略提忠诚。',
+  transportation: '向相邻己方城池输送金粮。',
+  move: '让执行武将移动到相邻己方城池。',
+  alienate: '离间周边敌将，降低其忠诚。',
+  canvass: '招揽周边敌将，智力越高机会越好。',
+  counterespionage: '策反敌探，提升本将忠诚与本城防灾。',
+  realienate: '反间布防，提升城中诸将忠诚。',
+  induce: '劝降相邻敌城，智力与目标状况会影响成败。',
+  reconnoitre: '探明相邻敌城归属，战前判断路线。',
+  conscription: '募集兵力，会消耗人口与少量金钱。',
+  distribute: '把城内后备兵分配给执行武将。',
+  depredate: '掠夺粮草，但会明显损害民忠。',
+  battle: '选择相邻敌城发起攻城战。',
+};
 
 export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onCommand, onBattle, busy }: HudProps) {
   const [category, setCategory] = useState<CommandCategory>('内政');
@@ -88,6 +150,10 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
   const [generalId, setGeneralId] = useState('');
   const [targetCityId, setTargetCityId] = useState('');
   const [targetGeneralId, setTargetGeneralId] = useState('');
+  const [battleGeneralIds, setBattleGeneralIds] = useState<string[]>([]);
+  const [battleMoney, setBattleMoney] = useState(0);
+  const [battleFood, setBattleFood] = useState(0);
+  const [panelOpen, setPanelOpen] = useState(false);
   const rulerByID = new Map(snapshot.rulers.map((ruler) => [ruler.id, ruler]));
   const owner = rulerByID.get(selectedCity.ownerId);
   const generals = snapshot.generals.filter((general) => general.cityId === selectedCity.id);
@@ -98,8 +164,11 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
   const playable = selectedCity.ownerId === snapshot.playerId;
   const activeCommands = category === '状况' ? [] : COMMAND_GROUPS[category];
   const activeCommand = activeCommands.find((command) => command.id === commandId) ?? activeCommands[0];
-  const selectedGeneral = playerGenerals.find((general) => general.id === generalId) ?? playerGenerals[0];
   const isBattle = activeCommand?.id === 'battle';
+  const selectedBattleGenerals = playerGenerals.filter((general) => battleGeneralIds.includes(general.id));
+  const selectedGeneral = isBattle
+    ? selectedBattleGenerals[0] ?? playerGenerals[0]
+    : playerGenerals.find((general) => general.id === generalId) ?? playerGenerals[0];
   const needsFriendlyTarget = activeCommand?.id === 'move' || activeCommand?.id === 'transportation';
   const needsCaptiveTarget = activeCommand?.id === 'kill';
   const needsGeneralTarget = Boolean(activeCommand && ['kill', 'banish', 'largess', 'confiscate', 'treat'].includes(activeCommand.id));
@@ -111,11 +180,45 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
     ? targetGeneralsForCommand(activeCommand.id, playerGenerals, captives, selectedGeneral?.id)
     : [];
   const selectedTargetGeneral = generalTargets.find((general) => general.id === targetGeneralId) ?? generalTargets[0];
+  const commandIssues = commandReadiness({
+    activeCommand,
+    busy,
+    city: selectedCity,
+    needsCityTarget: isBattle || needsFriendlyTarget,
+    needsGeneralTarget,
+    playable,
+    selectedGeneral,
+    selectedTarget,
+    selectedTargetGeneral,
+  });
+  const battleIssues = isBattle
+    ? battleReadiness({
+      busy,
+      city: selectedCity,
+      generals: selectedBattleGenerals,
+      money: battleMoney,
+      food: battleFood,
+      playable,
+      selectedTarget,
+    })
+    : [];
+  const effectiveIssues = isBattle ? battleIssues : commandIssues;
+  const commandReady = effectiveIssues.length === 0;
 
   useEffect(() => {
     const firstGeneral = playerGenerals[0]?.id ?? '';
     setGeneralId(firstGeneral);
+    setBattleGeneralIds((current) => {
+      const available = new Set(playerGenerals.map((general) => general.id));
+      const valid = current.filter((id) => available.has(id)).slice(0, 10);
+      return valid.length ? valid : firstGeneral ? [firstGeneral] : [];
+    });
   }, [selectedCity.id, snapshot.playerId, snapshot.generals]);
+
+  useEffect(() => {
+    setBattleMoney(Math.min(selectedCity.money, 50));
+    setBattleFood(Math.min(selectedCity.food, Math.max(80, selectedCity.garrison > 0 ? 200 : 120)));
+  }, [selectedCity.id, selectedCity.food, selectedCity.garrison, selectedCity.money]);
 
   useEffect(() => {
     if (category === '状况') {
@@ -150,16 +253,26 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
     <>
       <header className="topbar">
         <div>
-          <h1>三国霸业</h1>
+          <h1>三国霸业2026重置版</h1>
           <p>{snapshot.date.year}年 {snapshot.date.month}月 · {player?.name ?? '未定'} 执政</p>
         </div>
         <div className="topbar-actions">
+          <MusicToggle />
+          <button
+            type="button"
+            className={`rail-toggle${panelOpen ? ' rail-toggle--open' : ''}`}
+            onClick={() => setPanelOpen((open) => !open)}
+            aria-controls="status-rail"
+            aria-expanded={panelOpen}
+          >
+            {panelOpen ? '收起军令' : `军令 · ${selectedCity.name}`}
+          </button>
           <button type="button" onClick={onMainMenu} disabled={busy}>主菜单</button>
           <button type="button" className="primary" onClick={onEndStrategy} disabled={busy}>策略结束</button>
         </div>
       </header>
 
-      <aside className="status-rail">
+      {panelOpen ? <aside id="status-rail" className="status-rail">
         <section>
           <div className="city-hero">
             <PortraitImage
@@ -236,15 +349,42 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
                 {playerGenerals.length ? playerGenerals.map((general) => (
                   <button
                     type="button"
-                    className={selectedGeneral?.id === general.id ? 'active' : ''}
+                    className={(isBattle ? battleGeneralIds.includes(general.id) : selectedGeneral?.id === general.id) ? 'active' : ''}
                     key={general.id}
-                    onClick={() => setGeneralId(general.id)}
+                    onClick={() => {
+                      if (!isBattle) {
+                        setGeneralId(general.id);
+                        return;
+                      }
+                      setBattleGeneralIds((current) => toggleBattleGeneral(current, general.id));
+                    }}
                   >
                     {general.name}
-                    <span>体 {general.stamina}</span>
+                    <span>{isBattle ? `兵 ${general.soldiers}` : `体 ${general.stamina}`}</span>
                   </button>
                 )) : <p className="muted">此城暂无可行动武将</p>}
               </div>
+              {activeCommand ? (
+                <CommandPreview
+                  command={activeCommand}
+                  issues={effectiveIssues}
+                  selectedGeneral={selectedGeneral}
+                  selectedTarget={selectedTarget}
+                  selectedTargetGeneral={selectedTargetGeneral}
+                  battleGeneralCount={isBattle ? selectedBattleGenerals.length : 0}
+                  battleMoney={isBattle ? battleMoney : 0}
+                  battleFood={isBattle ? battleFood : 0}
+                />
+              ) : null}
+              {isBattle ? (
+                <BattleSupplyControls
+                  city={selectedCity}
+                  money={battleMoney}
+                  food={battleFood}
+                  onMoneyChange={setBattleMoney}
+                  onFoodChange={setBattleFood}
+                />
+              ) : null}
               {isBattle || needsFriendlyTarget ? (
                 <div className="battle-targets">
                   <span className="section-label">{isBattle ? '进攻目标' : '目标城池'}</span>
@@ -266,19 +406,25 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
                       <button
                         type="button"
                         className="primary execute-order"
-                        disabled={busy || !playable || !selectedGeneral || !selectedTarget}
+                        disabled={!commandReady}
                         onClick={() => {
                           if (!selectedGeneral || !selectedTarget || !activeCommand) {
                             return;
                           }
                           if (isBattle) {
-                            onBattle(selectedGeneral.id, selectedTarget.id);
+                            onBattle({
+                              cityId: selectedCity.id,
+                              targetCityId: selectedTarget.id,
+                              generalIds: selectedBattleGenerals.map((general) => general.id),
+                              money: battleMoney,
+                              food: battleFood,
+                            });
                           } else {
                             onCommand(activeCommand.id, selectedGeneral.id, selectedTarget.id);
                           }
                         }}
                       >
-                        {isBattle ? `进攻${selectedTarget?.name ?? ''}` : `${activeCommand?.name ?? '执行'}至${selectedTarget?.name ?? ''}`}
+                        {isBattle ? `开赴${selectedTarget?.name ?? ''}战场` : `${activeCommand?.name ?? '执行'}至${selectedTarget?.name ?? ''}`}
                       </button>
                     </>
                   ) : (
@@ -306,7 +452,7 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
                       <button
                         type="button"
                         className="primary execute-order"
-                        disabled={busy || !playable || !selectedGeneral || !selectedTargetGeneral || !activeCommand}
+                        disabled={!commandReady}
                         onClick={() => {
                           if (!selectedGeneral || !selectedTargetGeneral || !activeCommand) {
                             return;
@@ -325,7 +471,7 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
                 <button
                   type="button"
                   className="primary execute-order"
-                  disabled={busy || !playable || !selectedGeneral || !activeCommand}
+                  disabled={!commandReady}
                   onClick={() => selectedGeneral && activeCommand && onCommand(activeCommand.id, selectedGeneral.id)}
                 >
                   执行{activeCommand?.name ?? '命令'}
@@ -335,11 +481,257 @@ export function Hud({ snapshot, selectedCity, onMainMenu, onEndStrategy, onComma
             </div>
           )}
         </section>
-      </aside>
+      </aside> : null}
 
       <EventTicker entries={snapshot.log} />
     </>
   );
+}
+
+function CommandPreview({
+  command,
+  issues,
+  selectedGeneral,
+  selectedTarget,
+  selectedTargetGeneral,
+  battleGeneralCount = 0,
+  battleMoney = 0,
+  battleFood = 0,
+}: {
+  command: ActiveCommand;
+  issues: string[];
+  selectedGeneral?: General;
+  selectedTarget?: City;
+  selectedTargetGeneral?: General;
+  battleGeneralCount?: number;
+  battleMoney?: number;
+  battleFood?: number;
+}) {
+  const cost = commandCostFor(command.id);
+  const recruits = command.id === 'conscription' && selectedGeneral ? 120 + selectedGeneral.force * 8 : 0;
+  return (
+    <div className={`command-preview${issues.length ? ' command-preview--blocked' : ''}`}>
+      <div className="command-preview__head">
+        <span>军令预览</span>
+        <strong>{command.name}</strong>
+      </div>
+      <p>{COMMAND_EFFECTS[command.id] ?? '执行军政命令。'}</p>
+      <div className="command-preview__chips">
+        <span>体 {cost.stamina}</span>
+        {cost.money ? <span>金 {cost.money}</span> : null}
+        {cost.food ? <span>粮 {cost.food}</span> : null}
+        {command.id === 'battle' ? <span>将 {battleGeneralCount}</span> : null}
+        {command.id === 'battle' ? <span>金 {battleMoney}</span> : null}
+        {command.id === 'battle' ? <span>粮 {battleFood}</span> : null}
+        {recruits ? <span>募 {recruits}</span> : null}
+      </div>
+      <div className="command-preview__meta">
+        <span>将 {selectedGeneral?.name ?? '未选'}</span>
+        <span>目标 {commandTargetLabel(command.id, selectedTarget, selectedTargetGeneral)}</span>
+      </div>
+      <p className={issues.length ? 'command-preview__warning' : 'command-preview__ready'}>
+        {issues.length ? issues.join('、') : '军令可下达'}
+      </p>
+    </div>
+  );
+}
+
+function BattleSupplyControls({
+  city,
+  money,
+  food,
+  onMoneyChange,
+  onFoodChange,
+}: {
+  city: City;
+  money: number;
+  food: number;
+  onMoneyChange: (value: number) => void;
+  onFoodChange: (value: number) => void;
+}) {
+  return (
+    <div className="battle-supplies">
+      <span className="section-label">出征军资</span>
+      <SupplyInput
+        label="金"
+        value={money}
+        max={city.money}
+        onChange={onMoneyChange}
+      />
+      <SupplyInput
+        label="粮"
+        value={food}
+        max={city.food}
+        onChange={onFoodChange}
+      />
+    </div>
+  );
+}
+
+function SupplyInput({
+  label,
+  value,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  max: number;
+  onChange: (value: number) => void;
+}) {
+  const safeMax = Math.max(0, max);
+  return (
+    <label className="supply-input">
+      <span>{label}</span>
+      <input
+        type="range"
+        min="0"
+        max={safeMax}
+        value={Math.min(value, safeMax)}
+        onChange={(event) => onChange(clampNumber(Number(event.currentTarget.value), 0, safeMax))}
+      />
+      <input
+        type="number"
+        min="0"
+        max={safeMax}
+        value={Math.min(value, safeMax)}
+        onChange={(event) => onChange(clampNumber(Number(event.currentTarget.value), 0, safeMax))}
+      />
+      <em>/ {safeMax}</em>
+    </label>
+  );
+}
+
+function commandReadiness({
+  activeCommand,
+  busy,
+  city,
+  needsCityTarget,
+  needsGeneralTarget,
+  playable,
+  selectedGeneral,
+  selectedTarget,
+  selectedTargetGeneral,
+}: {
+  activeCommand?: ActiveCommand;
+  busy: boolean;
+  city: City;
+  needsCityTarget: boolean;
+  needsGeneralTarget: boolean;
+  playable: boolean;
+  selectedGeneral?: General;
+  selectedTarget?: City;
+  selectedTargetGeneral?: General;
+}): string[] {
+  const issues: string[] = [];
+  if (busy) {
+    issues.push('军令执行中');
+  }
+  if (!activeCommand) {
+    issues.push('未选命令');
+  }
+  if (!playable) {
+    issues.push('非己方城池');
+  }
+  if (!selectedGeneral) {
+    issues.push('无可行动武将');
+  }
+  if (!activeCommand || !selectedGeneral) {
+    return issues;
+  }
+
+  const cost = commandCostFor(activeCommand.id);
+  if (selectedGeneral.stamina < cost.stamina) {
+    issues.push('体力不足');
+  }
+  if (city.money < (cost.money ?? 0)) {
+    issues.push('金不足');
+  }
+  if (city.food < (cost.food ?? 0)) {
+    issues.push('粮不足');
+  }
+  if (activeCommand.id === 'conscription') {
+    const recruits = 120 + selectedGeneral.force * 8;
+    if (city.population < recruits * 2) {
+      issues.push('人口不足');
+    }
+  }
+  if (needsCityTarget && !selectedTarget) {
+    issues.push('未选目标城');
+  }
+  if (needsGeneralTarget && !selectedTargetGeneral) {
+    issues.push('未选目标武将');
+  }
+  return issues;
+}
+
+function battleReadiness({
+  busy,
+  city,
+  generals,
+  money,
+  food,
+  playable,
+  selectedTarget,
+}: {
+  busy: boolean;
+  city: City;
+  generals: General[];
+  money: number;
+  food: number;
+  playable: boolean;
+  selectedTarget?: City;
+}): string[] {
+  const issues: string[] = [];
+  if (busy) {
+    issues.push('军令执行中');
+  }
+  if (!playable) {
+    issues.push('非己方城池');
+  }
+  if (!generals.length) {
+    issues.push('未选出征武将');
+  }
+  if (generals.some((general) => general.stamina < COMMAND_COSTS.battle.stamina)) {
+    issues.push('武将体力不足');
+  }
+  if (generals.some((general) => general.soldiers <= 0)) {
+    issues.push('武将无兵');
+  }
+  if (!selectedTarget) {
+    issues.push('未选目标城');
+  }
+  if (money < 0 || money > city.money) {
+    issues.push('金不足');
+  }
+  if (food <= 0) {
+    issues.push('未配粮草');
+  } else if (food > city.food) {
+    issues.push('粮不足');
+  }
+  return issues;
+}
+
+function commandCostFor(commandId: string): CommandCost {
+  return COMMAND_COSTS[commandId] ?? { stamina: 4 };
+}
+
+function commandTargetLabel(commandId: string, selectedTarget?: City, selectedTargetGeneral?: General): string {
+  switch (commandId) {
+    case 'battle':
+      return selectedTarget ? `${selectedTarget.name} · 攻城` : '未选';
+    case 'move':
+    case 'transportation':
+      return selectedTarget?.name ?? '未选';
+    case 'kill':
+    case 'banish':
+    case 'largess':
+    case 'confiscate':
+    case 'treat':
+      return selectedTargetGeneral?.name ?? '未选';
+    default:
+      return '本城';
+  }
 }
 
 function EventTicker({ entries }: { entries: string[] }) {
@@ -347,6 +739,8 @@ function EventTicker({ entries }: { entries: string[] }) {
   const [queue, setQueue] = useState<string[]>([]);
   const [current, setCurrent] = useState('');
   const [serial, setSerial] = useState(0);
+  const [reportEntries, setReportEntries] = useState<string[]>([]);
+  const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     if (previousEntries.current === null) {
@@ -356,7 +750,12 @@ function EventTicker({ entries }: { entries: string[] }) {
     const additions = findNewLogEntries(entries, previousEntries.current);
     previousEntries.current = entries;
     if (additions.length) {
-      setQueue((items) => [...items, ...additions.reverse()]);
+      const chronological = additions.reverse();
+      setQueue((items) => [...items, ...chronological]);
+      if (chronological.length > 1 || chronological.some((entry) => entry.startsWith('诸侯行动：'))) {
+        setReportEntries(chronological);
+        setReportOpen(true);
+      }
     }
   }, [entries]);
 
@@ -379,14 +778,29 @@ function EventTicker({ entries }: { entries: string[] }) {
   }, [current]);
 
   return (
-    <footer className={`event-log ${current ? 'event-log--active' : ''}`} aria-live="polite">
-      <span className="event-log__label">战报</span>
-      {current ? (
-        <span key={serial} className="event-log__message">{current}</span>
-      ) : (
-        <span className="event-log__idle">静候军令</span>
-      )}
-    </footer>
+    <>
+      {reportOpen && reportEntries.length ? (
+        <aside className="campaign-report" aria-label="本月军情">
+          <div className="campaign-report__head">
+            <strong>本月军情</strong>
+            <button type="button" onClick={() => setReportOpen(false)}>收起</button>
+          </div>
+          <ol>
+            {reportEntries.map((entry, index) => (
+              <li key={`${entry}-${index}`}>{entry}</li>
+            ))}
+          </ol>
+        </aside>
+      ) : null}
+      <footer className={`event-log ${current ? 'event-log--active' : ''}`} aria-live="polite">
+        <span className="event-log__label">战报</span>
+        {current ? (
+          <span key={serial} className="event-log__message">{current}</span>
+        ) : (
+          <span className="event-log__idle">静候军令</span>
+        )}
+      </footer>
+    </>
   );
 }
 
@@ -395,7 +809,7 @@ function findNewLogEntries(current: string[], previous: string[]): string[] {
     return [];
   }
   if (!previous.length) {
-    return current.slice(0, 1);
+    return current.slice(0, Math.min(current.length, 24));
   }
   const matchIndex = current.findIndex((_, index) => {
     if (index + previous.length > current.length) {
@@ -406,7 +820,14 @@ function findNewLogEntries(current: string[], previous: string[]): string[] {
   if (matchIndex > 0) {
     return current.slice(0, matchIndex);
   }
-  return matchIndex === 0 ? [] : current.slice(0, 1);
+  if (matchIndex === 0) {
+    return [];
+  }
+  const previousHeadIndex = current.indexOf(previous[0]);
+  if (previousHeadIndex > 0) {
+    return current.slice(0, previousHeadIndex);
+  }
+  return current.slice(0, Math.min(current.length, 24));
 }
 
 function Metric({ label, value }: { label: string; value: number | string }) {
@@ -431,6 +852,20 @@ function targetGeneralsForCommand(commandId: string, playerGenerals: General[], 
     default:
       return [];
   }
+}
+
+function toggleBattleGeneral(current: string[], generalId: string): string[] {
+  if (current.includes(generalId)) {
+    return current.filter((id) => id !== generalId);
+  }
+  return [...current, generalId].slice(0, 10);
+}
+
+function clampNumber(value: number, minValue: number, maxValue: number): number {
+  if (Number.isNaN(value)) {
+    return minValue;
+  }
+  return Math.max(minValue, Math.min(maxValue, Math.round(value)));
 }
 
 function GeneralRow({ general }: { general: General }) {

@@ -43,12 +43,12 @@ export class CampaignScene extends Phaser.Scene {
 
   preload() {
     this.load.image('campaign-map', '/assets/map/sanguo-campaign-map.png');
-    this.load.svg('city-capital', '/assets/city-capital.svg', { width: 72, height: 72 });
-    this.load.svg('city-frontier', '/assets/city-frontier.svg', { width: 72, height: 72 });
-    this.load.svg('city-fort', '/assets/city-fort.svg', { width: 72, height: 72 });
-    this.load.svg('city-port', '/assets/city-port.svg', { width: 72, height: 72 });
-    this.load.svg('city-town', '/assets/city-town.svg', { width: 72, height: 72 });
-    this.load.svg('army-banner', '/assets/army-banner.svg', { width: 64, height: 64 });
+    this.load.svg('city-capital', '/assets/city-capital.svg', { width: 160, height: 160 });
+    this.load.svg('city-frontier', '/assets/city-frontier.svg', { width: 150, height: 150 });
+    this.load.svg('city-fort', '/assets/city-fort.svg', { width: 150, height: 150 });
+    this.load.svg('city-port', '/assets/city-port.svg', { width: 150, height: 150 });
+    this.load.svg('city-town', '/assets/city-town.svg', { width: 144, height: 144 });
+    this.load.svg('army-banner', '/assets/army-banner.svg', { width: 128, height: 128 });
   }
 
   create() {
@@ -150,20 +150,20 @@ export class CampaignScene extends Phaser.Scene {
       const markerKey = cityMarkerKey(role);
       const markerSize = markerDisplaySize(role, compact, selected);
 
-      const halo = this.add.circle(point.x, point.y, selected ? markerSize * 0.9 : markerSize * 0.7, style.primary, selected ? 0.34 : 0.2);
-      halo.setStrokeStyle(selected ? 4 : 3, selected ? style.light : style.primary, selected ? 0.96 : 0.82);
+      const halo = this.add.circle(point.x, point.y, selected ? markerSize * 0.74 : markerSize * 0.58, style.primary, selected ? 0.28 : 0.16);
+      halo.setStrokeStyle(selected ? 3 : 2, selected ? style.light : style.primary, selected ? 0.92 : 0.72);
       halo.setDepth(selected ? 2 : 0);
 
       if (selected) {
-        const focus = this.add.circle(point.x, point.y, markerSize * 0.86, 0xfff3bd, 0);
+        const focus = this.add.circle(point.x, point.y, markerSize * 0.76, 0xfff3bd, 0);
         focus.setStrokeStyle(2, 0x2b1710, 0.7);
         focus.setDepth(1);
       }
 
-      drawFactionFrame(this, point.x, point.y, markerSize * (selected ? 1.34 : 1.18), style, selected);
+      drawFactionFrame(this, point.x, point.y, markerSize * (selected ? 1.18 : 1.06), style, selected);
 
       const base = this.add.circle(point.x, point.y + markerSize * 0.08, markerSize * 0.34, 0x1d1410, 0.42);
-      base.setScale(1.32, 0.42);
+      base.setScale(1.16, 0.36);
       base.setDepth(selected ? 3 : 1);
 
       const marker = this.add.image(point.x, point.y, markerKey);
@@ -178,37 +178,11 @@ export class CampaignScene extends Phaser.Scene {
       });
 
       if (city.ownerId !== 'neutral') {
-        const banner = this.add.image(point.x + markerSize * 0.42, point.y - markerSize * 0.42, 'army-banner');
-        banner.setDisplaySize(selected ? markerSize * 0.58 : markerSize * 0.46, selected ? markerSize * 0.58 : markerSize * 0.46);
+        const banner = this.add.image(point.x + markerSize * 0.34, point.y - markerSize * 0.35, 'army-banner');
+        banner.setDisplaySize(selected ? markerSize * 0.44 : markerSize * 0.36, selected ? markerSize * 0.44 : markerSize * 0.36);
         banner.setTint(style.secondary);
         banner.setDepth(selected ? 6 : 4);
-
-        const surname = rulerSurname(ruler);
-        const badgeX = point.x + markerSize * 0.43;
-        const badgeY = point.y - markerSize * 0.66;
-        drawOwnerBadgePlate(this, badgeX, badgeY, markerSize * (surname.length > 1 ? 0.72 : 0.56), markerSize * 0.36, style, selected);
-        const ownerBadge = this.add.text(badgeX, badgeY, surname, {
-          fontFamily: '"Noto Serif SC", "Songti SC", serif',
-          fontSize: selected ? (compact ? '12px' : '15px') : (compact ? '10px' : '13px'),
-          fontStyle: 'bold',
-          color: style.textHex,
-          padding: { x: 0, y: 0 },
-        });
-        ownerBadge.setOrigin(0.5, 0.5);
-        ownerBadge.setShadow(0, 2, 'rgba(0,0,0,0.62)', 3, true, true);
-        ownerBadge.setDepth(selected ? 9 : 7);
       }
-
-      const label = this.add.text(point.x, point.y + markerSize * 0.52, labelText(city, ruler), {
-        fontFamily: '"Noto Serif SC", "Songti SC", serif',
-        fontSize: selected ? (compact ? '13px' : '17px') : (compact ? '12px' : '15px'),
-        color: selected ? '#fff8d8' : '#fff1c7',
-        backgroundColor: selected ? 'rgba(73, 31, 20, 0.9)' : 'rgba(29, 18, 13, 0.72)',
-        padding: { x: selected ? (compact ? 6 : 9) : (compact ? 4 : 7), y: compact ? 2 : 4 },
-      });
-      label.setOrigin(0.5, 0);
-      label.setShadow(0, 2, 'rgba(0,0,0,0.6)', 4, true, true);
-      label.setDepth(selected ? 7 : 4);
     }
   }
 }
@@ -352,17 +326,6 @@ function drawFactionPattern(graphics: Phaser.GameObjects.Graphics, x: number, y:
   }
 }
 
-function drawOwnerBadgePlate(scene: Phaser.Scene, x: number, y: number, width: number, height: number, style: FactionStyle, selected: boolean) {
-  const badge = scene.add.graphics();
-  badge.fillStyle(style.dark, 0.95);
-  badge.fillRoundedRect(x - width / 2 - 2, y - height / 2 + 2, width + 4, height + 4, 5);
-  badge.fillStyle(style.primary, selected ? 0.98 : 0.9);
-  badge.fillRoundedRect(x - width / 2, y - height / 2, width, height, 5);
-  badge.lineStyle(selected ? 2 : 1.5, style.light, 0.92);
-  badge.strokeRoundedRect(x - width / 2, y - height / 2, width, height, 5);
-  badge.setDepth(selected ? 8 : 6);
-}
-
 function fillFactionShape(graphics: Phaser.GameObjects.Graphics, x: number, y: number, size: number, shape: FactionShape) {
   if (shape === 'circle') {
     graphics.fillCircle(x, y, size / 2);
@@ -416,11 +379,6 @@ function regularPolygonPoints(x: number, y: number, radius: number, sides: numbe
 
 function scaledPoints(x: number, y: number, size: number, points: number[][]): Phaser.Math.Vector2[] {
   return points.map(([px, py]) => new Phaser.Math.Vector2(x + px * size, y + py * size));
-}
-
-function labelText(city: City, ruler?: Ruler): string {
-  void ruler;
-  return city.name;
 }
 
 function terrainRoutePoints(start: Point, end: Point, width: number, height: number, seed: string): Point[] {
@@ -560,20 +518,10 @@ function cityMarkerKey(role: ReturnType<typeof cityRole>): string {
 }
 
 function markerDisplaySize(role: ReturnType<typeof cityRole>, compact: boolean, selected: boolean): number {
-  const base = role === 'capital' ? 54 : role === 'frontier' ? 48 : role === 'fort' ? 46 : role === 'port' ? 45 : 42;
-  const compactScale = compact ? 0.72 : 1;
-  const selectedScale = selected ? 1.24 : 1;
+  const base = role === 'capital' ? 50 : role === 'frontier' ? 45 : role === 'fort' ? 43 : role === 'port' ? 42 : 39;
+  const compactScale = compact ? 0.68 : 0.88;
+  const selectedScale = selected ? 1.16 : 1;
   return Math.round(base * compactScale * selectedScale);
-}
-
-function rulerSurname(ruler?: Ruler): string {
-  if (!ruler || ruler.id === 'neutral' || !ruler.name) {
-    return '无';
-  }
-  if (ruler.name.startsWith('公孙')) {
-    return '公孙';
-  }
-  return ruler.name.slice(0, 1);
 }
 
 function colorToNumber(color: string): number {
