@@ -54,6 +54,8 @@ type BattleOutcome struct {
 	DefenderLosses    int      `json:"defenderLosses"`
 	Captured          bool     `json:"captured"`
 	CapturedGenerals  []string `json:"capturedGenerals"`
+	ExperienceGained  int      `json:"experienceGained"`
+	LevelUps          []string `json:"levelUps"`
 	Message           string   `json:"message"`
 }
 
@@ -261,10 +263,21 @@ func (s *GameState) ApplyBattlePlan(fromCityID string, generalIDs []string, targ
 // (player or AI). Callers are responsible for validating ownership/adjacency
 // and ensuring the general can act. The conquered city is transferred to the
 // attacking general's owner.
+//
+// Now includes faithful port of C source FgtCount.c damage formula:
+//
+//	at = Force * (Level+10) * AtkModulus[armsType]
+//	df = IQ * (Level+10) * DfModulus[armsType]
+//	hurt = (at/df) * (arms/8) * SubduModu[atkArms][defArms] + 10
 func (s *GameState) resolveAttack(from *City, general *General, target *City) *BattleOutcome {
 	general.Stamina -= battleStaminaCost
 
-	// Attacker strength: the marching general's army, boosted by 武力/民忠 morale.
+	// Attacker strength: use full damage formula from FgtCount.c
+	atkArmsType := armsTypeToInt(general.ArmsType)
+	atkForce := float64(general.Force) * float64(general.Level+10) * atkModulus[atkArmsType]
+	defArmsType := armsTypeToInt(s.getDefenderArmsType(target.ID))
+	defIQ := float64(s.getDefenderIQ(target.ID)) * 10 // simplified: use avg IQ * (Level+10) approx
+
 	attackArms := general.Soldiers + general.Soldiers*general.Force/200
 	defendArms := s.cityTroops(target.ID)
 	// Defender morale bonus from city devotion (民心向背).
@@ -274,6 +287,16 @@ func (s *GameState) resolveAttack(from *City, general *General, target *City) *B
 
 	randv := battleRand(101)
 	won := resolveBattleWon(attackArms, defendArms, from.Food, target.Food, randv)
+
+	// Calculate battle damage with subdue matrix if battle occurs
+	var rawDamage int
+	if won {
+		rawDamage = s.calculateBattleDamage(general, target, atkForce, defIQ, atkArmsType, defArmsType)
+	} else {
+		rawDamage = s.calculateBattleDamage(general, target, atkForce, defIQ, atkArmsType, defArmsType)
+		// Attacker loses more when defeated
+		rawDamage = rawDamage * 3 / 2
+	}
 
 	outcome := &BattleOutcome{
 		FromCityID:        from.ID,
@@ -295,12 +318,17 @@ func (s *GameState) resolveAttack(from *City, general *General, target *City) *B
 		Won:               won,
 	}
 
+	defenderLevel := s.getDefenderLevel(target.ID)
 	if won {
 		// Attacker loses a modest share; defender is routed.
 		attackerLoss := minInt(general.Soldiers, general.Soldiers*(20+randv/4)/100)
 		general.Soldiers -= attackerLoss
 		outcome.AttackerLosses = attackerLoss
 		outcome.DefenderLosses = s.routDefenders(target.ID)
+		// 经验结算：胜利获得 sqrt(伤害)/4 + 击杀奖励
+		exp := battleExp(rawDamage, general.Level, defenderLevel)
+		exp += killBonusExp(general.Level, defenderLevel)
+		s.awardBattleExperience(general, exp, outcome)
 		outcome.CapturedGenerals = s.captureCity(target, general)
 		outcome.Captured = true
 		outcome.Message = fmt.Sprintf("%s军 %s 自 %s 攻克 %s，损兵%d，歼敌%d%s。",
@@ -318,6 +346,9 @@ func (s *GameState) resolveAttack(from *City, general *General, target *City) *B
 		general.Soldiers -= attackerLoss
 		outcome.AttackerLosses = attackerLoss
 		outcome.DefenderLosses = s.lightDefenderLosses(target.ID, randv)
+		// 失败也获得少量经验（基于造成的伤害）
+		exp := battleExp(rawDamage, general.Level, defenderLevel)
+		s.awardBattleExperience(general, exp, outcome)
 		outcome.Message = fmt.Sprintf("%s军 %s 自 %s 进攻 %s 失利，损兵%d，守军损%d。",
 			outcome.AttackerRulerName,
 			general.Name,
@@ -330,6 +361,49 @@ func (s *GameState) resolveAttack(from *City, general *General, target *City) *B
 
 	s.prependLog(outcome.Message)
 	return outcome
+}
+
+// awardBattleExperience grants experience to a general and records any level-ups
+// in the outcome. Logs a notice when the general levels up.
+func (s *GameState) awardBattleExperience(general *General, exp int, outcome *BattleOutcome) {
+	outcome.ExperienceGained += exp
+	levels := general.gainExperience(exp)
+	if levels > 0 {
+		outcome.LevelUps = append(outcome.LevelUps, general.Name)
+		s.prependLog(fmt.Sprintf("%s 经验充足，晋升至 %d 级！", general.Name, general.Level))
+	}
+}
+
+// awardPlannedExperience distributes battle experience across a group of
+// attacking generals, using enemy losses as the equivalent damage value.
+// When `killed` is true, each general also receives a kill bonus.
+func (s *GameState) awardPlannedExperience(generals []*General, enemyLosses, defenderLevel int, killed bool, outcome *BattleOutcome) {
+	if len(generals) == 0 {
+		return
+	}
+	// 伤害按参战武将均摊，避免人多时单将经验过高
+	share := enemyLosses / len(generals)
+	for _, g := range generals {
+		exp := battleExp(share, g.Level, defenderLevel)
+		if killed {
+			exp += killBonusExp(g.Level, defenderLevel)
+		}
+		s.awardBattleExperience(g, exp, outcome)
+	}
+}
+
+// getDefenderLevel returns the level of the lead defender (highest level) in a city.
+func (s *GameState) getDefenderLevel(cityID string) int {
+	best := 1
+	for i := range s.Generals {
+		g := &s.Generals[i]
+		if g.CityID == cityID && !g.Captive && g.Soldiers > 0 {
+			if g.Level > best {
+				best = g.Level
+			}
+		}
+	}
+	return best
 }
 
 func (s *GameState) resolvePlannedAttack(from *City, generals []*General, target *City, money, food, remainingFood, fieldAdvantage int) *BattleOutcome {
@@ -383,10 +457,13 @@ func (s *GameState) resolvePlannedAttack(from *City, generals []*General, target
 
 	totalSoldiers := totalGeneralSoldiers(generals)
 	forceLabel := battleForceLabel(generalNames)
+	defenderLevel := s.getDefenderLevel(target.ID)
 	if won {
 		attackerLoss := minInt(totalSoldiers, totalSoldiers*(20+randv/4)/100)
 		outcome.AttackerLosses = applyGeneralLosses(generals, attackerLoss)
 		outcome.DefenderLosses = s.routDefenders(target.ID)
+		// 经验结算：以歼敌数作为等效伤害，每位参战武将分得经验+击杀奖励
+		s.awardPlannedExperience(generals, outcome.DefenderLosses, defenderLevel, true, outcome)
 		outcome.CapturedGenerals = s.captureCityWithAttackers(target, lead.OwnerID, generals)
 		outcome.Captured = true
 		outcome.Message = fmt.Sprintf("%s军 %s 自 %s 携金%d粮%d 攻克 %s，损兵%d，歼敌%d%s。",
@@ -404,6 +481,8 @@ func (s *GameState) resolvePlannedAttack(from *City, generals []*General, target
 		attackerLoss := minInt(totalSoldiers, totalSoldiers*(40+randv/3)/100)
 		outcome.AttackerLosses = applyGeneralLosses(generals, attackerLoss)
 		outcome.DefenderLosses = s.lightDefenderLosses(target.ID, randv)
+		// 失败时按守军损失分得少量经验，无击杀奖励
+		s.awardPlannedExperience(generals, outcome.DefenderLosses, defenderLevel, false, outcome)
 		outcome.Message = fmt.Sprintf("%s军 %s 自 %s 进攻 %s 失利，耗金%d粮%d，损兵%d，守军损%d。",
 			outcome.AttackerRulerName,
 			forceLabel,
@@ -644,4 +723,49 @@ func applyBattleCityAftermath(city *City, attackerRemainingFood int) {
 
 func clampInt(value, minValue, maxValue int) int {
 	return maxInt(minValue, minInt(maxValue, value))
+}
+
+// getDefenderArmsType returns the primary arms type of defenders in a city
+func (s *GameState) getDefenderArmsType(cityID string) string {
+	for i := range s.Generals {
+		g := &s.Generals[i]
+		if g.CityID == cityID && !g.Captive && g.Soldiers > 0 {
+			return g.ArmsType
+		}
+	}
+	return "步兵" // default
+}
+
+// getDefenderIQ returns the average IQ of defenders in a city
+func (s *GameState) getDefenderIQ(cityID string) int {
+	totalIQ := 0
+	count := 0
+	for i := range s.Generals {
+		g := &s.Generals[i]
+		if g.CityID == cityID && !g.Captive && g.Soldiers > 0 {
+			totalIQ += g.Intellect
+			count++
+		}
+	}
+	if count == 0 {
+		return 50
+	}
+	return totalIQ / count
+}
+
+// calculateBattleDamage ports the FgtCount.c CountAtkHurt formula:
+//
+//	hurt = (at/df) * (arms/8) * SubduModu[atkArms][defArms] + 10
+//
+// This gives the raw damage before applying loss ratios.
+func (s *GameState) calculateBattleDamage(attacker *General, target *City, atkForce, defDF float64, atkArmsType, defArmsType int) int {
+	if defDF <= 0 {
+		defDF = 1.0 // avoid divide by zero
+	}
+	rawHurt := (atkForce / defDF) * (float64(attacker.Soldiers) / 8.0)
+	// Apply subdue matrix (兵种相克)
+	subdue := subdueModu[atkArmsType][defArmsType]
+	rawHurt *= subdue
+	rawHurt += 10 // +10 prevents stalemate when both sides have tiny armies
+	return int(rawHurt)
 }

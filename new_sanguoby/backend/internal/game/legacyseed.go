@@ -135,17 +135,21 @@ func buildGameFromScenario(sc *legacyres.Scenario, playerID string) *GameState {
 			level = 1
 		}
 		generals = append(generals, General{
-			ID:        fmt.Sprintf("gen-%d", p.Index),
-			Name:      p.Name,
-			OwnerID:   ownerID,
-			CityID:    cityID,
-			Level:     level,
-			Force:     p.Force,
-			Intellect: p.IQ,
-			Loyalty:   p.Devotion,
-			Stamina:   100,
-			Soldiers:  initialSoldiers(p.Force),
-			ArmsType:  p.ArmsType,
+			ID:         fmt.Sprintf("gen-%d", p.Index),
+			Name:       p.Name,
+			OwnerID:    ownerID,
+			CityID:     cityID,
+			Level:      level,
+			Force:      p.Force,
+			Intellect:  p.IQ,
+			Loyalty:    p.Devotion,
+			Character:  characterToInt(p.Character),
+			Experience: 0,
+			Stamina:    100,
+			Soldiers:   initialSoldiers(p.Force),
+			ArmsType:   p.ArmsType,
+			Equip:      [2]int{0, 0},
+			Age:        int(p.Age),
 		})
 		usedPersons[personIndex] = true
 	}
@@ -197,17 +201,21 @@ func buildGameFromScenario(sc *legacyres.Scenario, playerID string) *GameState {
 			}
 		}
 		generals = append(generals, General{
-			ID:        fmt.Sprintf("ruler-gen-%d", idx),
-			Name:      name,
-			OwnerID:   ownerID,
-			CityID:    cityID,
-			Level:     level,
-			Force:     force,
-			Intellect: iq,
-			Loyalty:   devotion,
-			Stamina:   100,
-			Soldiers:  initialSoldiers(force),
-			ArmsType:  arms,
+			ID:         fmt.Sprintf("ruler-gen-%d", idx),
+			Name:       name,
+			OwnerID:    ownerID,
+			CityID:     cityID,
+			Level:      level,
+			Force:      force,
+			Intellect:  iq,
+			Loyalty:    devotion,
+			Character:  2, // 默认贪财
+			Experience: 0,
+			Stamina:    100,
+			Soldiers:   initialSoldiers(force),
+			ArmsType:   arms,
+			Equip:      [2]int{0, 0},
+			Age:        30,
 		})
 		rulerHasGeneral[ownerID] = true
 	}
@@ -251,6 +259,23 @@ func periodFromScenarioID(scenarioID string) int {
 		return 4
 	default:
 		return 1
+	}
+}
+
+func characterToInt(char string) int {
+	switch char {
+	case "卤莽":
+		return 0
+	case "怕死":
+		return 1
+	case "贪财":
+		return 2
+	case "大志":
+		return 3
+	case "忠义":
+		return 4
+	default:
+		return 2
 	}
 }
 

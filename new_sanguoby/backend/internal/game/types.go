@@ -5,8 +5,11 @@ import "fmt"
 type CityState string
 
 const (
-	CityStateNormal CityState = "normal"
-	CityStateFamine CityState = "famine"
+	CityStateNormal    CityState = "normal"    // 正常
+	CityStateFamine    CityState = "famine"    // 饥荒
+	CityStateDrought   CityState = "drought"   // 旱灾
+	CityStateFlood     CityState = "flood"     // 水灾
+	CityStateRebellion CityState = "rebellion" // 暴动
 )
 
 type Date struct {
@@ -27,6 +30,7 @@ type City struct {
 	X               int       `json:"x"`
 	Y               int       `json:"y"`
 	OwnerID         string    `json:"ownerId"`
+	SatrapID        string    `json:"satrapId"` // 太守武将ID
 	State           CityState `json:"state"`
 	FarmingLimit    int       `json:"farmingLimit"`
 	Farming         int       `json:"farming"`
@@ -38,22 +42,27 @@ type City struct {
 	Population      int       `json:"population"`
 	Money           int       `json:"money"`
 	Food            int       `json:"food"`
+	MothballArms    int       `json:"mothballArms"` // 后备兵力
 	Garrison        int       `json:"garrison"`
 }
 
 type General struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	OwnerID   string `json:"ownerId"`
-	CityID    string `json:"cityId"`
-	Level     int    `json:"level"`
-	Force     int    `json:"force"`
-	Intellect int    `json:"intellect"`
-	Loyalty   int    `json:"loyalty"`
-	Stamina   int    `json:"stamina"`
-	Soldiers  int    `json:"soldiers"`
-	ArmsType  string `json:"armsType"`
-	Captive   bool   `json:"captive"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	OwnerID    string `json:"ownerId"`
+	CityID     string `json:"cityId"`
+	Level      int    `json:"level"`
+	Force      int    `json:"force"`
+	Intellect  int    `json:"intellect"`
+	Loyalty    int    `json:"loyalty"`
+	Character  int    `json:"character"` // 0卤莽 1怕死 2贪财 3大志 4忠义
+	Experience int    `json:"experience"`
+	Stamina    int    `json:"stamina"`
+	Soldiers   int    `json:"soldiers"`
+	ArmsType   string `json:"armsType"` // 骑兵/步兵/弓箭兵/水军/极兵/玄兵
+	Equip      [2]int `json:"equip"`    // 装备道具ID
+	Age        int    `json:"age"`
+	Captive    bool   `json:"captive"`
 }
 
 type Route struct {

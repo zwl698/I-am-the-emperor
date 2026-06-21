@@ -3,6 +3,7 @@ package game
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"strings"
 )
 
@@ -129,16 +130,7 @@ func (s *GameState) ApplyCommandDetailed(cityID, generalID, commandID, targetCit
 		city.Commerce = minInt(city.CommerceLimit, city.Commerce+gain)
 		s.prependLog(fmt.Sprintf("%s 在 %s 招商，商业 +%d。", general.Name, city.Name, city.Commerce-before))
 	case "search":
-		bonus := 0
-		if general.Intellect >= 80 {
-			bonus = 80 + general.Intellect
-			city.Money = minInt(maxResourceValue, city.Money+bonus)
-		}
-		if bonus > 0 {
-			s.prependLog(fmt.Sprintf("%s 搜寻 %s，寻得金%d。", general.Name, city.Name, bonus))
-		} else {
-			s.prependLog(fmt.Sprintf("%s 搜寻 %s，暂无线索。", general.Name, city.Name))
-		}
+		s.searchForTalent(general, city)
 	case "govern":
 		devotionGain := 4 + general.Intellect/12
 		calamityGain := 3 + general.Intellect/18
@@ -208,10 +200,12 @@ func (s *GameState) ApplyCommandDetailed(cityID, generalID, commandID, targetCit
 		general.CityID = target.ID
 		s.prependLog(fmt.Sprintf("%s 从 %s 移动至 %s。", general.Name, city.Name, target.Name))
 	case "conscription":
-		recruits := 120 + general.Force*8
-		city.Population -= recruits * 2
-		general.Soldiers += recruits
-		s.prependLog(fmt.Sprintf("%s 在 %s 征兵，兵力 +%d。", general.Name, city.Name, recruits))
+		recruits := s.conscript(general, city)
+		if recruits > 0 {
+			s.prependLog(fmt.Sprintf("%s 在 %s 征兵 %d，入后备军，耗金%d。", general.Name, city.Name, recruits, recruits/armsPerMoney))
+		} else {
+			s.prependLog(fmt.Sprintf("%s 在 %s 征兵，但金钱或民心不足。", general.Name, city.Name))
+		}
 	case "reconnoitre":
 		enemyCities := s.adjacentCitiesByOwner(city.ID, func(ownerID string) bool {
 			return ownerID != city.OwnerID
@@ -239,12 +233,12 @@ func (s *GameState) ApplyCommandDetailed(cityID, generalID, commandID, targetCit
 	case "induce":
 		s.induceAdjacentCity(general, city)
 	case "distribute":
-		moved := minInt(city.Garrison, 300)
+		moved := s.distribute(general, city)
 		if moved > 0 {
-			city.Garrison -= moved
-			general.Soldiers += moved
+			s.prependLog(fmt.Sprintf("%s 在 %s 分配后备军 %d，现统兵 %d/%d。", general.Name, city.Name, moved, general.Soldiers, general.MaxArms()))
+		} else {
+			s.prependLog(fmt.Sprintf("%s 在 %s 分配兵力，但无后备军可分或已满编。", general.Name, city.Name))
 		}
-		s.prependLog(fmt.Sprintf("%s 在 %s 分配兵力。", general.Name, city.Name))
 	case "depredate":
 		gain := 50 + general.Force
 		city.Food = minInt(maxResourceValue, city.Food+gain)
@@ -291,6 +285,59 @@ func commandSpec(commandID string) (CommandSpec, bool) {
 		}
 	}
 	return CommandSpec{}, false
+}
+
+// searchForTalent mirrors SearchDrv (citycmd.c): a general searches the city
+// region for unaffiliated (在野) talent. The chance of recruiting scales with
+// the searcher's intellect (rand%150 < IQ), and a found general joins with
+// high initial loyalty (70 + rand%30). If no talent is found, a small amount
+// of money may be discovered instead.
+func (s *GameState) searchForTalent(general *General, city *City) {
+	// 搜寻概率：rand()%150 < 智力
+	if rand.Intn(150) < general.Intellect {
+		recruit := s.findNeutralGeneral(city.ID, general.ID)
+		if recruit != nil {
+			recruit.OwnerID = city.OwnerID
+			recruit.CityID = city.ID
+			recruit.Captive = false
+			recruit.Loyalty = 70 + rand.Intn(30)
+			recruit.Soldiers = 0
+			recruit.Stamina = 100
+			s.prependLog(fmt.Sprintf("%s 在 %s 搜寻到在野贤才 %s，已招入麾下（忠诚%d）！", general.Name, city.Name, recruit.Name, recruit.Loyalty))
+			return
+		}
+	}
+	// 未搜到人才：高智力者偶得财货
+	if general.Intellect >= 80 && rand.Intn(100) < general.Intellect/2 {
+		bonus := 80 + general.Intellect
+		city.Money = minInt(maxResourceValue, city.Money+bonus)
+		s.prependLog(fmt.Sprintf("%s 搜寻 %s，未遇贤才，但寻得金%d。", general.Name, city.Name, bonus))
+		return
+	}
+	s.prependLog(fmt.Sprintf("%s 搜寻 %s，暂无线索。", general.Name, city.Name))
+}
+
+// findNeutralGeneral returns a recruitable unaffiliated general located in or
+// associated with the given city (neutral owner or no owner), excluding the
+// searcher itself.
+func (s *GameState) findNeutralGeneral(cityID, searcherID string) *General {
+	var fallback *General
+	for i := range s.Generals {
+		g := &s.Generals[i]
+		if g.ID == searcherID || g.Captive {
+			continue
+		}
+		if g.OwnerID == "" || g.OwnerID == "neutral" {
+			// 优先搜寻本城在野武将
+			if g.CityID == cityID {
+				return g
+			}
+			if fallback == nil {
+				fallback = g
+			}
+		}
+	}
+	return fallback
 }
 
 func (s *GameState) findCity(id string) *City {
@@ -491,7 +538,9 @@ func (s *GameState) alienateEnemyGeneral(general *General, city *City) {
 		s.prependLog(fmt.Sprintf("%s 离间无门，%s 附近未见敌将。", general.Name, city.Name))
 		return
 	}
-	loss := 6 + general.Intellect/20
+	// 离间效果受目标武将性格影响 (ALIENATE_*)
+	baseLoss := alienateOdds[target.Character]
+	loss := baseLoss + general.Intellect/20
 	target.Loyalty = maxInt(0, target.Loyalty-loss)
 	s.prependLog(fmt.Sprintf("%s 离间 %s，敌将忠诚 -%d。", general.Name, target.Name, loss))
 }
@@ -502,8 +551,10 @@ func (s *GameState) canvassEnemyGeneral(general *General, city *City) {
 		s.prependLog(fmt.Sprintf("%s 招揽无门，%s 附近未见敌将。", general.Name, city.Name))
 		return
 	}
+	// 招揽受目标性格影响 (CANVASS_*)
 	score := general.Intellect + (100 - target.Loyalty)
-	if score >= 120 {
+	baseProb := canvassOdds[target.Character]
+	if score >= 120 || (score >= 80 && rand.Intn(100) < baseProb) {
 		target.OwnerID = city.OwnerID
 		target.CityID = city.ID
 		target.Captive = false
